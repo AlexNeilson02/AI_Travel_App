@@ -38,15 +38,18 @@ export const insertUserSchema = createInsertSchema(users)
     lastName: z.string().min(1, "Last name is required"),
   });
 
-export const insertTripSchema = createInsertSchema(trips).pick({
-  title: true,
-  destination: true,
-  startDate: true,
-  endDate: true,
-  budget: true,
-  preferences: true,
-  activities: true,
-});
+export const insertTripSchema = createInsertSchema(trips)
+  .pick({
+    title: true,
+    destination: true,
+    budget: true,
+    preferences: true,
+    activities: true,
+  })
+  .extend({
+    startDate: z.coerce.date(),
+    endDate: z.coerce.date(),
+  });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;

@@ -53,7 +53,14 @@ export default function PlanTrip() {
 
   const createTripMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/trips", data);
+      const formattedData = {
+        ...data,
+        startDate: new Date(data.startDate).toISOString(),
+        endDate: new Date(data.endDate).toISOString(),
+        preferences: data.preferences || [],
+        activities: data.activities || [],
+      };
+      const res = await apiRequest("POST", "/api/trips", formattedData);
       return res.json();
     },
     onSuccess: () => {
@@ -76,10 +83,10 @@ export default function PlanTrip() {
   const onSubmit = (data: any) => {
     suggestMutation.mutate({
       destination: data.destination,
-      preferences: data.preferences,
+      preferences: data.preferences || [],
       budget: data.budget,
       duration: Math.ceil(
-        (data.endDate.getTime() - data.startDate.getTime()) / (1000 * 3600 * 24)
+        (new Date(data.endDate).getTime() - new Date(data.startDate).getTime()) / (1000 * 3600 * 24)
       ),
     });
   };
@@ -87,7 +94,7 @@ export default function PlanTrip() {
   return (
     <div className="min-h-screen bg-background">
       <Nav />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid lg:grid-cols-2 gap-8">
           <div>
@@ -105,7 +112,7 @@ export default function PlanTrip() {
                         </label>
                         <Input {...form.register("title")} />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium mb-2">
                           Destination
@@ -223,7 +230,7 @@ export default function PlanTrip() {
                         </div>
                       </div>
                     ))}
-                    
+
                     <div className="mt-6">
                       <h3 className="font-medium mb-2">Tips</h3>
                       <ul className="list-disc list-inside space-y-1 text-sm">
