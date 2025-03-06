@@ -101,7 +101,9 @@ export default function MyTrips() {
                 </div>
 
                 <CardHeader>
-                  <CardTitle>{trip.title}</CardTitle>
+                  <CardTitle className="hover:underline">
+                    <a href={`/trip/${trip.id}`}>{trip.title}</a>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -131,6 +133,11 @@ export default function MyTrips() {
                           </span>
                         ))}
                       </div>
+                    </div>
+                    <div className="mt-4">
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={`/trip/${trip.id}`}>View Details</a>
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
