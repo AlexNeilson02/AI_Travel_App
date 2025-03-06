@@ -102,7 +102,7 @@ export default function MyTrips() {
 
                 <CardHeader>
                   <CardTitle className="hover:underline">
-                    <a href={`/trip/${trip.id}`}>{trip.title}</a>
+                    <a href={`/trip-details/${trip.id}`}>{trip.title}</a>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -136,7 +136,7 @@ export default function MyTrips() {
                     </div>
                     <div className="mt-4">
                       <Button variant="outline" size="sm" asChild>
-                        <a href={`/trip/${trip.id}`}>View Details</a>
+                        <a href={`/trip-details/${trip.id}`}>View Details</a>
                       </Button>
                     </div>
                   </div>

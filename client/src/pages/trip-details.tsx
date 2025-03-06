@@ -1,3 +1,4 @@
+
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Trip } from "@shared/schema";
@@ -25,7 +26,7 @@ export default function TripDetails() {
             <ArrowLeft className="h-4 w-4 mr-2" /> Back to My Trips
           </a>
         </Button>
-
+        
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <Loader2 className="h-8 w-8 animate-spin" />
