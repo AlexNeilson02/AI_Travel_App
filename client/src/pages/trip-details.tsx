@@ -12,7 +12,7 @@ export default function TripDetails() {
   const id = params?.id;
 
   const { data: trip, isLoading } = useQuery<Trip>({
-    queryKey: ["/api/trips", id],
+    queryKey: [`/api/trips/${id}`],
     enabled: !!id,
   });
 
