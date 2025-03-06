@@ -6,6 +6,9 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  email: text("email").notNull().unique(),
 });
 
 export const trips = pgTable("trips", {
@@ -21,10 +24,19 @@ export const trips = pgTable("trips", {
   isActive: boolean("is_active").notNull().default(true),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
+export const insertUserSchema = createInsertSchema(users)
+  .pick({
+    username: true,
+    password: true,
+    firstName: true,
+    lastName: true,
+    email: true,
+  })
+  .extend({
+    email: z.string().email("Invalid email address"),
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+  });
 
 export const insertTripSchema = createInsertSchema(trips).pick({
   title: true,

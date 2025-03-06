@@ -21,7 +21,7 @@ export default function AuthPage() {
   }, [user, setLocation]);
 
   const loginForm = useForm({
-    resolver: zodResolver(insertUserSchema),
+    resolver: zodResolver(insertUserSchema.pick({ username: true, password: true })),
   });
 
   const registerForm = useForm({
@@ -78,6 +78,30 @@ export default function AuthPage() {
                   )}
                   className="space-y-4"
                 >
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="register-firstName">First Name</Label>
+                      <Input
+                        id="register-firstName"
+                        {...registerForm.register("firstName")}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="register-lastName">Last Name</Label>
+                      <Input
+                        id="register-lastName"
+                        {...registerForm.register("lastName")}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="register-email">Email</Label>
+                    <Input
+                      id="register-email"
+                      type="email"
+                      {...registerForm.register("email")}
+                    />
+                  </div>
                   <div>
                     <Label htmlFor="register-username">Username</Label>
                     <Input
