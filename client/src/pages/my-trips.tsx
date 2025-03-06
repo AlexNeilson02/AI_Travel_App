@@ -48,6 +48,22 @@ export default function MyTrips() {
     },
   });
 
+  // Function to prefetch trip details
+  const prefetchTripDetails = (tripId: number) => {
+    queryClient.prefetchQuery({
+      queryKey: ["/api/trips", tripId.toString()],
+      queryFn: async () => {
+        const response = await fetch(`/api/trips/${tripId}`, {
+          credentials: 'include'
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch trip details');
+        }
+        return response.json();
+      }
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Nav />
@@ -103,7 +119,12 @@ export default function MyTrips() {
 
                 <CardHeader>
                   <CardTitle>
-                    <Link href={`/trip/${trip.id}`}>{trip.title}</Link>
+                    <Link 
+                      href={`/trip/${trip.id}`}
+                      onMouseEnter={() => prefetchTripDetails(trip.id)}
+                    >
+                      {trip.title}
+                    </Link>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -123,7 +144,13 @@ export default function MyTrips() {
                     </div>
 
                     <div className="mt-4">
-                      <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full" 
+                        asChild
+                        onMouseEnter={() => prefetchTripDetails(trip.id)}
+                      >
                         <Link href={`/trip/${trip.id}`}>View Details</Link>
                       </Button>
                     </div>
