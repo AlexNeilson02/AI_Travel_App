@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { CalendarIcon, DollarSign, Send, Edit2, Check, X } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -17,6 +17,8 @@ import { format } from "date-fns";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 export default function PlanTrip() {
   const { toast } = useToast();
@@ -35,8 +37,14 @@ export default function PlanTrip() {
       startDate: new Date(),
       endDate: new Date(),
       budget: 0,
-      preferences: [],
-      activities: [],
+      preferences: {
+        accommodationType: [],
+        activityTypes: [],
+        activityFrequency: "moderate",
+        mustSeeAttractions: [],
+        dietaryRestrictions: [],
+        transportationPreferences: [],
+      },
     },
   });
 
@@ -78,16 +86,39 @@ export default function PlanTrip() {
   const createTripMutation = useMutation({
     mutationFn: async (data: any) => {
       console.log('Creating trip with data:', data);
-      const formattedData = {
+      // First create the trip
+      const tripRes = await apiRequest("POST", "/api/trips", {
         ...data,
         startDate: new Date(data.startDate).toISOString(),
         endDate: new Date(data.endDate).toISOString(),
-        preferences: data.preferences || [],
-        activities: suggestions?.days.map((day: any) => day.activities).flat() || [],
-      };
-      console.log('Formatted trip data:', formattedData);
-      const res = await apiRequest("POST", "/api/trips", formattedData);
-      return res.json();
+      });
+      const trip = await tripRes.json();
+
+      // Then create trip days for each suggested day
+      if (suggestions?.days) {
+        for (const day of suggestions.days) {
+          await apiRequest("POST", `/api/trips/${trip.id}/days`, {
+            tripId: trip.id,
+            date: new Date(day.date).toISOString(),
+            activities: {
+              timeSlots: day.activities.map((activity: any) => ({
+                time: activity.time || "00:00",
+                activity: activity.name,
+                location: activity.location || "TBD",
+                duration: activity.duration || "2 hours",
+                notes: "",
+                isEdited: false,
+              })),
+            },
+            aiSuggestions: {
+              reasoning: "Initial AI suggestion",
+              alternativeActivities: [],
+            },
+          });
+        }
+      }
+
+      return trip;
     },
     onSuccess: () => {
       toast({
@@ -121,22 +152,20 @@ export default function PlanTrip() {
     // Trigger new suggestions with updated chat history
     suggestMutation.mutate({
       destination: form.getValues().destination,
-      preferences: form.getValues().preferences || [],
+      preferences: form.getValues().preferences,
       budget: form.getValues().budget,
-      duration: Math.ceil(
-        (new Date(form.getValues().endDate).getTime() - new Date(form.getValues().startDate).getTime()) / (1000 * 3600 * 24)
-      ),
+      startDate: form.getValues().startDate,
+      endDate: form.getValues().endDate,
     });
   };
 
   const onSubmit = (data: any) => {
     suggestMutation.mutate({
       destination: data.destination,
-      preferences: data.preferences || [],
+      preferences: data.preferences,
       budget: data.budget,
-      duration: Math.ceil(
-        (new Date(data.endDate).getTime() - new Date(data.startDate).getTime()) / (1000 * 3600 * 24)
-      ),
+      startDate: data.startDate,
+      endDate: data.endDate,
     });
   };
 
@@ -247,6 +276,154 @@ export default function PlanTrip() {
                           />
                         </div>
                       </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Accommodation Type
+                        </label>
+                        <Select
+                          onValueChange={(value) => {
+                            const current = form.getValues("preferences.accommodationType");
+                            if (!current.includes(value)) {
+                              form.setValue("preferences.accommodationType", [...current, value]);
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select accommodation types" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="hotel">Hotel</SelectItem>
+                            <SelectItem value="hostel">Hostel</SelectItem>
+                            <SelectItem value="apartment">Apartment</SelectItem>
+                            <SelectItem value="resort">Resort</SelectItem>
+                            <SelectItem value="camping">Camping</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {form.watch("preferences.accommodationType").map((type: string) => (
+                            <Badge
+                              key={type}
+                              variant="secondary"
+                              className="cursor-pointer"
+                              onClick={() => {
+                                const current = form.getValues("preferences.accommodationType");
+                                form.setValue(
+                                  "preferences.accommodationType",
+                                  current.filter((t: string) => t !== type)
+                                );
+                              }}
+                            >
+                              {type} <X className="h-3 w-3 ml-1" />
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Activity Types
+                        </label>
+                        <Select
+                          onValueChange={(value) => {
+                            const current = form.getValues("preferences.activityTypes");
+                            if (!current.includes(value)) {
+                              form.setValue("preferences.activityTypes", [...current, value]);
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select activity types" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="outdoor">Outdoor</SelectItem>
+                            <SelectItem value="cultural">Cultural</SelectItem>
+                            <SelectItem value="food">Food & Dining</SelectItem>
+                            <SelectItem value="shopping">Shopping</SelectItem>
+                            <SelectItem value="relaxation">Relaxation</SelectItem>
+                            <SelectItem value="adventure">Adventure</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {form.watch("preferences.activityTypes").map((type: string) => (
+                            <Badge
+                              key={type}
+                              variant="secondary"
+                              className="cursor-pointer"
+                              onClick={() => {
+                                const current = form.getValues("preferences.activityTypes");
+                                form.setValue(
+                                  "preferences.activityTypes",
+                                  current.filter((t: string) => t !== type)
+                                );
+                              }}
+                            >
+                              {type} <X className="h-3 w-3 ml-1" />
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Activity Frequency
+                        </label>
+                        <Select
+                          onValueChange={(value) => form.setValue("preferences.activityFrequency", value)}
+                          defaultValue={form.getValues("preferences.activityFrequency")}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="relaxed">Relaxed</SelectItem>
+                            <SelectItem value="moderate">Moderate</SelectItem>
+                            <SelectItem value="intense">Intense</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Must-See Attractions
+                        </label>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Enter an attraction"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const value = e.currentTarget.value.trim();
+                                if (value) {
+                                  const current = form.getValues("preferences.mustSeeAttractions");
+                                  if (!current.includes(value)) {
+                                    form.setValue("preferences.mustSeeAttractions", [...current, value]);
+                                  }
+                                  e.currentTarget.value = '';
+                                }
+                              }
+                            }}
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {form.watch("preferences.mustSeeAttractions").map((attraction: string) => (
+                            <Badge
+                              key={attraction}
+                              variant="secondary"
+                              className="cursor-pointer"
+                              onClick={() => {
+                                const current = form.getValues("preferences.mustSeeAttractions");
+                                form.setValue(
+                                  "preferences.mustSeeAttractions",
+                                  current.filter((a: string) => a !== attraction)
+                                );
+                              }}
+                            >
+                              {attraction} <X className="h-3 w-3 ml-1" />
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
                     </div>
 
                     <Button
@@ -311,7 +488,9 @@ export default function PlanTrip() {
                     <div className="space-y-6">
                       {suggestions.days.map((day: any, index: number) => (
                         <div key={index}>
-                          <h3 className="font-medium mb-2">Day {day.day}</h3>
+                          <h3 className="font-medium mb-2">
+                            {day.dayOfWeek} - {format(new Date(day.date), "MMM d, yyyy")}
+                          </h3>
                           <div className="space-y-2">
                             {day.activities.map((activity: any, actIndex: number) => (
                               <div key={actIndex} className="flex items-center justify-between">
@@ -383,6 +562,9 @@ export default function PlanTrip() {
                         onClick={() => createTripMutation.mutate(form.getValues())}
                         disabled={createTripMutation.isPending}
                       >
+                        {createTripMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : null}
                         Save Trip
                       </Button>
                     </div>

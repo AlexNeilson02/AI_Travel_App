@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, trips, type User, type InsertUser, type Trip, type InsertTrip } from "@shared/schema";
+import { users, trips, tripDays, type User, type InsertUser, type Trip, type InsertTrip, type TripDay, type InsertTripDay } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -17,6 +17,11 @@ export interface IStorage {
   getUserTrips(userId: number): Promise<Trip[]>;
   updateTrip(id: number, trip: Partial<Trip>): Promise<Trip>;
   deleteTrip(id: number): Promise<void>;
+
+  createTripDay(tripDay: InsertTripDay): Promise<TripDay>;
+  getTripDays(tripId: number): Promise<TripDay[]>;
+  updateTripDay(id: number, tripDay: Partial<TripDay>): Promise<TripDay>;
+  deleteTripDay(id: number): Promise<void>;
 
   sessionStore: session.Store;
 }
@@ -86,6 +91,42 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTrip(id: number): Promise<void> {
     await this.updateTrip(id, { isActive: false });
+  }
+
+  // New methods for trip days
+  async createTripDay(tripDay: InsertTripDay): Promise<TripDay> {
+    const [newTripDay] = await db
+      .insert(tripDays)
+      .values(tripDay)
+      .returning();
+    return newTripDay;
+  }
+
+  async getTripDays(tripId: number): Promise<TripDay[]> {
+    return await db
+      .select()
+      .from(tripDays)
+      .where(eq(tripDays.tripId, tripId));
+  }
+
+  async updateTripDay(id: number, tripDayUpdate: Partial<TripDay>): Promise<TripDay> {
+    const [updatedTripDay] = await db
+      .update(tripDays)
+      .set(tripDayUpdate)
+      .where(eq(tripDays.id, id))
+      .returning();
+
+    if (!updatedTripDay) {
+      throw new Error("Trip day not found");
+    }
+
+    return updatedTripDay;
+  }
+
+  async deleteTripDay(id: number): Promise<void> {
+    await db
+      .delete(tripDays)
+      .where(eq(tripDays.id, id));
   }
 }
 

@@ -11,6 +11,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
 });
 
+// Enhanced trips table with more detailed preferences
 export const trips = pgTable("trips", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -19,9 +20,41 @@ export const trips = pgTable("trips", {
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
   budget: integer("budget").notNull(),
-  preferences: jsonb("preferences").notNull(),
-  activities: jsonb("activities").notNull(),
+  // Enhanced preferences structure
+  preferences: jsonb("preferences").notNull().$type<{
+    accommodationType: string[]; // e.g., ["hotel", "hostel", "apartment"]
+    activityTypes: string[]; // e.g., ["outdoor", "cultural", "food"]
+    activityFrequency: string; // e.g., "relaxed", "moderate", "intense"
+    mustSeeAttractions: string[];
+    dietaryRestrictions: string[];
+    transportationPreferences: string[];
+  }>(),
   isActive: boolean("is_active").notNull().default(true),
+});
+
+// New table for AI-generated daily itineraries
+export const tripDays = pgTable("trip_days", {
+  id: serial("id").primaryKey(),
+  tripId: integer("trip_id").notNull(),
+  date: timestamp("date").notNull(),
+  activities: jsonb("activities").notNull().$type<{
+    timeSlots: {
+      time: string;
+      activity: string;
+      location: string;
+      duration: string;
+      notes: string;
+      isEdited: boolean;
+      originalSuggestion?: string;
+    }[];
+  }>(),
+  aiSuggestions: jsonb("ai_suggestions").notNull().$type<{
+    reasoning: string;
+    weatherContext?: string;
+    alternativeActivities: string[];
+  }>(),
+  userFeedback: text("user_feedback"),
+  isFinalized: boolean("is_finalized").notNull().default(false),
 });
 
 export const insertUserSchema = createInsertSchema(users)
@@ -44,14 +77,31 @@ export const insertTripSchema = createInsertSchema(trips)
     destination: true,
     budget: true,
     preferences: true,
-    activities: true,
   })
   .extend({
     startDate: z.coerce.date(),
     endDate: z.coerce.date(),
+    preferences: z.object({
+      accommodationType: z.array(z.string()),
+      activityTypes: z.array(z.string()),
+      activityFrequency: z.string(),
+      mustSeeAttractions: z.array(z.string()),
+      dietaryRestrictions: z.array(z.string()),
+      transportationPreferences: z.array(z.string()),
+    }),
+  });
+
+export const insertTripDaySchema = createInsertSchema(tripDays)
+  .pick({
+    tripId: true,
+    date: true,
+    activities: true,
+    aiSuggestions: true,
   });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Trip = typeof trips.$inferSelect;
 export type InsertTrip = z.infer<typeof insertTripSchema>;
+export type TripDay = typeof tripDays.$inferSelect;
+export type InsertTripDay = z.infer<typeof insertTripDaySchema>;
