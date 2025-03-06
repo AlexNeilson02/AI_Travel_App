@@ -11,9 +11,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Trip routes
   app.post("/api/trips", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
+    console.log('Received trip creation request:', req.body);
     const tripData = insertTripSchema.parse(req.body);
+    console.log('Parsed trip data:', tripData);
     const trip = await storage.createTrip(req.user.id, tripData);
+    console.log('Created trip:', trip);
     res.status(201).json(trip);
   });
 
@@ -26,8 +29,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/trips/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
+    console.log('Fetching trip:', req.params.id);
     const trip = await storage.getTrip(parseInt(req.params.id));
+    console.log('Found trip:', trip);
     if (!trip || trip.userId !== req.user.id) {
       return res.sendStatus(404);
     }

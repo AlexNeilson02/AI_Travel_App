@@ -53,13 +53,15 @@ export default function PlanTrip() {
 
   const createTripMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log('Creating trip with data:', data);
       const formattedData = {
         ...data,
         startDate: new Date(data.startDate).toISOString(),
         endDate: new Date(data.endDate).toISOString(),
         preferences: data.preferences || [],
-        activities: data.activities || [],
+        activities: suggestions?.days.map((day: any) => day.activities).flat() || [],
       };
+      console.log('Formatted trip data:', formattedData);
       const res = await apiRequest("POST", "/api/trips", formattedData);
       return res.json();
     },
