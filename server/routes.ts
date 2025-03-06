@@ -138,7 +138,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const { preferences } = req.body;
     try {
-      const question = await getTripRefinementQuestions(preferences || []);
+      // Convert preferences object to array format
+      const flatPreferences = [
+        ...preferences.accommodationType.map((type: string) => `Accommodation: ${type}`),
+        ...preferences.activityTypes.map((type: string) => `Activity: ${type}`),
+        `Activity Frequency: ${preferences.activityFrequency}`,
+        ...preferences.mustSeeAttractions.map((attraction: string) => `Must See: ${attraction}`),
+        ...preferences.dietaryRestrictions.map((restriction: string) => `Dietary: ${restriction}`),
+        ...preferences.transportationPreferences.map((pref: string) => `Transportation: ${pref}`)
+      ];
+
+      const question = await getTripRefinementQuestions(flatPreferences);
       res.json({ question });
     } catch (error: any) {
       res.status(500).json({ message: error.message });

@@ -94,9 +94,11 @@ export const insertTripSchema = createInsertSchema(trips)
 export const insertTripDaySchema = createInsertSchema(tripDays)
   .pick({
     tripId: true,
-    date: true,
     activities: true,
     aiSuggestions: true,
+  })
+  .extend({
+    date: z.string().transform((str) => new Date(str)),
   });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
