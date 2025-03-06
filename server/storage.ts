@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { users, trips, type User, type InsertUser, type Trip, type InsertTrip } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -63,8 +63,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(trips)
-      .where(eq(trips.userId, userId))
-      .where(eq(trips.isActive, true));
+      .where(and(eq(trips.userId, userId), eq(trips.isActive, true)));
   }
 
   async updateTrip(id: number, tripUpdate: Partial<Trip>): Promise<Trip> {
