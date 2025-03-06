@@ -1,81 +1,83 @@
-import { User, InsertUser, Trip, InsertTrip } from "@shared/schema";
+import { db } from "./db";
+import { users, trips, type User, type InsertUser, type Trip, type InsertTrip } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
+
   createTrip(userId: number, trip: InsertTrip): Promise<Trip>;
   getTrip(id: number): Promise<Trip | undefined>;
   getUserTrips(userId: number): Promise<Trip[]>;
   updateTrip(id: number, trip: Partial<Trip>): Promise<Trip>;
   deleteTrip(id: number): Promise<void>;
-  
+
   sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private trips: Map<number, Trip>;
-  private currentUserId: number;
-  private currentTripId: number;
+export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.users = new Map();
-    this.trips = new Map();
-    this.currentUserId = 1;
-    this.currentTripId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
     });
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   async createTrip(userId: number, trip: InsertTrip): Promise<Trip> {
-    const id = this.currentTripId++;
-    const newTrip: Trip = { ...trip, id, userId, isActive: true };
-    this.trips.set(id, newTrip);
+    const [newTrip] = await db
+      .insert(trips)
+      .values({ ...trip, userId, isActive: true })
+      .returning();
     return newTrip;
   }
 
   async getTrip(id: number): Promise<Trip | undefined> {
-    return this.trips.get(id);
+    const [trip] = await db.select().from(trips).where(eq(trips.id, id));
+    return trip;
   }
 
   async getUserTrips(userId: number): Promise<Trip[]> {
-    return Array.from(this.trips.values()).filter(
-      (trip) => trip.userId === userId && trip.isActive
-    );
+    return await db
+      .select()
+      .from(trips)
+      .where(eq(trips.userId, userId))
+      .where(eq(trips.isActive, true));
   }
 
   async updateTrip(id: number, tripUpdate: Partial<Trip>): Promise<Trip> {
-    const existingTrip = await this.getTrip(id);
-    if (!existingTrip) {
+    const [updatedTrip] = await db
+      .update(trips)
+      .set(tripUpdate)
+      .where(eq(trips.id, id))
+      .returning();
+
+    if (!updatedTrip) {
       throw new Error("Trip not found");
     }
-    const updatedTrip = { ...existingTrip, ...tripUpdate };
-    this.trips.set(id, updatedTrip);
+
     return updatedTrip;
   }
 
@@ -84,4 +86,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
