@@ -1,5 +1,4 @@
-
-import { useParams } from "react-router-dom";
+import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Trip } from "@shared/schema";
 import { Nav } from "@/components/ui/nav";
@@ -9,17 +8,12 @@ import { Loader2, Calendar, DollarSign, MapPin, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 
 export default function TripDetails() {
-  const { id } = useParams<{ id: string }>();
-  
+  const params = useParams();
+  const id = params?.id;
+
   const { data: trip, isLoading } = useQuery<Trip>({
-    queryKey: [`trip-${id}`],
-    queryFn: async () => {
-      const res = await fetch(`/api/trips/${id}`);
-      if (!res.ok) {
-        throw new Error('Failed to fetch trip details');
-      }
-      return res.json();
-    },
+    queryKey: ["/api/trips", id],
+    enabled: !!id,
   });
 
   return (
@@ -31,7 +25,7 @@ export default function TripDetails() {
             <ArrowLeft className="h-4 w-4 mr-2" /> Back to My Trips
           </a>
         </Button>
-        
+
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -70,11 +64,11 @@ export default function TripDetails() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div>
                     <h3 className="font-medium mb-2">Preferences</h3>
                     <div className="flex flex-wrap gap-2">
-                      {(trip.preferences as any[]).map((preference, index) => (
+                      {(trip.preferences as string[]).map((preference, index) => (
                         <span
                           key={index}
                           className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary/80 text-secondary-foreground"
@@ -85,7 +79,7 @@ export default function TripDetails() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="mt-6">
                   <h3 className="font-medium mb-2">Activities</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
