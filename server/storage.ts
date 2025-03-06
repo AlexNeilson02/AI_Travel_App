@@ -55,7 +55,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTrip(id: number): Promise<Trip | undefined> {
-    const [trip] = await db.select().from(trips).where(eq(trips.id, id));
+    const [trip] = await db
+      .select()
+      .from(trips)
+      .where(eq(trips.id, id));
+    console.log('Retrieved trip from database:', trip);
     return trip;
   }
 

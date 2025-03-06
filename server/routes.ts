@@ -22,7 +22,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/trips", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const trips = await storage.getUserTrips(req.user.id);
     res.json(trips);
   });
@@ -41,7 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/trips/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const trip = await storage.getTrip(parseInt(req.params.id));
     if (!trip || trip.userId !== req.user.id) {
       return res.sendStatus(404);
@@ -52,7 +52,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/suggest-trip", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const { destination, preferences, budget, duration } = req.body;
     try {
       const suggestions = await generateTripSuggestions(
@@ -62,7 +62,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         duration
       );
       res.json(suggestions);
-    } catch (error) {
+    } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
