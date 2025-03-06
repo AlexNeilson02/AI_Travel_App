@@ -19,10 +19,11 @@ import {
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 
 export default function MyTrips() {
   const { toast } = useToast();
-  
+
   const { data: trips, isLoading } = useQuery<Trip[]>({
     queryKey: ["/api/trips"],
   });
@@ -50,7 +51,7 @@ export default function MyTrips() {
   return (
     <div className="min-h-screen bg-background">
       <Nav />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">My Trips</h1>
@@ -65,7 +66,7 @@ export default function MyTrips() {
             <CardContent className="flex flex-col items-center justify-center h-64">
               <p className="text-muted-foreground mb-4">No trips planned yet</p>
               <Button variant="outline" asChild>
-                <a href="/plan">Plan Your First Trip</a>
+                <Link href="/plan">Plan Your First Trip</Link>
               </Button>
             </CardContent>
           </Card>
@@ -101,8 +102,8 @@ export default function MyTrips() {
                 </div>
 
                 <CardHeader>
-                  <CardTitle className="hover:underline">
-                    <a href={`/trip-details/${trip.id}`}>{trip.title}</a>
+                  <CardTitle>
+                    <Link href={`/trip/${trip.id}`}>{trip.title}</Link>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -122,21 +123,8 @@ export default function MyTrips() {
                     </div>
 
                     <div className="mt-4">
-                      <h4 className="text-sm font-medium mb-2">Activities</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {(trip.activities as any[]).map((activity, index) => (
-                          <span
-                            key={index}
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
-                          >
-                            {activity.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={`/trip-details/${trip.id}`}>View Details</a>
+                      <Button variant="outline" size="sm" className="w-full" asChild>
+                        <Link href={`/trip/${trip.id}`}>View Details</Link>
                       </Button>
                     </div>
                   </div>
