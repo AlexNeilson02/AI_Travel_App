@@ -89,11 +89,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const { destination, preferences, budget, startDate, endDate, chatHistory } = req.body;
+    console.log('Received suggestions request:', { destination, preferences, budget, startDate, endDate });
+
     try {
       const dayCount = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
+
+      // Format preferences into a flat array for the AI
+      const formattedPreferences = [
+        ...preferences.accommodationType.map(type => `Accommodation: ${type}`),
+        ...preferences.activityTypes.map(type => `Activity: ${type}`),
+        `Activity Frequency: ${preferences.activityFrequency}`,
+        ...preferences.mustSeeAttractions.map(attraction => `Must See: ${attraction}`),
+        ...preferences.dietaryRestrictions.map(restriction => `Dietary: ${restriction}`),
+        ...preferences.transportationPreferences.map(pref => `Transportation: ${pref}`)
+      ];
+
+      console.log('Formatted preferences:', formattedPreferences);
+
       const suggestions = await generateTripSuggestions(
         destination,
-        preferences,
+        formattedPreferences,
         budget,
         dayCount,
         startDate,
@@ -110,8 +125,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }))
       };
 
+      console.log('Sending formatted suggestions:', formattedSuggestions);
       res.json(formattedSuggestions);
     } catch (error: any) {
+      console.error('Error generating suggestions:', error);
       res.status(500).json({ message: error.message });
     }
   });
