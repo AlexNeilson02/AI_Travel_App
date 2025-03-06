@@ -9,7 +9,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import Home from "./pages/home";
+import Home from "./pages/home-page";
 import PlanTrip from "./pages/plan-trip";
 
 const queryClient = new QueryClient();
