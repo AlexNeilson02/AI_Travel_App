@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Trip } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, DollarSign, MapPin, Trash2 } from "lucide-react";
+import { Loader2, Calendar, DollarSign, MapPin, Trash2, Download } from "lucide-react";
 import { format } from "date-fns";
 import {
   AlertDialog,
@@ -19,7 +19,7 @@ import {
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "wouter";
+import jsPDF from 'jspdf';
 
 export default function MyTrips() {
   const { toast } = useToast();
@@ -48,15 +48,60 @@ export default function MyTrips() {
     },
   });
 
-  // Function to prefetch trip details
-  const prefetchTripDetails = (tripId: number) => {
-    queryClient.prefetchQuery({
-      queryKey: ["/api/trips", tripId.toString()],
-      queryFn: async () => {
-        const response = await apiRequest("GET", `/api/trips/${tripId}`);
-        return response.json();
+  const generatePDF = async (tripId: number) => {
+    try {
+      const response = await apiRequest("GET", `/api/trips/${tripId}`);
+      const tripData = await response.json();
+
+      const pdf = new jsPDF();
+      let yPos = 20;
+      const lineHeight = 10;
+
+      // Title
+      pdf.setFontSize(20);
+      pdf.text(tripData.title, 20, yPos);
+      yPos += lineHeight * 2;
+
+      // Basic Info
+      pdf.setFontSize(12);
+      pdf.text(`Destination: ${tripData.destination}`, 20, yPos);
+      yPos += lineHeight;
+      pdf.text(`Dates: ${format(new Date(tripData.startDate), "MMM d")} - ${format(new Date(tripData.endDate), "MMM d, yyyy")}`, 20, yPos);
+      yPos += lineHeight;
+      pdf.text(`Budget: $${tripData.budget}`, 20, yPos);
+      yPos += lineHeight * 2;
+
+      // Activities
+      if (tripData.activities && tripData.activities.length > 0) {
+        pdf.setFontSize(16);
+        pdf.text("Activities", 20, yPos);
+        yPos += lineHeight;
+        pdf.setFontSize(12);
+
+        tripData.activities.forEach((activity: any) => {
+          if (yPos > 270) { // Check if we need a new page
+            pdf.addPage();
+            yPos = 20;
+          }
+          pdf.text(`• ${activity.name} - $${activity.cost} (${activity.duration})`, 20, yPos);
+          yPos += lineHeight;
+        });
       }
-    });
+
+      // Download the PDF
+      pdf.save(`${tripData.title.replace(/\s+/g, '_')}_itinerary.pdf`);
+
+      toast({
+        title: "Success",
+        description: "Trip details downloaded as PDF",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -114,12 +159,12 @@ export default function MyTrips() {
 
                 <CardHeader>
                   <CardTitle>
-                    <Link 
-                      href={`/trip/${trip.id}`}
-                      onMouseEnter={() => prefetchTripDetails(trip.id)}
+                    <button 
+                      onClick={() => generatePDF(trip.id)}
+                      className="hover:underline text-left"
                     >
                       {trip.title}
-                    </Link>
+                    </button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -143,10 +188,10 @@ export default function MyTrips() {
                         variant="outline" 
                         size="sm" 
                         className="w-full" 
-                        asChild
-                        onMouseEnter={() => prefetchTripDetails(trip.id)}
+                        onClick={() => generatePDF(trip.id)}
                       >
-                        <Link href={`/trip/${trip.id}`}>View Details</Link>
+                        <Download className="h-4 w-4 mr-2" />
+                        Download PDF
                       </Button>
                     </div>
                   </div>
