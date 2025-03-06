@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertTripSchema } from "@shared/schema";
-import { generateTripSuggestions } from "./openai";
+import { generateTripSuggestions, getTripRefinementQuestions } from "./openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -53,15 +53,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/suggest-trip", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
-    const { destination, preferences, budget, duration } = req.body;
+    const { destination, preferences, budget, duration, chatHistory } = req.body;
     try {
       const suggestions = await generateTripSuggestions(
         destination,
         preferences,
         budget,
-        duration
+        duration,
+        chatHistory
       );
       res.json(suggestions);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/trip-questions", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const { preferences } = req.body;
+    try {
+      const question = await getTripRefinementQuestions(preferences || []);
+      res.json({ question });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
