@@ -13,7 +13,16 @@ export default function TripDetails() {
   const tripId = params?.id;
 
   const { data: trip, isLoading } = useQuery<Trip>({
-    queryKey: [`/api/trips/${tripId}`],
+    queryKey: ["/api/trips/:id", tripId],
+    queryFn: async () => {
+      const response = await fetch(`/api/trips/${tripId}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch trip details');
+      }
+      return response.json();
+    },
     enabled: !!tripId,
   });
 
