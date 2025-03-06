@@ -53,12 +53,7 @@ export default function MyTrips() {
     queryClient.prefetchQuery({
       queryKey: ["/api/trips", tripId.toString()],
       queryFn: async () => {
-        const response = await fetch(`/api/trips/${tripId}`, {
-          credentials: 'include'
-        });
-        if (!response.ok) {
-          throw new Error('Failed to fetch trip details');
-        }
+        const response = await apiRequest("GET", `/api/trips/${tripId}`);
         return response.json();
       }
     });

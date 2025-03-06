@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Calendar, DollarSign, MapPin, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function TripDetails() {
   const params = useParams();
@@ -14,6 +15,10 @@ export default function TripDetails() {
 
   const { data: trip, isLoading } = useQuery<Trip>({
     queryKey: ["/api/trips", tripId],
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/trips/${tripId}`);
+      return response.json();
+    },
     enabled: !!tripId,
   });
 
