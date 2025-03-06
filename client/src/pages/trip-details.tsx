@@ -12,7 +12,14 @@ export default function TripDetails() {
   const { id } = useParams<{ id: string }>();
   
   const { data: trip, isLoading } = useQuery<Trip>({
-    queryKey: [`/api/trips/${id}`],
+    queryKey: [`trip-${id}`],
+    queryFn: async () => {
+      const res = await fetch(`/api/trips/${id}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch trip details');
+      }
+      return res.json();
+    },
   });
 
   return (
