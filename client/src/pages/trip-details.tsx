@@ -17,7 +17,9 @@ export default function TripDetails() {
     queryKey: ["/api/trips", tripId],
     queryFn: async () => {
       const response = await apiRequest("GET", `/api/trips/${tripId}`);
-      return response.json();
+      const data = await response.json();
+      console.log("Fetched trip data:", data); // Add logging
+      return data;
     },
     enabled: !!tripId,
   });
@@ -92,42 +94,46 @@ export default function TripDetails() {
                 </div>
               </div>
 
-              <div>
-                <h3 className="font-medium mb-2">Preferences</h3>
-                <div className="flex flex-wrap gap-2">
-                  {(trip.preferences as string[]).map((preference, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
-                    >
-                      {preference}
-                    </span>
-                  ))}
+              {trip.preferences && trip.preferences.length > 0 && (
+                <div>
+                  <h3 className="font-medium mb-2">Preferences</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {(trip.preferences as string[]).map((preference, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                      >
+                        {preference}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div>
-                <h3 className="font-medium mb-2">Activities</h3>
-                <div className="grid gap-4">
-                  {(trip.activities as any[]).map((activity, index) => (
-                    <Card key={index}>
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium">{activity.name}</h4>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              Duration: {activity.duration}
-                            </p>
+              {trip.activities && trip.activities.length > 0 && (
+                <div>
+                  <h3 className="font-medium mb-2">Activities</h3>
+                  <div className="grid gap-4">
+                    {(trip.activities as any[]).map((activity, index) => (
+                      <Card key={index}>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-medium">{activity.name}</h4>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Duration: {activity.duration}
+                              </p>
+                            </div>
+                            <div className="text-sm font-medium">
+                              ${activity.cost}
+                            </div>
                           </div>
-                          <div className="text-sm font-medium">
-                            ${activity.cost}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>
