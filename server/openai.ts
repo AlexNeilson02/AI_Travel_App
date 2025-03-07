@@ -11,15 +11,24 @@ export async function generateTripSuggestions(
   startDate: string,
   chatHistory: { role: string; content: string }[] = []
 ): Promise<any> {
-  const systemPrompt = `Create a detailed travel itinerary for a ${duration}-day trip to ${destination} with the following preferences: ${preferences.join(", ")}. The total budget is $${budget}. Please provide a day-by-day itinerary with activities, estimated costs, and suggested accommodations. Format the response as a JSON object with the following structure:
+  const systemPrompt = `Create a detailed travel itinerary for a ${duration}-day trip to ${destination} with the following preferences: ${preferences.join(", ")}. The total budget is $${budget}. Please provide a day-by-day itinerary with activities, estimated costs, and suggested accommodations. Include URLs for each activity and accommodation. Format the response as a JSON object with the following structure:
   {
     "days": [
       {
         "day": number,
         "date": string,
         "dayOfWeek": string,
-        "activities": [{ "name": string, "cost": number, "duration": string }],
-        "accommodation": { "name": string, "cost": number },
+        "activities": [{ 
+          "name": string, 
+          "cost": number, 
+          "duration": string,
+          "url": string // URL to the activity's website or booking page
+        }],
+        "accommodation": { 
+          "name": string, 
+          "cost": number,
+          "url": string // URL to the accommodation's website or booking page
+        },
         "meals": { "budget": number }
       }
     ],
@@ -29,7 +38,7 @@ export async function generateTripSuggestions(
 
   try {
     const messages = [
-      { role: "system" as const, content: "You are an expert travel planner with extensive knowledge of destinations worldwide." },
+      { role: "system" as const, content: "You are an expert travel planner with extensive knowledge of destinations worldwide. Always include official website URLs for activities and accommodations when available." },
       ...chatHistory.map(msg => ({ role: msg.role as "user" | "assistant", content: msg.content })),
       { role: "user" as const, content: systemPrompt },
     ];

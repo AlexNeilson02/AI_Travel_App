@@ -45,6 +45,7 @@ export const tripDays = pgTable("trip_days", {
       duration: string;
       notes: string;
       isEdited: boolean;
+      url?: string; // Added URL field for activities
       originalSuggestion?: string;
     }[];
   }>(),

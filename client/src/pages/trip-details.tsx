@@ -4,7 +4,7 @@ import { Trip, TripDay } from "@shared/schema";
 import { Nav } from "@/components/ui/nav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, DollarSign, MapPin, ArrowLeft } from "lucide-react";
+import { Loader2, Calendar, DollarSign, MapPin, ArrowLeft, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -144,7 +144,19 @@ export default function TripDetails() {
                             {day.activities.timeSlots.map((slot, index) => (
                               <div key={index} className="flex justify-between items-start border-b border-border pb-2 last:border-0 last:pb-0">
                                 <div>
-                                  <div className="font-medium">{slot.activity}</div>
+                                  <div className="font-medium flex items-center gap-2">
+                                    {slot.activity}
+                                    {slot.url && (
+                                      <a
+                                        href={slot.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center hover:text-primary"
+                                      >
+                                        <ExternalLink className="h-4 w-4" />
+                                      </a>
+                                    )}
+                                  </div>
                                   <div className="text-sm text-muted-foreground">
                                     {slot.time} • {slot.duration}
                                   </div>
