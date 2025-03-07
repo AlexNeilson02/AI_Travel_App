@@ -16,6 +16,8 @@ export async function generateTripSuggestions(
     "days": [
       {
         "day": number,
+        "date": string,
+        "dayOfWeek": string,
         "activities": [{ "name": string, "cost": number, "duration": string }],
         "accommodation": { "name": string, "cost": number },
         "meals": { "budget": number }
@@ -48,7 +50,7 @@ export async function generateTripSuggestions(
 export async function getTripRefinementQuestions(
   currentPreferences: string[]
 ): Promise<string> {
-  const prompt = `Based on these preferences: ${currentPreferences.join(", ")}, ask a follow-up question to better understand the traveler's preferences. Focus on one of these aspects: activity level, accommodation preferences, dining preferences, or budget allocation. Make the question conversational and specific.`;
+  const prompt = `You are a travel advisor starting a conversation with a traveler. Ignore the current preferences for now and ask an open-ended question to understand their overall expectations and travel style for this trip. Focus on what would make this trip special or meaningful to them. The question should be friendly, conversational, and encourage them to share their vision for the trip. For example, ask about their ideal experience, what they hope to get out of this trip, or what would make this trip perfect for them.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -65,7 +67,7 @@ export async function getTripRefinementQuestions(
       ],
     });
 
-    return response.choices[0].message.content || "What type of activities do you prefer during your travels?";
+    return response.choices[0].message.content || "What would make this trip truly special for you? Tell me about your ideal experience.";
   } catch (error: any) {
     throw new Error("Failed to generate question: " + error.message);
   }
