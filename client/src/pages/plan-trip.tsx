@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { CalendarIcon, DollarSign, Send, Edit2, Check, X } from "lucide-react";
+import { CalendarIcon, DollarSign, Send, Edit2, Check, X, ExternalLink } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
@@ -27,7 +27,7 @@ export default function PlanTrip() {
   const [currentQuestion, setCurrentQuestion] = useState<string>("");
   const [userResponse, setUserResponse] = useState<string>("");
   const [editingActivity, setEditingActivity] = useState<{ day: number; index: number } | null>(null);
-  const [editedActivity, setEditedActivity] = useState<{ name: string; cost: number; duration: string } | null>(null);
+  const [editedActivity, setEditedActivity] = useState<{ name: string; cost: number; duration: string; url?: string } | null>(null);
 
   const form = useForm({
     resolver: zodResolver(insertTripSchema),
@@ -106,6 +106,8 @@ export default function PlanTrip() {
                 activity: activity.name,
                 location: activity.location || "TBD",
                 duration: activity.duration || "2 hours",
+                cost: activity.cost,
+                url: activity.url,
                 notes: "",
                 isEdited: false,
               })),
@@ -524,7 +526,19 @@ export default function PlanTrip() {
                                   </div>
                                 ) : (
                                   <>
-                                    <span>{activity.name}</span>
+                                    <div className="flex items-center gap-2">
+                                      <span>{activity.name}</span>
+                                      {activity.url && (
+                                        <a
+                                          href={activity.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-primary hover:text-primary/80"
+                                        >
+                                          <ExternalLink className="h-4 w-4" />
+                                        </a>
+                                      )}
+                                    </div>
                                     <div className="flex items-center gap-2">
                                       <span>${activity.cost}</span>
                                       <Button
@@ -541,8 +555,20 @@ export default function PlanTrip() {
                             ))}
                           </div>
                           <Separator className="my-2" />
-                          <div className="flex justify-between text-sm text-muted-foreground">
-                            <span>Accommodation: {day.accommodation.name}</span>
+                          <div className="flex items-center justify-between text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                              <span>Accommodation: {day.accommodation.name}</span>
+                              {day.accommodation.url && (
+                                <a
+                                  href={day.accommodation.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:text-primary/80"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
+                              )}
+                            </div>
                             <span>${day.accommodation.cost}</span>
                           </div>
                         </div>
