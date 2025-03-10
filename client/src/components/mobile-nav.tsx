@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -7,12 +8,34 @@ interface MobileNavProps {
 }
 
 export function MobileNav({ routes }: MobileNavProps) {
-  // We're using bottom nav instead, so this is a minimal component
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <div className="sm:hidden flex items-center justify-end">
-      <Link to="/auth" className="p-2">
-        <span className="sr-only">Profile</span>
-      </Link>
+    <div className="md:hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-2 text-sidebar-foreground"
+        aria-label="Toggle menu"
+      >
+        {isOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-16 left-0 right-0 bg-sidebar p-4 shadow-lg z-50">
+          <nav className="flex flex-col space-y-4">
+            {routes.map((route) => (
+              <Link
+                key={route.path}
+                to={route.path}
+                className="text-sidebar-foreground hover:text-sidebar-primary py-2 px-3 rounded-md hover:bg-sidebar-accent/20"
+                onClick={() => setIsOpen(false)}
+              >
+                {route.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+      )}
     </div>
   );
 }

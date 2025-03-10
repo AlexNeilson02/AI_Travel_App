@@ -1,24 +1,6 @@
-
-/* Add custom styles for mobile navigation */
-@media (max-width: 640px) {
-  .mobile-nav-button {
-    display: block;
-    margin-left: auto;
-  }
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@layer base {
-  /* Add padding to bottom on mobile to account for the bottom navigation */
-  @media (max-width: 640px) {
-    body {
-      padding-bottom: 56px;
-    }
-  }
-}
 
 @layer base {
   * {
