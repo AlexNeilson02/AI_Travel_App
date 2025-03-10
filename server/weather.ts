@@ -15,8 +15,11 @@ interface WeatherData {
 
 export async function getWeatherForecast(city: string, date: Date): Promise<WeatherData | null> {
   try {
+    console.log('Starting weather forecast fetch for:', city, 'date:', date);
+    console.log('Using API key:', API_KEY ? 'Present' : 'Missing');
+
     // Get coordinates first
-    const geoResponse = await axios.get(`https://api.openweathermap.org/geo/1.0/direct`, {
+    const geoResponse = await axios.get('https://api.openweathermap.org/geo/1.0/direct', {
       params: {
         q: city,
         limit: 1,
@@ -44,29 +47,39 @@ export async function getWeatherForecast(city: string, date: Date): Promise<Weat
 
     if (!forecastResponse.data || !forecastResponse.data.list) {
       console.error('No forecast data received');
+      console.log('Forecast response:', forecastResponse.data);
       return null;
     }
+
+    console.log('Received forecast data:', forecastResponse.data.list.length, 'entries');
 
     // Find the forecast closest to the target date
     const targetTimestamp = date.getTime();
     const forecast = forecastResponse.data.list.reduce((closest: any, current: any) => {
-      const currentDiff = Math.abs(new Date(current.dt * 1000).getTime() - targetTimestamp);
-      const closestDiff = Math.abs(new Date(closest.dt * 1000).getTime() - targetTimestamp);
+      const currentDate = new Date(current.dt * 1000);
+      const closestDate = new Date(closest.dt * 1000);
+
+      const currentDiff = Math.abs(currentDate.getTime() - targetTimestamp);
+      const closestDiff = Math.abs(closestDate.getTime() - targetTimestamp);
+
       return currentDiff < closestDiff ? current : closest;
     });
 
+    console.log('Selected forecast entry:', forecast);
+
     // Determine if weather is suitable for outdoor activities
     const isSuitableForOutdoor = (
-      forecast.weather && forecast.weather[0] && 
-      forecast.weather[0].main !== 'Rain' &&
-      forecast.weather[0].main !== 'Snow' &&
-      forecast.weather[0].main !== 'Thunderstorm' &&
-      forecast.main && forecast.main.temp >= 40 &&
+      forecast.weather && 
+      forecast.weather[0] && 
+      !['Rain', 'Snow', 'Thunderstorm'].includes(forecast.weather[0].main) &&
+      forecast.main && 
+      forecast.main.temp >= 40 &&
       forecast.main.temp <= 95 &&
-      forecast.wind && forecast.wind.speed <= 20
+      forecast.wind && 
+      forecast.wind.speed <= 20
     );
 
-    const weatherData = {
+    const weatherData: WeatherData = {
       description: forecast.weather[0].description,
       temperature: forecast.main.temp,
       feels_like: forecast.main.feels_like,
@@ -76,10 +89,10 @@ export async function getWeatherForecast(city: string, date: Date): Promise<Weat
       is_suitable_for_outdoor: isSuitableForOutdoor
     };
 
-    console.log('Weather data for', city, ':', weatherData);
+    console.log('Processed weather data for', city, ':', weatherData);
     return weatherData;
-  } catch (error) {
-    console.error('Error fetching weather data:', error);
+  } catch (error: any) {
+    console.error('Error fetching weather data:', error.response?.data || error.message);
     return null;
   }
 }

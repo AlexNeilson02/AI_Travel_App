@@ -52,7 +52,7 @@ export async function generateTripSuggestions(
 
     const content = response.choices[0].message.content;
     if (!content) {
-      console.log('No content received from OpenAI');
+      console.error('No content received from OpenAI.  Check API key and network connectivity.');
       return null;
     }
 
@@ -61,7 +61,7 @@ export async function generateTripSuggestions(
     try {
       itinerary = JSON.parse(content);
     } catch (parseError) {
-      console.error('Failed to parse OpenAI response:', parseError);
+      console.error('Failed to parse OpenAI response:', parseError, 'Raw response:', content);
       return null;
     }
 
@@ -88,7 +88,7 @@ export async function generateTripSuggestions(
             day.alternativeActivities = [];
           }
         } else {
-          console.log(`No weather data available for ${destination} on ${day.date}`);
+          console.warn(`No weather data available for ${destination} on ${day.date}.  Check weather API and location data.`);
           day.weatherContext = null;
           day.alternativeActivities = [];
         }
@@ -102,14 +102,14 @@ export async function generateTripSuggestions(
     return itinerary;
   } catch (error: any) {
     console.error("Failed to generate trip suggestions:", error);
-    throw new Error("Failed to generate trip suggestions: " + error.message);
+    throw new Error(`Failed to generate trip suggestions: ${error.message}. Check OpenAI API configuration and request parameters.`);
   }
 }
 
 export async function getTripRefinementQuestions(
   currentPreferences: string[]
 ): Promise<string> {
-  const prompt = `You are a travel advisor starting a conversation with a traveler. Ignore the current preferences for now and ask an open-ended question to understand their overall expectations and travel style for this trip. Focus on what would make this trip special or meaningful to them. The question should be friendly, conversational, and encourage them to share their vision for the trip. For example, ask about their ideal experience, what they hope to get out of this trip, or what would make this trip perfect for them.`;
+  const prompt = `You are a travel advisor starting a conversation with a traveler. Ignore the current preferences for now and ask an open-ended question to understand their overall expectations and travel style for this trip. Focus on what would make this trip special or meaningful to them. The question should be friendly, conversational, and encourage them to share their vision for the trip.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -129,6 +129,6 @@ export async function getTripRefinementQuestions(
     return response.choices[0].message.content || "What would make this trip truly special for you? Tell me about your ideal experience.";
   } catch (error: any) {
     console.error("Failed to generate question:", error);
-    throw new Error("Failed to generate question: " + error.message);
+    throw new Error(`Failed to generate question: ${error.message}. Check OpenAI API configuration.`);
   }
 }
