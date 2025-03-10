@@ -1,3 +1,4 @@
+
 import { Nav } from "@/components/ui/nav";
 import { useQuery } from "@tanstack/react-query";
 import { Trip } from "@shared/schema";
@@ -20,6 +21,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from 'jspdf';
+import { Link } from "wouter";
 
 export default function MyTrips() {
   const { toast } = useToast();
@@ -122,49 +124,24 @@ export default function MyTrips() {
               pdf.addPage();
               yPos = 20;
             }
-
-            pdf.text(`• ${slot.time} - ${slot.activity}`, 20, yPos);
+            
+            pdf.text(`${slot.time} - ${slot.activity}`, 20, yPos);
             yPos += lineHeight;
+            
             if (slot.location) {
-              pdf.text(`  Location: ${slot.location}`, 30, yPos);
+              pdf.text(`Location: ${slot.location}`, 30, yPos);
               yPos += lineHeight;
             }
-            if (slot.duration) {
-              pdf.text(`  Duration: ${slot.duration}`, 30, yPos);
-              yPos += lineHeight;
-            }
-            if (slot.cost) {
-              pdf.text(`  Cost: $${slot.cost}`, 30, yPos);
-              yPos += lineHeight;
-            }
-            if (slot.url) {
-              pdf.setTextColor(0, 0, 255);
-              pdf.text(`  Website: ${slot.url}`, 30, yPos);
-              pdf.setTextColor(0, 0, 0);
-              yPos += lineHeight;
-            }
+            
             if (slot.notes) {
-              pdf.text(`  Notes: ${slot.notes}`, 30, yPos);
+              pdf.text(`Notes: ${slot.notes}`, 30, yPos);
               yPos += lineHeight;
             }
+            
             yPos += lineHeight / 2;
           });
-
-          // Accommodation
-          if (day.accommodation) {
-            pdf.text("Accommodation:", 20, yPos);
-            yPos += lineHeight;
-            pdf.text(`• ${day.accommodation.name} - $${day.accommodation.cost}`, 30, yPos);
-            yPos += lineHeight;
-            if (day.accommodation.url) {
-              pdf.setTextColor(0, 0, 255);
-              pdf.text(`  Website: ${day.accommodation.url}`, 30, yPos);
-              pdf.setTextColor(0, 0, 0);
-              yPos += lineHeight;
-            }
-          }
-
-          yPos += lineHeight * 1.5;
+          
+          yPos += lineHeight;
         });
       }
 
@@ -176,6 +153,7 @@ export default function MyTrips() {
         description: "Trip details downloaded as PDF",
       });
     } catch (error) {
+      console.error('PDF generation error:', error);
       toast({
         title: "Error",
         description: "Failed to generate PDF",
@@ -191,87 +169,97 @@ export default function MyTrips() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">My Trips</h1>
+          <Button asChild>
+            <Link href="/plan">Plan a New Trip</Link>
+          </Button>
         </div>
 
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
-        ) : !trips?.length ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center h-64">
-              <p className="text-muted-foreground mb-4">No trips planned yet</p>
-              <Button variant="outline" asChild>
-                <Link href="/plan">Plan Your First Trip</Link>
-              </Button>
-            </CardContent>
-          </Card>
+        ) : !trips || trips.length === 0 ? (
+          <div className="text-center py-16">
+            <h2 className="text-xl font-medium mb-4">No trips found</h2>
+            <p className="text-muted-foreground mb-8">
+              Start planning your next adventure!
+            </p>
+            <Button asChild>
+              <Link href="/plan">Plan a Trip</Link>
+            </Button>
+          </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {trips.map((trip) => (
-              <Card key={trip.id} className="relative">
-                <div className="absolute top-4 right-4">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Trash2 className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Trip</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete this trip? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => deleteMutation.mutate(trip.id)}
-                          className="bg-red-600 hover:bg-red-700"
+              <Card key={trip.id} className="overflow-hidden">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex justify-between items-start">
+                    <span>{trip.title}</span>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
                         >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-
-                <CardHeader>
-                  <CardTitle>
-                    <button 
-                      onClick={() => generatePDF(trip.id)}
-                      className="hover:underline text-left"
-                    >
-                      {trip.title}
-                    </button>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Are you sure you want to delete this trip?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteMutation.mutate(trip.id)}
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </CardTitle>
+                  <div className="flex items-center text-muted-foreground">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    {trip.destination}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <MapPin className="h-4 w-4 mr-2" />
-                      {trip.destination}
-                    </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
+                    <div className="flex items-center text-sm">
                       <Calendar className="h-4 w-4 mr-2" />
-                      {format(new Date(trip.startDate), "MMM d")} -{" "}
-                      {format(new Date(trip.endDate), "MMM d, yyyy")}
+                      <div>
+                        <span className="font-medium">
+                          {format(new Date(trip.startDate), "MMM d")} -{" "}
+                          {format(new Date(trip.endDate), "MMM d, yyyy")}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
+                    <div className="flex items-center text-sm">
                       <DollarSign className="h-4 w-4 mr-2" />
-                      Budget: ${trip.budget}
+                      <span className="font-medium">${trip.budget}</span>
                     </div>
-
-                    <div className="mt-4">
+                    <div className="flex gap-2 mt-4">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        asChild
+                      >
+                        <Link href={`/trip/${trip.id}`}>View</Link>
+                      </Button>
                       <Button 
                         variant="outline" 
-                        size="sm" 
-                        className="w-full" 
+                        className="flex-1" 
                         onClick={() => generatePDF(trip.id)}
                       >
                         <Download className="h-4 w-4 mr-2" />
-                        Download PDF
+                        PDF
                       </Button>
                     </div>
                   </div>
