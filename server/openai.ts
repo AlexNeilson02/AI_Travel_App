@@ -22,12 +22,12 @@ export async function generateTripSuggestions(
           "name": string, 
           "cost": number, 
           "duration": string,
-          "url": string // URL to the activity's website or booking page
+          "url": string
         }],
         "accommodation": { 
           "name": string, 
           "cost": number,
-          "url": string // URL to the accommodation's website or booking page
+          "url": string
         },
         "meals": { "budget": number }
       }
@@ -38,17 +38,16 @@ export async function generateTripSuggestions(
 
   try {
     const messages = [
-      { role: "system" as const, content: "You are an expert travel planner with extensive knowledge of destinations worldwide. Always include official website URLs for activities and accommodations when available." },
+      { role: "system" as const, content: "You are an expert travel planner with extensive knowledge of destinations worldwide. Always include official website URLs for activities and accommodations when available. Always respond with valid JSON." },
       ...chatHistory.map(msg => ({ role: msg.role as "user" | "assistant", content: msg.content })),
       { role: "user" as const, content: systemPrompt },
     ];
 
     console.log('Generating trip suggestions with OpenAI...');
     const response = await openai.chat.completions.create({
-      model: "gpt-4",  // Using the correct model name
+      model: "gpt-4",
       messages,
       temperature: 0.7,
-      response_format: { type: "json_object" },
     });
 
     const content = response.choices[0].message.content;
@@ -58,7 +57,13 @@ export async function generateTripSuggestions(
     }
 
     console.log('Parsing OpenAI response...');
-    const itinerary = JSON.parse(content);
+    let itinerary;
+    try {
+      itinerary = JSON.parse(content);
+    } catch (parseError) {
+      console.error('Failed to parse OpenAI response:', parseError);
+      return null;
+    }
 
     // Add weather data for each day
     console.log('Adding weather data to itinerary...');
@@ -70,25 +75,27 @@ export async function generateTripSuggestions(
           console.log(`Weather data received for ${day.date}:`, weather);
           day.weatherContext = weather;
           // If weather is not suitable for outdoor activities, suggest alternatives
-          if (!weather.is_suitable_for_outdoor) {
-            const outdoorActivities = day.activities.filter((activity: any) => 
-              activity.name.toLowerCase().includes('outdoor') ||
-              activity.name.toLowerCase().includes('park') ||
-              activity.name.toLowerCase().includes('garden') ||
-              activity.name.toLowerCase().includes('walk') ||
-              activity.name.toLowerCase().includes('hike')
-            );
-            if (outdoorActivities.length > 0) {
-              day.alternativeActivities = suggestAlternativeActivities(weather, outdoorActivities[0].name);
-            }
+          const outdoorActivities = day.activities.filter((activity: any) => 
+            activity.name.toLowerCase().includes('outdoor') ||
+            activity.name.toLowerCase().includes('park') ||
+            activity.name.toLowerCase().includes('garden') ||
+            activity.name.toLowerCase().includes('walk') ||
+            activity.name.toLowerCase().includes('hike')
+          );
+          if (!weather.is_suitable_for_outdoor && outdoorActivities.length > 0) {
+            day.alternativeActivities = suggestAlternativeActivities(weather, outdoorActivities[0].name);
+          } else {
+            day.alternativeActivities = [];
           }
         } else {
           console.log(`No weather data available for ${destination} on ${day.date}`);
           day.weatherContext = null;
+          day.alternativeActivities = [];
         }
       } catch (error) {
         console.error(`Error fetching weather for ${destination} on ${day.date}:`, error);
         day.weatherContext = null;
+        day.alternativeActivities = [];
       }
     }
 
@@ -106,7 +113,7 @@ export async function getTripRefinementQuestions(
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4",  // Using the correct model name
+      model: "gpt-4",
       messages: [
         {
           role: "system" as const,
