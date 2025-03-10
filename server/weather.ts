@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API_KEY = process.env.OPENWEATHERMAP_API_KEY;
-const BASE_URL = 'http://api.openweathermap.org/data/2.5';
+const BASE_URL = 'https://api.openweathermap.org/data/2.5';
 
 interface WeatherData {
   description: string;
@@ -16,7 +16,7 @@ interface WeatherData {
 export async function getWeatherForecast(city: string, date: Date): Promise<WeatherData | null> {
   try {
     // Get coordinates first
-    const geoResponse = await axios.get(`${BASE_URL}/geo/1.0/direct`, {
+    const geoResponse = await axios.get(`https://api.openweathermap.org/geo/1.0/direct`, {
       params: {
         q: city,
         limit: 1,
@@ -24,12 +24,13 @@ export async function getWeatherForecast(city: string, date: Date): Promise<Weat
       }
     });
 
-    if (!geoResponse.data?.[0]) {
+    if (!geoResponse.data || geoResponse.data.length === 0) {
       console.error('Location not found:', city);
       return null;
     }
 
     const { lat, lon } = geoResponse.data[0];
+    console.log(`Found coordinates for ${city}:`, { lat, lon });
 
     // Get 5-day forecast
     const forecastResponse = await axios.get(`${BASE_URL}/forecast`, {
@@ -40,6 +41,11 @@ export async function getWeatherForecast(city: string, date: Date): Promise<Weat
         units: 'imperial'
       }
     });
+
+    if (!forecastResponse.data || !forecastResponse.data.list) {
+      console.error('No forecast data received');
+      return null;
+    }
 
     // Find the forecast closest to the target date
     const targetTimestamp = date.getTime();
@@ -60,7 +66,7 @@ export async function getWeatherForecast(city: string, date: Date): Promise<Weat
       forecast.wind && forecast.wind.speed <= 20
     );
 
-    return {
+    const weatherData = {
       description: forecast.weather[0].description,
       temperature: forecast.main.temp,
       feels_like: forecast.main.feels_like,
@@ -69,6 +75,9 @@ export async function getWeatherForecast(city: string, date: Date): Promise<Weat
       precipitation_probability: forecast.pop * 100,
       is_suitable_for_outdoor: isSuitableForOutdoor
     };
+
+    console.log('Weather data for', city, ':', weatherData);
+    return weatherData;
   } catch (error) {
     console.error('Error fetching weather data:', error);
     return null;
@@ -77,7 +86,7 @@ export async function getWeatherForecast(city: string, date: Date): Promise<Weat
 
 export function suggestAlternativeActivities(weather: WeatherData, activity: string): string[] {
   const alternativeActivities: string[] = [];
-  
+
   if (!weather.is_suitable_for_outdoor && activity.toLowerCase().includes('outdoor')) {
     alternativeActivities.push(
       'Visit a local museum',
