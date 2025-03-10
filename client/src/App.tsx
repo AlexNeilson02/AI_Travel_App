@@ -26,6 +26,15 @@ const BottomNav = ({ routes }) => {
   );
 };
 
+// Placeholder for Nav component - needs actual implementation
+const Nav = () => {
+  return (
+    <nav className="bg-gray-800 p-4">
+      {/* Navigation items here */}
+    </nav>
+  );
+};
+
 
 // Define app routes
 const routes = [
@@ -46,7 +55,7 @@ function Router() {
         <Route path="/auth" component={AuthPage} />
         <Route component={NotFound} />
       </Switch>
-      <BottomNav routes={routes} />
+      
       <Toaster />
     </div>
   );
@@ -56,7 +65,14 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router />
+        <div className="flex flex-col min-h-screen">
+          <Nav />
+          <main className="flex-1 pb-16 md:pb-0">
+            <Router/>
+          </main>
+          <BottomNav routes={routes} />
+        </div>
+        <Toaster />
       </AuthProvider>
     </QueryClientProvider>
   );

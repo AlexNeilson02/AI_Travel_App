@@ -12,6 +12,15 @@
 @tailwind utilities;
 
 @layer base {
+  /* Add padding to bottom on mobile to account for the bottom navigation */
+  @media (max-width: 768px) {
+    body {
+      padding-bottom: 64px;
+    }
+  }
+}
+
+@layer base {
   * {
     @apply border-border;
   }
