@@ -11,16 +11,44 @@ import PlanTrip from "@/pages/plan-trip";
 import MyTrips from "@/pages/my-trips";
 import TripDetails from "@/pages/trip-details";
 
+// Placeholder for BottomNav component - needs actual implementation
+const BottomNav = ({ routes }) => {
+  return (
+    <nav className="bg-gray-800 p-4 fixed bottom-0 w-full">
+      <ul className="flex space-x-4 justify-center">
+        {routes.map((route) => (
+          <li key={route.path}>
+            <a href={route.path}>{route.label}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+};
+
+
+// Define app routes
+const routes = [
+  { path: "/", label: "Home" },
+  { path: "/plan", label: "Plan Trip" },
+  { path: "/my-trips", label: "My Trips" }, //Using existing paths
+  { path: "/trip/:id", label: "Trip Details" }, //Using existing paths
+];
+
 function Router() {
   return (
-    <Switch>
-      <ProtectedRoute path="/" component={HomePage} />
-      <ProtectedRoute path="/plan" component={PlanTrip} />
-      <ProtectedRoute path="/my-trips" component={MyTrips} />
-      <ProtectedRoute path="/trip/:id" component={TripDetails} />
-      <Route path="/auth" component={AuthPage} />
-      <Route component={NotFound} />
-    </Switch>
+    <div className="min-h-screen bg-background font-sans antialiased pb-16 md:pb-0">
+      <Switch>
+        <ProtectedRoute path="/" component={HomePage} />
+        <ProtectedRoute path="/plan" component={PlanTrip} />
+        <ProtectedRoute path="/my-trips" component={MyTrips} />
+        <ProtectedRoute path="/trip/:id" component={TripDetails} />
+        <Route path="/auth" component={AuthPage} />
+        <Route component={NotFound} />
+      </Switch>
+      <BottomNav routes={routes} />
+      <Toaster />
+    </div>
   );
 }
 
@@ -29,7 +57,6 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router />
-        <Toaster />
       </AuthProvider>
     </QueryClientProvider>
   );
