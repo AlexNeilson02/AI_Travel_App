@@ -57,12 +57,11 @@ export default function MyTrips() {
       let yPos = 20;
       const lineHeight = 10;
 
-      // Title
+      // Title and Basic Info
       pdf.setFontSize(20);
       pdf.text(tripData.title, 20, yPos);
       yPos += lineHeight * 2;
 
-      // Basic Info
       pdf.setFontSize(12);
       pdf.text(`Destination: ${tripData.destination}`, 20, yPos);
       yPos += lineHeight;
@@ -71,19 +70,92 @@ export default function MyTrips() {
       pdf.text(`Budget: $${tripData.budget}`, 20, yPos);
       yPos += lineHeight * 2;
 
-      // Activities
-      if (tripData.activities && tripData.activities.length > 0) {
+      // Preferences
+      pdf.setFontSize(16);
+      pdf.text("Trip Preferences", 20, yPos);
+      yPos += lineHeight;
+      pdf.setFontSize(12);
+
+      if (tripData.preferences) {
+        const preferences = [
+          { label: "Accommodation", items: tripData.preferences.accommodationType },
+          { label: "Activities", items: tripData.preferences.activityTypes },
+          { label: "Activity Frequency", items: [tripData.preferences.activityFrequency] },
+          { label: "Must-See Attractions", items: tripData.preferences.mustSeeAttractions },
+        ];
+
+        preferences.forEach(pref => {
+          if (pref.items && pref.items.length > 0) {
+            if (yPos > 270) {
+              pdf.addPage();
+              yPos = 20;
+            }
+            pdf.text(`${pref.label}: ${pref.items.join(", ")}`, 20, yPos);
+            yPos += lineHeight;
+          }
+        });
+      }
+      yPos += lineHeight;
+
+      // Daily Itinerary
+      if (tripData.tripDays && tripData.tripDays.length > 0) {
         pdf.setFontSize(16);
-        pdf.text("Activities", 20, yPos);
+        pdf.text("Daily Itinerary", 20, yPos);
         yPos += lineHeight;
         pdf.setFontSize(12);
 
-        tripData.activities.forEach((activity: any) => {
-          if (yPos > 270) { // Check if we need a new page
+        tripData.tripDays.forEach((day: any) => {
+          if (yPos > 270) {
             pdf.addPage();
             yPos = 20;
           }
-          pdf.text(`• ${activity.name} - $${activity.cost} (${activity.duration})`, 20, yPos);
+
+          // Day header
+          pdf.setFontSize(14);
+          pdf.text(format(new Date(day.date), "EEEE, MMMM d, yyyy"), 20, yPos);
+          yPos += lineHeight;
+          pdf.setFontSize(12);
+
+          // Weather information if available
+          if (day.aiSuggestions.weatherContext) {
+            const weather = day.aiSuggestions.weatherContext;
+            pdf.text(`Weather: ${weather.description}, ${Math.round(weather.temperature)}°F, ${Math.round(weather.precipitation_probability)}% precipitation`, 30, yPos);
+            yPos += lineHeight;
+          }
+
+          // Activities
+          day.activities.timeSlots.forEach((slot: any) => {
+            if (yPos > 270) {
+              pdf.addPage();
+              yPos = 20;
+            }
+            pdf.text(`• ${slot.time} - ${slot.activity}`, 30, yPos);
+            yPos += lineHeight;
+            if (slot.location) {
+              pdf.text(`  Location: ${slot.location}`, 35, yPos);
+              yPos += lineHeight;
+            }
+            if (slot.duration) {
+              pdf.text(`  Duration: ${slot.duration}`, 35, yPos);
+              yPos += lineHeight;
+            }
+          });
+
+          // Alternative activities if weather is not suitable
+          if (day.aiSuggestions.weatherContext && !day.aiSuggestions.weatherContext.is_suitable_for_outdoor &&
+              day.aiSuggestions.alternativeActivities.length > 0) {
+            if (yPos > 270) {
+              pdf.addPage();
+              yPos = 20;
+            }
+            pdf.text("Alternative Indoor Activities:", 30, yPos);
+            yPos += lineHeight;
+            day.aiSuggestions.alternativeActivities.forEach((alt: string) => {
+              pdf.text(`• ${alt}`, 35, yPos);
+              yPos += lineHeight;
+            });
+          }
+
           yPos += lineHeight;
         });
       }
@@ -159,7 +231,7 @@ export default function MyTrips() {
 
                 <CardHeader>
                   <CardTitle>
-                    <button 
+                    <button
                       onClick={() => generatePDF(trip.id)}
                       className="hover:underline text-left"
                     >
@@ -184,10 +256,10 @@ export default function MyTrips() {
                     </div>
 
                     <div className="mt-4">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full" 
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
                         onClick={() => generatePDF(trip.id)}
                       >
                         <Download className="h-4 w-4 mr-2" />
