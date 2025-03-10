@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
@@ -9,6 +8,7 @@ const routes = [
   { path: "/plan", label: "Plan Trip" },
   { path: "/itinerary", label: "Itinerary" },
   { path: "/destinations", label: "Destinations" },
+  { path: "/walkaround", label: "Walk Around" }, // Added Walk Around route
 ];
 
 export function Nav() {
@@ -21,10 +21,10 @@ export function Nav() {
               AI Travel
             </span>
           </Link>
-          
+
           {/* Mobile Navigation */}
           <MobileNav routes={routes} />
-          
+
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
             {routes.map((route) => (
@@ -38,7 +38,7 @@ export function Nav() {
             ))}
           </nav>
         </div>
-        
+
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-2">
             <Link to="/auth">
