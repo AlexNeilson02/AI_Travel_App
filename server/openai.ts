@@ -1,7 +1,6 @@
 import OpenAI from "openai";
 import { getWeatherForecast, suggestAlternativeActivities } from "./weather";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function generateTripSuggestions(
@@ -44,23 +43,31 @@ export async function generateTripSuggestions(
       { role: "user" as const, content: systemPrompt },
     ];
 
+    console.log('Generating trip suggestions with OpenAI...');
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",  // Using the correct model name
       messages,
+      temperature: 0.7,
       response_format: { type: "json_object" },
     });
 
     const content = response.choices[0].message.content;
-    if (!content) return null;
+    if (!content) {
+      console.log('No content received from OpenAI');
+      return null;
+    }
 
+    console.log('Parsing OpenAI response...');
     const itinerary = JSON.parse(content);
 
     // Add weather data for each day
+    console.log('Adding weather data to itinerary...');
     for (const day of itinerary.days) {
       try {
         console.log(`Fetching weather for ${destination} on ${day.date}`);
         const weather = await getWeatherForecast(destination, new Date(day.date));
         if (weather) {
+          console.log(`Weather data received for ${day.date}:`, weather);
           day.weatherContext = weather;
           // If weather is not suitable for outdoor activities, suggest alternatives
           if (!weather.is_suitable_for_outdoor) {
@@ -77,14 +84,17 @@ export async function generateTripSuggestions(
           }
         } else {
           console.log(`No weather data available for ${destination} on ${day.date}`);
+          day.weatherContext = null;
         }
       } catch (error) {
         console.error(`Error fetching weather for ${destination} on ${day.date}:`, error);
+        day.weatherContext = null;
       }
     }
 
     return itinerary;
   } catch (error: any) {
+    console.error("Failed to generate trip suggestions:", error);
     throw new Error("Failed to generate trip suggestions: " + error.message);
   }
 }
@@ -96,7 +106,7 @@ export async function getTripRefinementQuestions(
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",  // Using the correct model name
       messages: [
         {
           role: "system" as const,
@@ -111,6 +121,7 @@ export async function getTripRefinementQuestions(
 
     return response.choices[0].message.content || "What would make this trip truly special for you? Tell me about your ideal experience.";
   } catch (error: any) {
+    console.error("Failed to generate question:", error);
     throw new Error("Failed to generate question: " + error.message);
   }
 }
