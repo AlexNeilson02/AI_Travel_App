@@ -11,7 +11,6 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
 });
 
-// Enhanced trips table with more detailed preferences
 export const trips = pgTable("trips", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -20,11 +19,10 @@ export const trips = pgTable("trips", {
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
   budget: integer("budget").notNull(),
-  // Enhanced preferences structure
   preferences: jsonb("preferences").notNull().$type<{
-    accommodationType: string[]; // e.g., ["hotel", "hostel", "apartment"]
-    activityTypes: string[]; // e.g., ["outdoor", "cultural", "food"]
-    activityFrequency: string; // e.g., "relaxed", "moderate", "intense"
+    accommodationType: string[];
+    activityTypes: string[];
+    activityFrequency: string;
     mustSeeAttractions: string[];
     dietaryRestrictions: string[];
     transportationPreferences: string[];
@@ -32,7 +30,6 @@ export const trips = pgTable("trips", {
   isActive: boolean("is_active").notNull().default(true),
 });
 
-// New table for AI-generated daily itineraries
 export const tripDays = pgTable("trip_days", {
   id: serial("id").primaryKey(),
   tripId: integer("trip_id").notNull(),
@@ -45,13 +42,19 @@ export const tripDays = pgTable("trip_days", {
       duration: string;
       notes: string;
       isEdited: boolean;
-      url?: string; // Added URL field for activities
+      url?: string;
       originalSuggestion?: string;
+      isOutdoor?: boolean;
     }[];
   }>(),
   aiSuggestions: jsonb("ai_suggestions").notNull().$type<{
     reasoning: string;
-    weatherContext?: string;
+    weatherContext?: {
+      description: string;
+      temperature: number;
+      precipitation_probability: number;
+      is_suitable_for_outdoor: boolean;
+    };
     alternativeActivities: string[];
   }>(),
   userFeedback: text("user_feedback"),

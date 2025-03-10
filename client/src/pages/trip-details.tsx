@@ -4,7 +4,7 @@ import { Trip, TripDay } from "@shared/schema";
 import { Nav } from "@/components/ui/nav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, DollarSign, MapPin, ArrowLeft, ExternalLink } from "lucide-react";
+import { Loader2, Calendar, DollarSign, MapPin, ArrowLeft, ExternalLink, CloudRain, ThermometerSun, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -137,9 +137,48 @@ export default function TripDetails() {
                     {trip.tripDays.map((day) => (
                       <Card key={day.id}>
                         <CardContent className="p-4">
-                          <h4 className="font-medium mb-2">
-                            {format(new Date(day.date), "EEEE, MMMM d, yyyy")}
-                          </h4>
+                          <div className="flex justify-between items-start mb-4">
+                            <h4 className="font-medium">
+                              {format(new Date(day.date), "EEEE, MMMM d, yyyy")}
+                            </h4>
+                            {day.aiSuggestions.weatherContext && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <ThermometerSun className="h-4 w-4" />
+                                <span>{Math.round(day.aiSuggestions.weatherContext.temperature)}°F</span>
+                                <CloudRain className="h-4 w-4 ml-2" />
+                                <span>{Math.round(day.aiSuggestions.weatherContext.precipitation_probability)}%</span>
+                                <span className="text-muted-foreground">
+                                  {day.aiSuggestions.weatherContext.description}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Weather Warning */}
+                          {day.aiSuggestions.weatherContext && !day.aiSuggestions.weatherContext.is_suitable_for_outdoor && (
+                            <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-900/50">
+                              <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
+                                <AlertTriangle className="h-4 w-4" />
+                                <span className="font-medium">Weather Advisory</span>
+                              </div>
+                              <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+                                Weather conditions may not be suitable for outdoor activities.
+                              </p>
+                              {day.aiSuggestions.alternativeActivities.length > 0 && (
+                                <div className="mt-2">
+                                  <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                                    Suggested Alternatives:
+                                  </span>
+                                  <ul className="mt-1 list-disc list-inside text-sm text-yellow-700 dark:text-yellow-300">
+                                    {day.aiSuggestions.alternativeActivities.map((alt, index) => (
+                                      <li key={index}>{alt}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
                           <div className="space-y-2">
                             {day.activities.timeSlots.map((slot, index) => (
                               <div key={index} className="flex justify-between items-start border-b border-border pb-2 last:border-0 last:pb-0">
