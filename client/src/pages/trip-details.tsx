@@ -79,7 +79,6 @@ export default function TripDetails() {
   const showWeatherImpact = async (day: TripDay) => {
     setSelectedDay(day);
 
-    // Generate AI analysis of weather impact (placeholder - replace with actual AI call)
     if (day.aiSuggestions.weatherContext) {
       const weatherContext = day.aiSuggestions.weatherContext;
       const activities = day.activities.timeSlots.map(slot => slot.activity).join(", ");
@@ -87,18 +86,18 @@ export default function TripDetails() {
       let impact = "";
 
       if (weatherContext.is_suitable_for_outdoor) {
-        impact = `The forecast for ${format(new Date(day.date), "MMMM d")} looks favorable with ${weatherContext.description} and a temperature of ${Math.round(weatherContext.temperature)}°F. This is suitable weather for your planned activities: ${activities}.`;
+        impact = `The forecast for ${format(new Date(day.date), "MMMM d")} looks favorable with ${weatherContext.description} and a temperature of ${Math.round(weatherContext.temperature)}°F. This weather is suitable for your planned activities: ${activities}.`;
       } else {
         impact = `The weather forecast for ${format(new Date(day.date), "MMMM d")} shows ${weatherContext.description} with a temperature of ${Math.round(weatherContext.temperature)}°F and ${Math.round(weatherContext.precipitation_probability)}% chance of precipitation. This might affect your outdoor plans.`;
 
         if (day.aiSuggestions.alternativeActivities && day.aiSuggestions.alternativeActivities.length > 0) {
-          impact += ` Consider these alternatives: ${day.aiSuggestions.alternativeActivities.join(", ")}.`;
+          impact += ` Consider these indoor alternatives: ${day.aiSuggestions.alternativeActivities.join(", ")}.`;
         }
       }
 
       setWeatherImpact(impact);
     } else {
-      setWeatherImpact("No weather data is available for this date yet. Check back closer to your trip date for a weather impact analysis.");
+      setWeatherImpact("Weather data isn't available yet for this date. Check back closer to your trip date for a weather impact analysis.");
     }
 
     setShowWeatherDialog(true);
@@ -171,22 +170,35 @@ export default function TripDetails() {
                     {trip.tripDays.map((day) => (
                       <Card key={day.id}>
                         <CardContent className="p-4">
-                          <div className="flex justify-between items-start mb-4">
-                            <h4 className="font-medium">
-                              {format(new Date(day.date), "EEEE, MMMM d, yyyy")}
-                            </h4>
-                            <Button onClick={() => showWeatherImpact(day)}>See how this affects my trip</Button>
-                            {day.aiSuggestions.weatherContext && (
-                              <div className="flex items-center gap-2 text-sm">
-                                <ThermometerSun className="h-4 w-4" />
-                                <span>{Math.round(day.aiSuggestions.weatherContext.temperature)}°F</span>
-                                <CloudRain className="h-4 w-4 ml-2" />
-                                <span>{Math.round(day.aiSuggestions.weatherContext.precipitation_probability)}%</span>
-                                <span className="text-muted-foreground">
-                                  {day.aiSuggestions.weatherContext.description}
-                                </span>
-                              </div>
-                            )}
+                          <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+                            <div className="flex flex-col gap-2">
+                              <h4 className="font-medium">
+                                {format(new Date(day.date), "EEEE, MMMM d, yyyy")}
+                              </h4>
+                              {day.aiSuggestions.weatherContext ? (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <ThermometerSun className="h-4 w-4" />
+                                  <span>{Math.round(day.aiSuggestions.weatherContext.temperature)}°F</span>
+                                  <CloudRain className="h-4 w-4 ml-2" />
+                                  <span>{Math.round(day.aiSuggestions.weatherContext.precipitation_probability)}%</span>
+                                  <span className="text-muted-foreground">
+                                    {day.aiSuggestions.weatherContext.description}
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="text-sm text-muted-foreground">
+                                  No weather data available yet
+                                </div>
+                              )}
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => showWeatherImpact(day)}
+                              className="whitespace-nowrap"
+                            >
+                              See how this affects my trip
+                            </Button>
                           </div>
 
                           {/* Weather Warning */}
@@ -260,16 +272,20 @@ export default function TripDetails() {
             </div>
           </CardContent>
         </Card>
-        <Dialog open={showWeatherDialog} onClose={() => setShowWeatherDialog(false)}>
-          <DialogHeader>
-            <DialogTitle>Weather Impact on {selectedDay?.date ? format(new Date(selectedDay.date), "MMMM d") : ""}</DialogTitle>
-          </DialogHeader>
+        <Dialog open={showWeatherDialog} onOpenChange={setShowWeatherDialog}>
           <DialogContent>
-            <p>{weatherImpact}</p>
+            <DialogHeader>
+              <DialogTitle>
+                Weather Impact on {selectedDay?.date ? format(new Date(selectedDay.date), "MMMM d") : ""}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-sm text-muted-foreground">{weatherImpact}</p>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setShowWeatherDialog(false)}>Close</Button>
+            </DialogFooter>
           </DialogContent>
-          <DialogFooter>
-            <Button onClick={() => setShowWeatherDialog(false)}>Close</Button>
-          </DialogFooter>
         </Dialog>
       </main>
     </div>
