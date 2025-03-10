@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useState } from 'react';
-import { Dialog, DialogHeader, DialogBody, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogHeader, DialogFooter, DialogTitle, DialogContent } from "@/components/ui/dialog";
 
 
 interface ExtendedTrip extends Trip {
@@ -264,9 +264,9 @@ export default function TripDetails() {
           <DialogHeader>
             <DialogTitle>Weather Impact on {selectedDay?.date ? format(new Date(selectedDay.date), "MMMM d") : ""}</DialogTitle>
           </DialogHeader>
-          <DialogBody>
+          <DialogContent>
             <p>{weatherImpact}</p>
-          </DialogBody>
+          </DialogContent>
           <DialogFooter>
             <Button onClick={() => setShowWeatherDialog(false)}>Close</Button>
           </DialogFooter>
