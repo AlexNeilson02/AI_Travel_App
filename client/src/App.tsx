@@ -10,6 +10,7 @@ import HomePage from "@/pages/home-page";
 import PlanTrip from "@/pages/plan-trip";
 import MyTrips from "@/pages/my-trips";
 import TripDetails from "@/pages/trip-details";
+import WalkAround from "@/pages/walk-around";
 
 function Router() {
   return (
@@ -18,6 +19,7 @@ function Router() {
       <ProtectedRoute path="/plan" component={PlanTrip} />
       <ProtectedRoute path="/my-trips" component={MyTrips} />
       <ProtectedRoute path="/trip/:id" component={TripDetails} />
+      <ProtectedRoute path="/walk-around/:id" component={WalkAround} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
