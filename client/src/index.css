@@ -1,6 +1,6 @@
 
 /* Add custom styles for mobile navigation */
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .mobile-nav-button {
     display: block;
     margin-left: auto;
@@ -13,9 +13,9 @@
 
 @layer base {
   /* Add padding to bottom on mobile to account for the bottom navigation */
-  @media (max-width: 768px) {
+  @media (max-width: 640px) {
     body {
-      padding-bottom: 64px;
+      padding-bottom: 56px;
     }
   }
 }

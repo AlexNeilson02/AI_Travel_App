@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "./ui/button";
@@ -13,7 +12,7 @@ const routes = [
 
 export function Nav() {
   const location = useLocation();
-  
+
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-white">
       <div className="container flex h-16 items-center justify-between">
@@ -24,9 +23,9 @@ export function Nav() {
             </span>
           </Link>
         </div>
-        
+
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+        <nav className="hidden sm:flex items-center space-x-6 text-sm font-medium">
           {routes.map((route) => {
             const isActive = location.pathname === route.path;
             return (
@@ -42,8 +41,8 @@ export function Nav() {
             );
           })}
         </nav>
-        
-        <div className="hidden md:flex items-center justify-end">
+
+        <div className="hidden sm:flex items-center justify-end">
           <Link to="/auth">
             <Button variant="outline">
               Sign In
@@ -51,6 +50,7 @@ export function Nav() {
           </Link>
         </div>
       </div>
+      <MobileNav/> {/* Added Mobile Navigation */}
     </header>
   );
 }

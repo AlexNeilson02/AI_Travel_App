@@ -9,7 +9,7 @@ interface MobileNavProps {
 export function MobileNav({ routes }: MobileNavProps) {
   // We're using bottom nav instead, so this is a minimal component
   return (
-    <div className="md:hidden flex items-center justify-end">
+    <div className="sm:hidden flex items-center justify-end">
       <Link to="/auth" className="p-2">
         <span className="sr-only">Profile</span>
       </Link>

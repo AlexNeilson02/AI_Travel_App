@@ -29,8 +29,8 @@ export function BottomNav({ routes }: BottomNavProps) {
   };
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-50">
-      <div className="flex justify-around items-center h-16">
+    <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-50">
+      <div className="flex justify-around items-center h-14">
         {routes.map((route) => {
           const isActive = location.pathname === route.path;
           return (
