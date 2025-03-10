@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, jsonb, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, jsonb, timestamp, boolean, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -61,6 +61,73 @@ export const tripDays = pgTable("trip_days", {
   isFinalized: boolean("is_finalized").notNull().default(false),
 });
 
+export const locations = pgTable("locations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  latitude: decimal("latitude").notNull(),
+  longitude: decimal("longitude").notNull(),
+  placeId: text("place_id").notNull(), 
+  address: text("address").notNull(),
+  type: text("type").notNull(), 
+  rating: decimal("rating"),
+  photos: jsonb("photos").$type<string[]>(),
+  openingHours: jsonb("opening_hours").$type<{
+    periods: {
+      open: { day: number; time: string };
+      close: { day: number; time: string };
+    }[];
+  }>(),
+});
+
+export const tripLocations = pgTable("trip_locations", {
+  id: serial("id").primaryKey(),
+  tripDayId: integer("trip_day_id").notNull(),
+  locationId: integer("location_id").notNull(),
+  visitTime: timestamp("visit_time").notNull(),
+  duration: integer("duration").notNull(), 
+  notes: text("notes"),
+  isVisited: boolean("is_visited").notNull().default(false),
+});
+
+export const insertLocationSchema = createInsertSchema(locations)
+  .pick({
+    name: true,
+    placeId: true,
+    address: true,
+    type: true,
+  })
+  .extend({
+    latitude: z.number(),
+    longitude: z.number(),
+    rating: z.number().optional(),
+    photos: z.array(z.string()).optional(),
+    openingHours: z.object({
+      periods: z.array(
+        z.object({
+          open: z.object({
+            day: z.number(),
+            time: z.string(),
+          }),
+          close: z.object({
+            day: z.number(),
+            time: z.string(),
+          }),
+        })
+      ),
+    }).optional(),
+  });
+
+export const insertTripLocationSchema = createInsertSchema(tripLocations)
+  .pick({
+    tripDayId: true,
+    locationId: true,
+    duration: true,
+    notes: true,
+  })
+  .extend({
+    visitTime: z.coerce.date(),
+  });
+
 export const insertUserSchema = createInsertSchema(users)
   .pick({
     username: true,
@@ -111,3 +178,7 @@ export type Trip = typeof trips.$inferSelect;
 export type InsertTrip = z.infer<typeof insertTripSchema>;
 export type TripDay = typeof tripDays.$inferSelect;
 export type InsertTripDay = z.infer<typeof insertTripDaySchema>;
+export type Location = typeof locations.$inferSelect;
+export type InsertLocation = z.infer<typeof insertLocationSchema>;
+export type TripLocation = typeof tripLocations.$inferSelect;
+export type InsertTripLocation = z.infer<typeof insertTripLocationSchema>;
