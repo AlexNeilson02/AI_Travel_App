@@ -111,11 +111,6 @@ export default function PlanTrip() {
                 notes: "",
                 isEdited: false,
               })),
-              accommodation: {
-                name: day.accommodation.name,
-                cost: day.accommodation.cost,
-                url: day.accommodation.url,
-              },
             },
             aiSuggestions: {
               reasoning: "Initial AI suggestion",
