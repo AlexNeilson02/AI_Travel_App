@@ -46,8 +46,14 @@ export const tripDays = pgTable("trip_days", {
       notes: string;
       isEdited: boolean;
       url?: string; // Added URL field for activities
+      cost: number;
       originalSuggestion?: string;
     }[];
+    accommodation: {
+      name: string;
+      cost: number;
+      url?: string;
+    };
   }>(),
   aiSuggestions: jsonb("ai_suggestions").notNull().$type<{
     reasoning: string;

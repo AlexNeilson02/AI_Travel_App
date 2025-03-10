@@ -71,20 +71,100 @@ export default function MyTrips() {
       pdf.text(`Budget: $${tripData.budget}`, 20, yPos);
       yPos += lineHeight * 2;
 
-      // Activities
-      if (tripData.activities && tripData.activities.length > 0) {
-        pdf.setFontSize(16);
-        pdf.text("Activities", 20, yPos);
-        yPos += lineHeight;
-        pdf.setFontSize(12);
+      // Preferences
+      pdf.setFontSize(16);
+      pdf.text("Preferences", 20, yPos);
+      yPos += lineHeight;
+      pdf.setFontSize(12);
 
-        tripData.activities.forEach((activity: any) => {
-          if (yPos > 270) { // Check if we need a new page
+      const preferences = [
+        { label: "Accommodation Types", values: tripData.preferences.accommodationType },
+        { label: "Activity Types", values: tripData.preferences.activityTypes },
+        { label: "Activity Frequency", values: [tripData.preferences.activityFrequency] },
+        { label: "Must-See Attractions", values: tripData.preferences.mustSeeAttractions },
+        { label: "Transportation", values: tripData.preferences.transportationPreferences },
+      ];
+
+      preferences.forEach(pref => {
+        if (pref.values && pref.values.length > 0) {
+          if (yPos > 270) {
             pdf.addPage();
             yPos = 20;
           }
-          pdf.text(`• ${activity.name} - $${activity.cost} (${activity.duration})`, 20, yPos);
+          pdf.text(`${pref.label}: ${pref.values.join(", ")}`, 20, yPos);
           yPos += lineHeight;
+        }
+      });
+      yPos += lineHeight;
+
+      // Daily Itinerary
+      if (tripData.tripDays && tripData.tripDays.length > 0) {
+        pdf.setFontSize(16);
+        pdf.text("Daily Itinerary", 20, yPos);
+        yPos += lineHeight * 1.5;
+        pdf.setFontSize(12);
+
+        tripData.tripDays.forEach((day: any) => {
+          if (yPos > 270) {
+            pdf.addPage();
+            yPos = 20;
+          }
+
+          // Date header
+          pdf.setFontSize(14);
+          pdf.text(format(new Date(day.date), "EEEE, MMMM d, yyyy"), 20, yPos);
+          yPos += lineHeight;
+          pdf.setFontSize(12);
+
+          // Activities
+          day.activities.timeSlots.forEach((slot: any) => {
+            if (yPos > 270) {
+              pdf.addPage();
+              yPos = 20;
+            }
+
+            pdf.text(`• ${slot.time} - ${slot.activity}`, 20, yPos);
+            yPos += lineHeight;
+            if (slot.location) {
+              pdf.text(`  Location: ${slot.location}`, 30, yPos);
+              yPos += lineHeight;
+            }
+            if (slot.duration) {
+              pdf.text(`  Duration: ${slot.duration}`, 30, yPos);
+              yPos += lineHeight;
+            }
+            if (slot.cost) {
+              pdf.text(`  Cost: $${slot.cost}`, 30, yPos);
+              yPos += lineHeight;
+            }
+            if (slot.url) {
+              pdf.setTextColor(0, 0, 255);
+              pdf.text(`  Website: ${slot.url}`, 30, yPos);
+              pdf.setTextColor(0, 0, 0);
+              yPos += lineHeight;
+            }
+            if (slot.notes) {
+              pdf.text(`  Notes: ${slot.notes}`, 30, yPos);
+              yPos += lineHeight;
+            }
+            yPos += lineHeight / 2;
+          });
+
+          // Accommodation
+          if (day.accommodation) {
+            pdf.text("Accommodation:", 20, yPos);
+            yPos += lineHeight;
+            pdf.text(`• ${day.accommodation.name} - $${day.accommodation.cost}`, 30, yPos);
+            yPos += lineHeight;
+            if (day.accommodation.url) {
+              pdf.setTextColor(0, 0, 255);
+              pdf.text(`  Website: ${day.accommodation.url}`, 30, yPos);
+              pdf.setTextColor(0, 0, 0);
+              yPos += lineHeight;
+            }
+          }
+
+          yPos += lineHeight * 1.5;
         });
       }
 
