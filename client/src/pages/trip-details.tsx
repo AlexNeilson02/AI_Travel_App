@@ -8,6 +8,9 @@ import { Loader2, Calendar, DollarSign, MapPin, ArrowLeft, ExternalLink, CloudRa
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { useState } from 'react';
+import { Dialog, DialogHeader, DialogBody, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+
 
 interface ExtendedTrip extends Trip {
   tripDays?: TripDay[];
@@ -16,6 +19,9 @@ interface ExtendedTrip extends Trip {
 export default function TripDetails() {
   const params = useParams();
   const tripId = params?.id;
+  const [showWeatherDialog, setShowWeatherDialog] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<TripDay | null>(null);
+  const [weatherImpact, setWeatherImpact] = useState<string>("");
 
   const { data: trip, isLoading } = useQuery<ExtendedTrip>({
     queryKey: ["/api/trips", tripId],
@@ -69,6 +75,34 @@ export default function TripDetails() {
     { label: "Dietary Restrictions", value: trip.preferences.dietaryRestrictions },
     { label: "Transportation", value: trip.preferences.transportationPreferences },
   ];
+
+  const showWeatherImpact = async (day: TripDay) => {
+    setSelectedDay(day);
+
+    // Generate AI analysis of weather impact (placeholder - replace with actual AI call)
+    if (day.aiSuggestions.weatherContext) {
+      const weatherContext = day.aiSuggestions.weatherContext;
+      const activities = day.activities.timeSlots.map(slot => slot.activity).join(", ");
+
+      let impact = "";
+
+      if (weatherContext.is_suitable_for_outdoor) {
+        impact = `The forecast for ${format(new Date(day.date), "MMMM d")} looks favorable with ${weatherContext.description} and a temperature of ${Math.round(weatherContext.temperature)}°F. This is suitable weather for your planned activities: ${activities}.`;
+      } else {
+        impact = `The weather forecast for ${format(new Date(day.date), "MMMM d")} shows ${weatherContext.description} with a temperature of ${Math.round(weatherContext.temperature)}°F and ${Math.round(weatherContext.precipitation_probability)}% chance of precipitation. This might affect your outdoor plans.`;
+
+        if (day.aiSuggestions.alternativeActivities && day.aiSuggestions.alternativeActivities.length > 0) {
+          impact += ` Consider these alternatives: ${day.aiSuggestions.alternativeActivities.join(", ")}.`;
+        }
+      }
+
+      setWeatherImpact(impact);
+    } else {
+      setWeatherImpact("No weather data is available for this date yet. Check back closer to your trip date for a weather impact analysis.");
+    }
+
+    setShowWeatherDialog(true);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -141,6 +175,7 @@ export default function TripDetails() {
                             <h4 className="font-medium">
                               {format(new Date(day.date), "EEEE, MMMM d, yyyy")}
                             </h4>
+                            <Button onClick={() => showWeatherImpact(day)}>See how this affects my trip</Button>
                             {day.aiSuggestions.weatherContext && (
                               <div className="flex items-center gap-2 text-sm">
                                 <ThermometerSun className="h-4 w-4" />
@@ -225,6 +260,17 @@ export default function TripDetails() {
             </div>
           </CardContent>
         </Card>
+        <Dialog open={showWeatherDialog} onClose={() => setShowWeatherDialog(false)}>
+          <DialogHeader>
+            <DialogTitle>Weather Impact on {selectedDay?.date ? format(new Date(selectedDay.date), "MMMM d") : ""}</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <p>{weatherImpact}</p>
+          </DialogBody>
+          <DialogFooter>
+            <Button onClick={() => setShowWeatherDialog(false)}>Close</Button>
+          </DialogFooter>
+        </Dialog>
       </main>
     </div>
   );
