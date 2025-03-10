@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { CalendarIcon, DollarSign, Send, Edit2, Check, X, ExternalLink } from "lucide-react";
+import { CalendarIcon, DollarSign, Send, Edit2, Check, X, ExternalLink, ThermometerSun, CloudRain, AlertTriangle } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
@@ -19,6 +19,7 @@ import { Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export default function PlanTrip() {
   const { toast } = useToast();
@@ -28,6 +29,9 @@ export default function PlanTrip() {
   const [userResponse, setUserResponse] = useState<string>("");
   const [editingActivity, setEditingActivity] = useState<{ day: number; index: number } | null>(null);
   const [editedActivity, setEditedActivity] = useState<{ name: string; cost: number; duration: string; url?: string } | null>(null);
+  const [showWeatherDialog, setShowWeatherDialog] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<any>(null);
+  const [weatherImpact, setWeatherImpact] = useState<string>("");
 
   const form = useForm({
     resolver: zodResolver(insertTripSchema),
@@ -86,7 +90,6 @@ export default function PlanTrip() {
   const createTripMutation = useMutation({
     mutationFn: async (data: any) => {
       console.log('Creating trip with data:', data);
-      // First create the trip
       const tripRes = await apiRequest("POST", "/api/trips", {
         ...data,
         startDate: new Date(data.startDate).toISOString(),
@@ -94,7 +97,6 @@ export default function PlanTrip() {
       });
       const trip = await tripRes.json();
 
-      // Then create trip days for each suggested day
       if (suggestions?.days) {
         for (const day of suggestions.days) {
           await apiRequest("POST", `/api/trips/${trip.id}/days`, {
@@ -151,7 +153,6 @@ export default function PlanTrip() {
     setChatHistory(updatedHistory);
     setUserResponse("");
 
-    // Trigger new suggestions with updated chat history
     suggestMutation.mutate({
       destination: form.getValues().destination,
       preferences: form.getValues().preferences,
@@ -185,6 +186,34 @@ export default function PlanTrip() {
     setEditingActivity(null);
     setEditedActivity(null);
   };
+
+  const showWeatherImpact = (day: any) => {
+    setSelectedDay(day);
+
+    if (day.weatherContext) {
+      const weatherContext = day.weatherContext;
+      const activities = day.activities.map((activity: any) => activity.name).join(", ");
+
+      let impact = "";
+
+      if (weatherContext.is_suitable_for_outdoor) {
+        impact = `The forecast for ${format(new Date(day.date), "MMMM d")} looks favorable with ${weatherContext.description} and a temperature of ${Math.round(weatherContext.temperature)}°F. This weather is suitable for your planned activities: ${activities}.`;
+      } else {
+        impact = `The weather forecast for ${format(new Date(day.date), "MMMM d")} shows ${weatherContext.description} with a temperature of ${Math.round(weatherContext.temperature)}°F and ${Math.round(weatherContext.precipitation_probability)}% chance of precipitation. This might affect your outdoor plans.`;
+
+        if (day.alternativeActivities && day.alternativeActivities.length > 0) {
+          impact += ` Consider these indoor alternatives: ${day.alternativeActivities.join(", ")}.`;
+        }
+      }
+
+      setWeatherImpact(impact);
+    } else {
+      setWeatherImpact("Weather data isn't available yet for this date. Check back closer to your trip date for a weather impact analysis.");
+    }
+
+    setShowWeatherDialog(true);
+  };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -493,6 +522,59 @@ export default function PlanTrip() {
                           <h3 className="font-medium mb-2">
                             {day.dayOfWeek} - {format(new Date(day.date), "MMM d, yyyy")}
                           </h3>
+
+                          <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+                            <div className="flex flex-col gap-2">
+                              {day.weatherContext ? (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <ThermometerSun className="h-4 w-4" />
+                                  <span>{Math.round(day.weatherContext.temperature)}°F</span>
+                                  <CloudRain className="h-4 w-4 ml-2" />
+                                  <span>{Math.round(day.weatherContext.precipitation_probability)}%</span>
+                                  <span className="text-muted-foreground">
+                                    {day.weatherContext.description}
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="text-sm text-muted-foreground">
+                                  No weather data available yet
+                                </div>
+                              )}
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => showWeatherImpact(day)}
+                              className="whitespace-nowrap"
+                            >
+                              See how this affects my trip
+                            </Button>
+                          </div>
+
+                          {day.weatherContext && !day.weatherContext.is_suitable_for_outdoor && (
+                            <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-900/50">
+                              <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
+                                <AlertTriangle className="h-4 w-4" />
+                                <span className="font-medium">Weather Advisory</span>
+                              </div>
+                              <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+                                Weather conditions may not be suitable for outdoor activities.
+                              </p>
+                              {day.alternativeActivities && day.alternativeActivities.length > 0 && (
+                                <div className="mt-2">
+                                  <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                                    Suggested Alternatives:
+                                  </span>
+                                  <ul className="mt-1 list-disc list-inside text-sm text-yellow-700 dark:text-yellow-300">
+                                    {day.alternativeActivities.map((alt: string, index: number) => (
+                                      <li key={index}>{alt}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
                           <div className="space-y-2">
                             {day.activities.map((activity: any, actIndex: number) => (
                               <div key={actIndex} className="flex items-center justify-between">
@@ -604,6 +686,22 @@ export default function PlanTrip() {
             )}
           </div>
         </div>
+
+        <Dialog open={showWeatherDialog} onOpenChange={setShowWeatherDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                Weather Impact on {selectedDay?.date ? format(new Date(selectedDay.date), "MMMM d") : ""}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-sm text-muted-foreground">{weatherImpact}</p>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setShowWeatherDialog(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
