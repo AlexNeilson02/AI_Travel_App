@@ -20,6 +20,8 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from 'jspdf';
+import React from "react";
+import { Link } from "wouter";
 
 export default function MyTrips() {
   const { toast } = useToast();

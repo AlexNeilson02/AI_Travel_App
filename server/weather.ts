@@ -51,12 +51,13 @@ export async function getWeatherForecast(city: string, date: Date): Promise<Weat
 
     // Determine if weather is suitable for outdoor activities
     const isSuitableForOutdoor = (
+      forecast.weather && forecast.weather[0] && 
       forecast.weather[0].main !== 'Rain' &&
       forecast.weather[0].main !== 'Snow' &&
       forecast.weather[0].main !== 'Thunderstorm' &&
-      forecast.main.temp >= 40 &&
+      forecast.main && forecast.main.temp >= 40 &&
       forecast.main.temp <= 95 &&
-      forecast.wind.speed <= 20
+      forecast.wind && forecast.wind.speed <= 20
     );
 
     return {

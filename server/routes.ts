@@ -67,7 +67,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const tripDayData = insertTripDaySchema.parse(req.body);
 
     // Check weather for outdoor activities
-    const weatherData = await getWeatherForecast(trip.destination, new Date(tripDayData.date));
+    // If destination is a country name, try to use a major city instead for weather data
+    const location = trip.destination;
+    let weatherLocation = location;
+    // Check if location is likely a country
+    if (location && !location.includes(",") && /^[A-Z][a-z]+$/.test(location)) {
+      const countryCapitals: Record<string, string> = {
+        "Germany": "Berlin",
+        "France": "Paris",
+        "Italy": "Rome",
+        "Spain": "Madrid",
+        "UK": "London",
+        "England": "London",
+        "USA": "New York",
+        "Canada": "Toronto",
+        "Australia": "Sydney",
+        "Japan": "Tokyo"
+      };
+      weatherLocation = countryCapitals[location] || location;
+    }
+    const weatherData = await getWeatherForecast(weatherLocation, new Date(tripDayData.date));
     if (weatherData) {
       const outdoorActivities = tripDayData.activities.timeSlots.filter(slot => 
         slot.isOutdoor || slot.activity.toLowerCase().includes('outdoor')
