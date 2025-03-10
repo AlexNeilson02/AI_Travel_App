@@ -70,7 +70,7 @@ export default function HomePage() {
           </Link>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {features.map((feature) => (
             <Card key={feature.title}>
               <CardContent className="pt-6">
@@ -84,7 +84,7 @@ export default function HomePage() {
 
         <section>
           <h2 className="text-2xl font-bold mb-6">Featured Destinations</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {featuredDestinations.map((destination) => (
               <Card key={destination.name} className="overflow-hidden">
                 <div className="aspect-[4/3] relative">
