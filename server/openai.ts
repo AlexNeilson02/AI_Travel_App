@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { getWeatherForecast, suggestAlternativeActivities } from "./weather";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -50,7 +51,39 @@ export async function generateTripSuggestions(
     });
 
     const content = response.choices[0].message.content;
-    return content ? JSON.parse(content) : null;
+    if (!content) return null;
+
+    const itinerary = JSON.parse(content);
+
+    // Add weather data for each day
+    for (const day of itinerary.days) {
+      try {
+        console.log(`Fetching weather for ${destination} on ${day.date}`);
+        const weather = await getWeatherForecast(destination, new Date(day.date));
+        if (weather) {
+          day.weatherContext = weather;
+          // If weather is not suitable for outdoor activities, suggest alternatives
+          if (!weather.is_suitable_for_outdoor) {
+            const outdoorActivities = day.activities.filter((activity: any) => 
+              activity.name.toLowerCase().includes('outdoor') ||
+              activity.name.toLowerCase().includes('park') ||
+              activity.name.toLowerCase().includes('garden') ||
+              activity.name.toLowerCase().includes('walk') ||
+              activity.name.toLowerCase().includes('hike')
+            );
+            if (outdoorActivities.length > 0) {
+              day.alternativeActivities = suggestAlternativeActivities(weather, outdoorActivities[0].name);
+            }
+          }
+        } else {
+          console.log(`No weather data available for ${destination} on ${day.date}`);
+        }
+      } catch (error) {
+        console.error(`Error fetching weather for ${destination} on ${day.date}:`, error);
+      }
+    }
+
+    return itinerary;
   } catch (error: any) {
     throw new Error("Failed to generate trip suggestions: " + error.message);
   }
