@@ -117,9 +117,16 @@ export default function TripDetails() {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-2xl">{trip.title}</CardTitle>
-            <div className="flex items-center text-muted-foreground">
-              <MapPin className="h-4 w-4 mr-2" />
-              {trip.destination}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center text-muted-foreground">
+                <MapPin className="h-4 w-4 mr-2" />
+                {trip.destination}
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/walk-around/${trip.id}`}>
+                  Walk Around
+                </Link>
+              </Button>
             </div>
           </CardHeader>
           <CardContent>

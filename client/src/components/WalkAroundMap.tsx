@@ -23,7 +23,7 @@ interface NearbyPlace {
 
 interface WalkAroundMapProps {
   tripId: string;
-  locations: TripLocation[];
+  locations: (Location & { tripLocation: TripLocation })[];
   onPlaceSelect?: (place: NearbyPlace) => void;
 }
 
@@ -161,8 +161,8 @@ export function WalkAroundMap({ tripId, locations, onPlaceSelect }: WalkAroundMa
         {/* Trip locations markers */}
         {locations.map((location) => (
           <Marker
-            key={location.id}
-            position={{ lat: Number(location.latitude), lng: Number(location.longitude) }}
+            key={location.tripLocation.id} //Corrected key
+            position={{ lat: Number(location.tripLocation.latitude), lng: Number(location.tripLocation.longitude) }}
             icon={{
               url: '/map-pin.svg',
               scaledSize: new google.maps.Size(30, 30),
