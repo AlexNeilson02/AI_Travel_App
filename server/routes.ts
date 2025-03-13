@@ -55,7 +55,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(updatedTrip);
   });
 
-  // Get popular destinations
   app.get("/api/popular-destinations", async (req, res) => {
     try {
       const popularDestinations = await storage.getPopularDestinations();
@@ -107,19 +106,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         chatHistory
       );
 
-      // Format the suggestions with proper dates and check weather
+      console.log('Raw AI suggestions:', suggestions);
+
       const formattedDays = await Promise.all(suggestions.days.map(async (day: any, index: number) => {
         const date = addDays(new Date(startDate), index);
         const weatherData = await getWeatherForecast(destination, date);
 
         let alternativeActivities: string[] = [];
-        if (weatherData) {
-          const outdoorActivities = day.activities.timeSlots.filter((slot: any) => 
-            slot.isOutdoor || slot.activity.toLowerCase().includes('outdoor')
+        const activities = day.activities?.timeSlots || [];
+
+        if (weatherData && Array.isArray(activities)) {
+          const outdoorActivities = activities.filter((slot: any) => 
+            (slot.isOutdoor === true) || 
+            (typeof slot.activity === 'string' && slot.activity.toLowerCase().includes('outdoor'))
           );
 
           for (const activity of outdoorActivities) {
-            if (!weatherData.is_suitable_for_outdoor) {
+            if (!weatherData.is_suitable_for_outdoor && activity.activity) {
               const alternatives = suggestAlternativeActivities(weatherData, activity.activity);
               alternativeActivities.push(...alternatives);
             }
@@ -128,7 +131,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         return {
           date: format(date, 'yyyy-MM-dd'),
-          activities: day.activities,
+          activities: {
+            timeSlots: activities.map((slot: any) => ({
+              time: slot.time || "",
+              activity: slot.activity || "",
+              location: slot.location || "",
+              duration: slot.duration || "",
+              notes: slot.notes || "",
+              isEdited: false,
+              url: slot.url,
+              originalSuggestion: slot.activity,
+              isOutdoor: slot.isOutdoor || false
+            }))
+          },
           aiSuggestions: {
             reasoning: day.reasoning || "",
             weatherContext: weatherData ? {
