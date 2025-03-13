@@ -47,6 +47,7 @@ const features = [
     title: "Local Insights",
     description: "Discover hidden gems and local favorites",
     icon: Map,
+    href: "/maps" // Added href for maps feature
   },
 ];
 
@@ -54,7 +55,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       <Nav />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
@@ -77,6 +78,13 @@ export default function HomePage() {
                 <feature.icon className="h-10 w-10 text-[#FF5A5F] mb-4" />
                 <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
                 <p className="text-muted-foreground">{feature.description}</p>
+                {feature.href && (
+                  <div className="mt-4">
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={feature.href}>View Maps</Link>
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -108,3 +116,16 @@ export default function HomePage() {
     </div>
   );
 }
+
+
+//New Map Page Component
+function MapsPage() {
+  return (
+    <div>
+      <h1>Maps Page</h1>
+      {/* Add your map component here, e.g., <WalkAroundMap /> */}
+    </div>
+  );
+}
+
+export {MapsPage};
