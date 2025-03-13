@@ -1,19 +1,19 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, Home, Map, Calendar, FileText } from "lucide-react";
+import { LogOut, Home, Map, Calendar, Globe } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Nav() {
   const [location] = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const isMobile = useIsMobile();
 
   const navItems = [
     { href: "/", label: "Home", icon: Home },
-    { href: "/plan", label: "Plan", icon: Map },
-    { href: "/my-trips", label: "Trips", icon: Calendar },
-    { href: "/maps", label: "Maps", icon: FileText },
+    { href: "/plan", label: "Plan Trip", icon: Map },
+    { href: "/my-trips", label: "My Trips", icon: Calendar },
+    { href: "/maps", label: "Maps", icon: Globe },
   ];
 
   if (isMobile) {
@@ -75,7 +75,12 @@ export default function Nav() {
               <span className="text-sm mr-2 text-muted-foreground">
                 {user.username}
               </span>
-              <Button variant="ghost" size="icon" onClick={signOut}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => logoutMutation.mutate()}
+                disabled={logoutMutation.isPending}
+              >
                 <LogOut className="h-5 w-5" />
                 <span className="sr-only">Logout</span>
               </Button>

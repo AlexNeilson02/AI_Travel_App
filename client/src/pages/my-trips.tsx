@@ -1,4 +1,4 @@
-import { Nav } from "@/components/ui/nav";
+import Nav from "@/components/Nav";
 import { useQuery } from "@tanstack/react-query";
 import { Trip } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

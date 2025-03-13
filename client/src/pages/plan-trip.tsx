@@ -1,4 +1,4 @@
-import { Nav } from "@/components/ui/nav";
+import Nav from "@/components/Nav";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertTripSchema } from "@shared/schema";
@@ -42,12 +42,12 @@ export default function PlanTrip() {
       endDate: new Date(),
       budget: 0,
       preferences: {
-        accommodationType: [],
-        activityTypes: [],
+        accommodationType: [] as string[],
+        activityTypes: [] as string[],
         activityFrequency: "moderate",
-        mustSeeAttractions: [],
-        dietaryRestrictions: [],
-        transportationPreferences: [],
+        mustSeeAttractions: [] as string[],
+        dietaryRestrictions: [] as string[],
+        transportationPreferences: [] as string[],
       },
     },
   });
@@ -214,6 +214,27 @@ export default function PlanTrip() {
     setShowWeatherDialog(true);
   };
 
+  const handleAccommodationTypeChange = (value: string) => {
+    const current = form.getValues("preferences.accommodationType") as string[];
+    if (!current.includes(value)) {
+      form.setValue("preferences.accommodationType", [...current, value]);
+    }
+  };
+
+  const handleActivityTypeChange = (value: string) => {
+    const current = form.getValues("preferences.activityTypes") as string[];
+    if (!current.includes(value)) {
+      form.setValue("preferences.activityTypes", [...current, value]);
+    }
+  };
+
+  const handleAttractionAdd = (value: string) => {
+    const current = form.getValues("preferences.mustSeeAttractions") as string[];
+    if (!current.includes(value)) {
+      form.setValue("preferences.mustSeeAttractions", [...current, value]);
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -312,14 +333,7 @@ export default function PlanTrip() {
                         <label className="block text-sm font-medium mb-2">
                           Accommodation Type
                         </label>
-                        <Select
-                          onValueChange={(value) => {
-                            const current = form.getValues("preferences.accommodationType");
-                            if (!current.includes(value)) {
-                              form.setValue("preferences.accommodationType", [...current, value]);
-                            }
-                          }}
-                        >
+                        <Select onValueChange={handleAccommodationTypeChange}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select accommodation types" />
                           </SelectTrigger>
@@ -332,13 +346,13 @@ export default function PlanTrip() {
                           </SelectContent>
                         </Select>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {form.watch("preferences.accommodationType").map((type: string) => (
+                          {(form.watch("preferences.accommodationType") as string[]).map((type: string) => (
                             <Badge
                               key={type}
                               variant="secondary"
                               className="cursor-pointer"
                               onClick={() => {
-                                const current = form.getValues("preferences.accommodationType");
+                                const current = form.getValues("preferences.accommodationType") as string[];
                                 form.setValue(
                                   "preferences.accommodationType",
                                   current.filter((t: string) => t !== type)
@@ -355,14 +369,7 @@ export default function PlanTrip() {
                         <label className="block text-sm font-medium mb-2">
                           Activity Types
                         </label>
-                        <Select
-                          onValueChange={(value) => {
-                            const current = form.getValues("preferences.activityTypes");
-                            if (!current.includes(value)) {
-                              form.setValue("preferences.activityTypes", [...current, value]);
-                            }
-                          }}
-                        >
+                        <Select onValueChange={handleActivityTypeChange}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select activity types" />
                           </SelectTrigger>
@@ -376,13 +383,13 @@ export default function PlanTrip() {
                           </SelectContent>
                         </Select>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {form.watch("preferences.activityTypes").map((type: string) => (
+                          {(form.watch("preferences.activityTypes") as string[]).map((type: string) => (
                             <Badge
                               key={type}
                               variant="secondary"
                               className="cursor-pointer"
                               onClick={() => {
-                                const current = form.getValues("preferences.activityTypes");
+                                const current = form.getValues("preferences.activityTypes") as string[];
                                 form.setValue(
                                   "preferences.activityTypes",
                                   current.filter((t: string) => t !== type)
@@ -426,10 +433,7 @@ export default function PlanTrip() {
                                 e.preventDefault();
                                 const value = e.currentTarget.value.trim();
                                 if (value) {
-                                  const current = form.getValues("preferences.mustSeeAttractions");
-                                  if (!current.includes(value)) {
-                                    form.setValue("preferences.mustSeeAttractions", [...current, value]);
-                                  }
+                                  handleAttractionAdd(value);
                                   e.currentTarget.value = '';
                                 }
                               }
@@ -437,13 +441,13 @@ export default function PlanTrip() {
                           />
                         </div>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {form.watch("preferences.mustSeeAttractions").map((attraction: string) => (
+                          {(form.watch("preferences.mustSeeAttractions") as string[]).map((attraction: string) => (
                             <Badge
                               key={attraction}
                               variant="secondary"
                               className="cursor-pointer"
                               onClick={() => {
-                                const current = form.getValues("preferences.mustSeeAttractions");
+                                const current = form.getValues("preferences.mustSeeAttractions") as string[];
                                 form.setValue(
                                   "preferences.mustSeeAttractions",
                                   current.filter((a: string) => a !== attraction)

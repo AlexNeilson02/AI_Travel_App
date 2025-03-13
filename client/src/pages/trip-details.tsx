@@ -1,7 +1,7 @@
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Trip, TripDay } from "@shared/schema";
-import { Nav } from "@/components/ui/nav";
+import Nav from "@/components/Nav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Calendar, DollarSign, MapPin, ArrowLeft, ExternalLink, CloudRain, ThermometerSun, AlertTriangle } from "lucide-react";

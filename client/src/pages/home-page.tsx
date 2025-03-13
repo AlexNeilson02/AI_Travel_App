@@ -1,4 +1,4 @@
-import { Nav } from "@/components/ui/nav";
+import Nav from "@/components/Nav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plane, Calendar, DollarSign, Map } from "lucide-react";
