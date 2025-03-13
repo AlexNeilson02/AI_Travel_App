@@ -1,15 +1,13 @@
-
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, Menu, X, Map, Calendar, User } from "lucide-react";
+import { LogOut, Menu, Map } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
 
 export default function Nav() {
   const [location] = useLocation();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const [open, setOpen] = useState(false);
 
   const closeSheet = () => setOpen(false);
@@ -55,7 +53,7 @@ export default function Nav() {
                   </Link>
                 </Button>
               ))}
-              <Button variant="ghost" className="justify-start" onClick={() => { logout(); closeSheet(); }}>
+              <Button variant="ghost" className="justify-start" onClick={() => { signOut(); closeSheet(); }}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout
               </Button>
@@ -81,9 +79,9 @@ export default function Nav() {
           {user && (
             <div className="flex items-center">
               <span className="hidden md:inline text-sm mr-2 text-muted-foreground">
-                {user.name}
+                {user.username}
               </span>
-              <Button variant="ghost" size="icon" onClick={logout}>
+              <Button variant="ghost" size="icon" onClick={signOut}>
                 <LogOut className="h-5 w-5" />
                 <span className="sr-only">Logout</span>
               </Button>
