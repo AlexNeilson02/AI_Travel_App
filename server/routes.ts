@@ -43,6 +43,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ ...trip, tripDays });
   });
 
+  // Get popular destinations
+  app.get("/api/popular-destinations", async (req, res) => {
+    try {
+      // Get destinations from recent trips
+      const popularDestinations = await storage.getPopularDestinations();
+      res.json(popularDestinations);
+    } catch (error) {
+      console.error('Error fetching popular destinations:', error);
+      res.status(500).json({ message: "Failed to fetch popular destinations" });
+    }
+  });
+
   app.delete("/api/trips/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 

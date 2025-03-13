@@ -4,8 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import Nav from "@/components/Nav";
 import { Star } from "lucide-react";
+import { useEffect, useState } from "react";
 
-const popularDestinations = [
+type Destination = {
+  name: string;
+  image: string;
+  description?: string;
+  count?: number;
+};
+
+// Default destinations as fallback
+const defaultDestinations = [
   {
     name: "Greece",
     image: "https://images.unsplash.com/photo-1503152394-c571994fd383?q=80&w=1000",
@@ -39,6 +48,29 @@ const testimonials = [
 ];
 
 export default function HomePage() {
+  const [popularDestinations, setPopularDestinations] = useState<Destination[]>(defaultDestinations);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchPopularDestinations() {
+      try {
+        const response = await fetch('/api/popular-destinations');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.length > 0) {
+            setPopularDestinations(data);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching popular destinations:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchPopularDestinations();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <Nav />
@@ -63,9 +95,12 @@ export default function HomePage() {
         {/* Popular Destinations */}
         <section className="mb-12 bg-neutral-100 p-6 rounded-lg">
           <h2 className="text-2xl font-bold mb-6">Popular Destinations</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="flex overflow-x-auto pb-4 gap-4 snap-x">
             {popularDestinations.map((destination) => (
-              <div key={destination.name} className="flex flex-col">
+              <div 
+                key={destination.name} 
+                className="flex-none w-64 snap-start"
+              >
                 <div className="aspect-[4/3] relative bg-neutral-200 rounded-md overflow-hidden mb-2">
                   <img
                     src={destination.image}
@@ -74,6 +109,9 @@ export default function HomePage() {
                   />
                 </div>
                 <h3 className="text-center font-medium">{destination.name}</h3>
+                {destination.description && (
+                  <p className="text-sm text-center text-gray-600">{destination.description}</p>
+                )}
               </div>
             ))}
           </div>
