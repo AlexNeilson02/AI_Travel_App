@@ -10,7 +10,6 @@ import { getWeatherForecast, suggestAlternativeActivities } from "./weather";
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
-  // Trip routes
   app.post("/api/trips", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
@@ -76,7 +75,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(204);
   });
 
-  // AI Suggestion endpoints
   app.post("/api/suggest-trip", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
@@ -113,36 +111,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const weatherData = await getWeatherForecast(destination, date);
 
         let alternativeActivities: string[] = [];
-        const activities = day.activities?.timeSlots || [];
+        // Ensure day.activities exists and has the expected structure
+        const activities = day.activities ? (
+          Array.isArray(day.activities) ? day.activities : 
+          day.activities.timeSlots ? day.activities.timeSlots :
+          []
+        ) : [];
 
-        if (weatherData && Array.isArray(activities)) {
-          const outdoorActivities = activities.filter((slot: any) => 
-            (slot.isOutdoor === true) || 
-            (typeof slot.activity === 'string' && slot.activity.toLowerCase().includes('outdoor'))
-          );
+        if (weatherData && activities.length > 0) {
+          const outdoorActivities = activities.filter((slot: any) => {
+            const activity = typeof slot === 'string' ? slot : slot.activity;
+            const isOutdoor = typeof slot === 'object' ? slot.isOutdoor : false;
+            return isOutdoor || (typeof activity === 'string' && activity.toLowerCase().includes('outdoor'));
+          });
 
           for (const activity of outdoorActivities) {
-            if (!weatherData.is_suitable_for_outdoor && activity.activity) {
-              const alternatives = suggestAlternativeActivities(weatherData, activity.activity);
+            if (!weatherData.is_suitable_for_outdoor) {
+              const activityName = typeof activity === 'string' ? activity : activity.activity;
+              const alternatives = suggestAlternativeActivities(weatherData, activityName);
               alternativeActivities.push(...alternatives);
             }
           }
         }
 
+        // Format activities into the expected structure
+        const formattedActivities = activities.map((slot: any) => {
+          if (typeof slot === 'string') {
+            return {
+              time: "TBD",
+              activity: slot,
+              location: "",
+              duration: "2 hours",
+              notes: "",
+              isEdited: false,
+              isOutdoor: slot.toLowerCase().includes('outdoor')
+            };
+          }
+          return {
+            time: slot.time || "TBD",
+            activity: slot.activity || "",
+            location: slot.location || "",
+            duration: slot.duration || "2 hours",
+            notes: slot.notes || "",
+            isEdited: false,
+            url: slot.url,
+            originalSuggestion: slot.activity,
+            isOutdoor: slot.isOutdoor || false
+          };
+        });
+
         return {
           date: format(date, 'yyyy-MM-dd'),
           activities: {
-            timeSlots: activities.map((slot: any) => ({
-              time: slot.time || "",
-              activity: slot.activity || "",
-              location: slot.location || "",
-              duration: slot.duration || "",
-              notes: slot.notes || "",
-              isEdited: false,
-              url: slot.url,
-              originalSuggestion: slot.activity,
-              isOutdoor: slot.isOutdoor || false
-            }))
+            timeSlots: formattedActivities
           },
           aiSuggestions: {
             reasoning: day.reasoning || "",
@@ -154,19 +175,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
             } : undefined,
             alternativeActivities
           },
+          accommodation: day.accommodation || null,
           isFinalized: false
         };
       }));
 
-      const formattedSuggestions = {
-        ...suggestions,
+      // Save the itinerary directly in the trip
+      const tripData = {
+        title: destination,
+        destination,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        budget,
+        preferences,
         itinerary: {
           days: formattedDays
         }
       };
 
-      console.log('Sending formatted suggestions:', formattedSuggestions);
-      res.json(formattedSuggestions);
+      console.log('Sending formatted suggestions:', tripData);
+      res.json(tripData);
     } catch (error: any) {
       console.error('Error generating suggestions:', error);
       res.status(500).json({ message: error.message });
