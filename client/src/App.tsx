@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 import { useIsMobile } from "./hooks/use-mobile";
-import Nav from "@/components/Nav";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
@@ -19,7 +18,6 @@ function Router() {
 
   return (
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
-      <Nav />
       <main>
         <Switch>
           <ProtectedRoute path="/" component={HomePage} />
