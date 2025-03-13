@@ -10,11 +10,9 @@ import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useState } from 'react';
 import { Dialog, DialogHeader, DialogFooter, DialogTitle, DialogContent } from "@/components/ui/dialog";
-import { WalkAroundMap } from "@/components/WalkAroundMap";
 
 interface ExtendedTrip extends Trip {
   tripDays?: TripDay[];
-  locations?: any[]; // We'll type this properly once the backend is set up
 }
 
 export default function TripDetails() {
@@ -67,15 +65,6 @@ export default function TripDetails() {
     );
   }
 
-  const preferencesList = [
-    { label: "Accommodation Types", value: trip.preferences.accommodationType },
-    { label: "Activity Types", value: trip.preferences.activityTypes },
-    { label: "Activity Frequency", value: [trip.preferences.activityFrequency] },
-    { label: "Must-See Attractions", value: trip.preferences.mustSeeAttractions },
-    { label: "Dietary Restrictions", value: trip.preferences.dietaryRestrictions },
-    { label: "Transportation", value: trip.preferences.transportationPreferences },
-  ];
-
   const showWeatherImpact = async (day: TripDay) => {
     setSelectedDay(day);
 
@@ -103,6 +92,15 @@ export default function TripDetails() {
     setShowWeatherDialog(true);
   };
 
+  const preferencesList = [
+    { label: "Accommodation Types", value: trip.preferences.accommodationType },
+    { label: "Activity Types", value: trip.preferences.activityTypes },
+    { label: "Activity Frequency", value: [trip.preferences.activityFrequency] },
+    { label: "Must-See Attractions", value: trip.preferences.mustSeeAttractions },
+    { label: "Dietary Restrictions", value: trip.preferences.dietaryRestrictions },
+    { label: "Transportation", value: trip.preferences.transportationPreferences },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <Nav />
@@ -113,20 +111,12 @@ export default function TripDetails() {
           </Link>
         </Button>
 
-        {/* Trip Details Card */}
-        <Card className="mb-6">
+        <Card>
           <CardHeader>
             <CardTitle className="text-2xl">{trip.title}</CardTitle>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center text-muted-foreground">
-                <MapPin className="h-4 w-4 mr-2" />
-                {trip.destination}
-              </div>
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/walk-around/${trip.id}`}>
-                  Walk Around
-                </Link>
-              </Button>
+            <div className="flex items-center text-muted-foreground">
+              <MapPin className="h-4 w-4 mr-2" />
+              {trip.destination}
             </div>
           </CardHeader>
           <CardContent>
@@ -170,143 +160,116 @@ export default function TripDetails() {
                   ))}
                 </div>
               </div>
+
+              {trip.tripDays && trip.tripDays.length > 0 && (
+                <div>
+                  <h3 className="font-medium mb-2">Daily Itinerary</h3>
+                  <div className="space-y-4">
+                    {trip.tripDays.map((day) => (
+                      <Card key={day.id}>
+                        <CardContent className="p-4">
+                          <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+                            <div className="flex flex-col gap-2">
+                              <h4 className="font-medium">
+                                {format(new Date(day.date), "EEEE, MMMM d, yyyy")}
+                              </h4>
+                              {day.aiSuggestions.weatherContext ? (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <ThermometerSun className="h-4 w-4" />
+                                  <span>{Math.round(day.aiSuggestions.weatherContext.temperature)}°F</span>
+                                  <CloudRain className="h-4 w-4 ml-2" />
+                                  <span>{Math.round(day.aiSuggestions.weatherContext.precipitation_probability)}%</span>
+                                  <span className="text-muted-foreground">
+                                    {day.aiSuggestions.weatherContext.description}
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="text-sm text-muted-foreground">
+                                  No weather data available yet
+                                </div>
+                              )}
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => showWeatherImpact(day)}
+                              className="whitespace-nowrap"
+                            >
+                              See how this affects my trip
+                            </Button>
+                          </div>
+
+                          {/* Weather Warning */}
+                          {day.aiSuggestions.weatherContext && !day.aiSuggestions.weatherContext.is_suitable_for_outdoor && (
+                            <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-900/50">
+                              <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
+                                <AlertTriangle className="h-4 w-4" />
+                                <span className="font-medium">Weather Advisory</span>
+                              </div>
+                              <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+                                Weather conditions may not be suitable for outdoor activities.
+                              </p>
+                              {day.aiSuggestions.alternativeActivities.length > 0 && (
+                                <div className="mt-2">
+                                  <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                                    Suggested Alternatives:
+                                  </span>
+                                  <ul className="mt-1 list-disc list-inside text-sm text-yellow-700 dark:text-yellow-300">
+                                    {day.aiSuggestions.alternativeActivities.map((alt, index) => (
+                                      <li key={index}>{alt}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="space-y-2">
+                            {day.activities.timeSlots.map((slot, index) => (
+                              <div key={index} className="flex justify-between items-start border-b border-border pb-2 last:border-0 last:pb-0">
+                                <div>
+                                  <div className="font-medium flex items-center gap-2">
+                                    {slot.activity}
+                                    {slot.url && (
+                                      <a
+                                        href={slot.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center hover:text-primary"
+                                      >
+                                        <ExternalLink className="h-4 w-4" />
+                                      </a>
+                                    )}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {slot.time} • {slot.duration}
+                                  </div>
+                                  {slot.location && (
+                                    <div className="text-sm text-muted-foreground">
+                                      Location: {slot.location}
+                                    </div>
+                                  )}
+                                  {slot.notes && (
+                                    <div className="text-sm mt-1">{slot.notes}</div>
+                                  )}
+                                </div>
+                                {slot.isEdited && (
+                                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                                    Modified
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
-
-        {/* Walk Around Map */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-xl">Walk Around</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Explore nearby attractions and your trip locations
-            </p>
-          </CardHeader>
-          <CardContent>
-            {trip && (
-              <WalkAroundMap
-                tripId={tripId!}
-                locations={trip.locations || []}
-                onPlaceSelect={(place) => {
-                  // Handle adding place to itinerary
-                  console.log('Selected place:', place);
-                }}
-              />
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Daily Itinerary */}
-        {trip?.tripDays && trip.tripDays.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Daily Itinerary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {trip.tripDays.map((day) => (
-                  <Card key={day.id}>
-                    <CardContent className="p-4">
-                      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-                        <div className="flex flex-col gap-2">
-                          <h4 className="font-medium">
-                            {format(new Date(day.date), "EEEE, MMMM d, yyyy")}
-                          </h4>
-                          {day.aiSuggestions.weatherContext ? (
-                            <div className="flex items-center gap-2 text-sm">
-                              <ThermometerSun className="h-4 w-4" />
-                              <span>{Math.round(day.aiSuggestions.weatherContext.temperature)}°F</span>
-                              <CloudRain className="h-4 w-4 ml-2" />
-                              <span>{Math.round(day.aiSuggestions.weatherContext.precipitation_probability)}%</span>
-                              <span className="text-muted-foreground">
-                                {day.aiSuggestions.weatherContext.description}
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="text-sm text-muted-foreground">
-                              No weather data available yet
-                            </div>
-                          )}
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => showWeatherImpact(day)}
-                          className="whitespace-nowrap"
-                        >
-                          See how this affects my trip
-                        </Button>
-                      </div>
-
-                      {/* Weather Warning */}
-                      {day.aiSuggestions.weatherContext && !day.aiSuggestions.weatherContext.is_suitable_for_outdoor && (
-                        <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-900/50">
-                          <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
-                            <AlertTriangle className="h-4 w-4" />
-                            <span className="font-medium">Weather Advisory</span>
-                          </div>
-                          <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
-                            Weather conditions may not be suitable for outdoor activities.
-                          </p>
-                          {day.aiSuggestions.alternativeActivities.length > 0 && (
-                            <div className="mt-2">
-                              <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                                Suggested Alternatives:
-                              </span>
-                              <ul className="mt-1 list-disc list-inside text-sm text-yellow-700 dark:text-yellow-300">
-                                {day.aiSuggestions.alternativeActivities.map((alt, index) => (
-                                  <li key={index}>{alt}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="space-y-2">
-                        {day.activities.timeSlots.map((slot, index) => (
-                          <div key={index} className="flex justify-between items-start border-b border-border pb-2 last:border-0 last:pb-0">
-                            <div>
-                              <div className="font-medium flex items-center gap-2">
-                                {slot.activity}
-                                {slot.url && (
-                                  <a
-                                    href={slot.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center hover:text-primary"
-                                  >
-                                    <ExternalLink className="h-4 w-4" />
-                                  </a>
-                                )}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                {slot.time} • {slot.duration}
-                              </div>
-                              {slot.location && (
-                                <div className="text-sm text-muted-foreground">
-                                  Location: {slot.location}
-                                </div>
-                              )}
-                              {slot.notes && (
-                                <div className="text-sm mt-1">{slot.notes}</div>
-                              )}
-                            </div>
-                            {slot.isEdited && (
-                              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                                Modified
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Weather Impact Dialog */}
         <Dialog open={showWeatherDialog} onOpenChange={setShowWeatherDialog}>

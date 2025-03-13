@@ -8,7 +8,6 @@ const routes = [
   { path: "/plan", label: "Plan Trip" },
   { path: "/itinerary", label: "Itinerary" },
   { path: "/destinations", label: "Destinations" },
-  { path: "/walkaround", label: "Walk Around" }, // Added Walk Around route
 ];
 
 export function Nav() {
