@@ -1,9 +1,9 @@
 import Nav from "@/components/Nav";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Trip } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, DollarSign, MapPin, Trash2, Download } from "lucide-react";
+import { Loader2, Calendar, DollarSign, MapPin, Trash2, Download, ChevronDown, ChevronUp, Edit2 } from "lucide-react";
 import { format } from "date-fns";
 import {
   AlertDialog,
@@ -16,15 +16,25 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from 'jspdf';
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "wouter";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function MyTrips() {
   const { toast } = useToast();
+  const [expandedTrip, setExpandedTrip] = useState<number | null>(null);
+  const [editingTrip, setEditingTrip] = useState<number | null>(null);
+  const [editData, setEditData] = useState<{
+    activity?: string;
+    location?: string;
+    time?: string;
+    duration?: string;
+  }>({});
 
   const { data: trips, isLoading } = useQuery<Trip[]>({
     queryKey: ["/api/trips"],
@@ -39,6 +49,37 @@ export default function MyTrips() {
       toast({
         title: "Success",
         description: "Trip deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateActivityMutation = useMutation({
+    mutationFn: async ({
+      tripId,
+      dayId,
+      slotIndex,
+      updates
+    }: {
+      tripId: number;
+      dayId: number;
+      slotIndex: number;
+      updates: any;
+    }) => {
+      await apiRequest("PATCH", `/api/trips/${tripId}/days/${dayId}/activities/${slotIndex}`, updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+      setEditingTrip(null);
+      toast({
+        title: "Success",
+        description: "Activity updated successfully",
       });
     },
     onError: (error: Error) => {
@@ -99,7 +140,7 @@ export default function MyTrips() {
       }
       yPos += lineHeight;
 
-      // Daily Itinerary
+      // Itinerary
       if (tripData.tripDays && tripData.tripDays.length > 0) {
         pdf.setFontSize(16);
         pdf.text("Daily Itinerary", 20, yPos);
@@ -118,14 +159,6 @@ export default function MyTrips() {
           yPos += lineHeight;
           pdf.setFontSize(12);
 
-          // Weather information if available
-          if (day.aiSuggestions.weatherContext) {
-            const weather = day.aiSuggestions.weatherContext;
-            pdf.text(`Weather: ${weather.description}, ${Math.round(weather.temperature)}°F, ${Math.round(weather.precipitation_probability)}% precipitation`, 30, yPos);
-            yPos += lineHeight;
-          }
-
-          // Activities
           day.activities.timeSlots.forEach((slot: any) => {
             if (yPos > 270) {
               pdf.addPage();
@@ -137,32 +170,11 @@ export default function MyTrips() {
               pdf.text(`  Location: ${slot.location}`, 35, yPos);
               yPos += lineHeight;
             }
-            if (slot.duration) {
-              pdf.text(`  Duration: ${slot.duration}`, 35, yPos);
-              yPos += lineHeight;
-            }
           });
-
-          // Alternative activities if weather is not suitable
-          if (day.aiSuggestions.weatherContext && !day.aiSuggestions.weatherContext.is_suitable_for_outdoor &&
-              day.aiSuggestions.alternativeActivities.length > 0) {
-            if (yPos > 270) {
-              pdf.addPage();
-              yPos = 20;
-            }
-            pdf.text("Alternative Indoor Activities:", 30, yPos);
-            yPos += lineHeight;
-            day.aiSuggestions.alternativeActivities.forEach((alt: string) => {
-              pdf.text(`• ${alt}`, 35, yPos);
-              yPos += lineHeight;
-            });
-          }
-
           yPos += lineHeight;
         });
       }
 
-      // Download the PDF
       pdf.save(`${tripData.title.replace(/\s+/g, '_')}_itinerary.pdf`);
 
       toast({
@@ -176,6 +188,25 @@ export default function MyTrips() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleEdit = (tripId: number, dayId: number, slotIndex: number, currentData: any) => {
+    setEditingTrip(tripId);
+    setEditData({
+      activity: currentData.activity,
+      location: currentData.location,
+      time: currentData.time,
+      duration: currentData.duration,
+    });
+  };
+
+  const handleSave = (tripId: number, dayId: number, slotIndex: number) => {
+    updateActivityMutation.mutate({
+      tripId,
+      dayId,
+      slotIndex,
+      updates: editData,
+    });
   };
 
   return (
@@ -204,7 +235,7 @@ export default function MyTrips() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {trips.map((trip) => (
               <Card key={trip.id} className="relative">
-                <div className="absolute top-4 right-4">
+                <div className="absolute top-4 right-4 flex gap-2">
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="icon">
@@ -232,12 +263,16 @@ export default function MyTrips() {
                 </div>
 
                 <CardHeader>
-                  <CardTitle>
-                    <button
-                      onClick={() => generatePDF(trip.id)}
-                      className="hover:underline text-left"
-                    >
+                  <CardTitle className="flex items-center justify-between pr-12">
+                    <span className="hover:underline cursor-pointer" onClick={() => setExpandedTrip(expandedTrip === trip.id ? null : trip.id)}>
                       {trip.title}
+                    </span>
+                    <button onClick={() => setExpandedTrip(expandedTrip === trip.id ? null : trip.id)}>
+                      {expandedTrip === trip.id ? (
+                        <ChevronUp className="h-5 w-5" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5" />
+                      )}
                     </button>
                   </CardTitle>
                 </CardHeader>
@@ -256,6 +291,98 @@ export default function MyTrips() {
                       <DollarSign className="h-4 w-4 mr-2" />
                       Budget: ${trip.budget}
                     </div>
+
+                    {expandedTrip === trip.id && trip.tripDays && (
+                      <div className="mt-4 space-y-4">
+                        <h3 className="font-medium">Itinerary</h3>
+                        {trip.tripDays.map((day) => (
+                          <div key={day.id} className="border rounded-lg p-4">
+                            <h4 className="font-medium mb-2">
+                              {format(new Date(day.date), "EEEE, MMMM d")}
+                            </h4>
+                            {day.activities.timeSlots.map((slot, index) => (
+                              <div key={index} className="ml-4 mb-2 relative">
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <p className="font-medium">{slot.time}</p>
+                                    {editingTrip === trip.id ? (
+                                      <div className="space-y-2 mt-2">
+                                        <div>
+                                          <Label>Activity</Label>
+                                          <Input
+                                            value={editData.activity}
+                                            onChange={(e) => setEditData({ ...editData, activity: e.target.value })}
+                                          />
+                                        </div>
+                                        <div>
+                                          <Label>Location</Label>
+                                          <Input
+                                            value={editData.location}
+                                            onChange={(e) => setEditData({ ...editData, location: e.target.value })}
+                                          />
+                                        </div>
+                                        <div>
+                                          <Label>Time</Label>
+                                          <Input
+                                            value={editData.time}
+                                            onChange={(e) => setEditData({ ...editData, time: e.target.value })}
+                                          />
+                                        </div>
+                                        <div>
+                                          <Label>Duration</Label>
+                                          <Input
+                                            value={editData.duration}
+                                            onChange={(e) => setEditData({ ...editData, duration: e.target.value })}
+                                          />
+                                        </div>
+                                        <div className="flex justify-end gap-2 mt-2">
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setEditingTrip(null)}
+                                          >
+                                            Cancel
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            onClick={() => handleSave(trip.id, day.id, index)}
+                                          >
+                                            Save
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <p>{slot.activity}</p>
+                                        {slot.location && (
+                                          <p className="text-sm text-muted-foreground">
+                                            Location: {slot.location}
+                                          </p>
+                                        )}
+                                        {slot.duration && (
+                                          <p className="text-sm text-muted-foreground">
+                                            Duration: {slot.duration}
+                                          </p>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                  {!editingTrip && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleEdit(trip.id, day.id, index, slot)}
+                                    >
+                                      <Edit2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     <div className="mt-4">
                       <Button
