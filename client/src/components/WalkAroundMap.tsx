@@ -77,3 +77,95 @@ export function WalkAroundMap({ destination, points = [], onMarkerClick }: WalkA
 }
 
 export default WalkAroundMap;
+import React, { useRef, useEffect, useState } from 'react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import { Button } from './ui/button';
+import { Loader2 } from 'lucide-react';
+
+// You'll need to get a Mapbox token and set it in your environment variables
+// This is a placeholder - you should replace it with your actual token
+const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN || '';
+
+interface WalkAroundMapProps {
+  center?: [number, number];
+  zoom?: number;
+  location?: string;
+}
+
+export function WalkAroundMap({ 
+  center = [-74.006, 40.7128], // Default: New York City
+  zoom = 13,
+  location = "New York City"
+}: WalkAroundMapProps) {
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [mapError, setMapError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!mapContainer.current) return;
+    
+    try {
+      if (!MAPBOX_TOKEN) {
+        setMapError('Mapbox token not configured. Please set up your environment variables.');
+        setLoading(false);
+        return;
+      }
+
+      mapboxgl.accessToken = MAPBOX_TOKEN;
+      
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/streets-v11',
+        center: center,
+        zoom: zoom
+      });
+
+      map.current.on('load', () => {
+        setLoading(false);
+        
+        // Add navigation controls
+        map.current?.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        
+        // Add a marker at the center
+        new mapboxgl.Marker()
+          .setLngLat(center)
+          .setPopup(new mapboxgl.Popup().setHTML(`<h3>${location}</h3>`))
+          .addTo(map.current);
+      });
+
+      return () => {
+        map.current?.remove();
+      };
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      setMapError('Failed to initialize map. Check console for details.');
+      setLoading(false);
+    }
+  }, [center, zoom, location]);
+
+  if (mapError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 bg-muted rounded-lg p-4">
+        <p className="text-red-500">{mapError}</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          Please make sure Mapbox is correctly configured.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-[500px] w-full rounded-lg overflow-hidden border">
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
+      <div ref={mapContainer} className="h-full w-full" />
+    </div>
+  );
+}
+
+export default WalkAroundMap;
