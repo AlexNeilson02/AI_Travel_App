@@ -1,53 +1,41 @@
-import Nav from "@/components/Nav";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Plane, Calendar, DollarSign, Map } from "lucide-react";
-import { Link } from "wouter";
 
-const featuredDestinations = [
+import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import Nav from "@/components/Nav";
+import { Star } from "lucide-react";
+
+const popularDestinations = [
   {
-    name: "Mountain Retreat",
-    image: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1",
-    description: "Explore serene mountain landscapes",
+    name: "Greece",
+    image: "https://images.unsplash.com/photo-1503152394-c571994fd383?q=80&w=1000",
+    description: "Ancient ruins and stunning islands"
   },
   {
-    name: "Beach Paradise",
-    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e",
-    description: "Relax on pristine beaches",
+    name: "Italy",
+    image: "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?q=80&w=1000",
+    description: "Historic cities and delicious cuisine"
   },
   {
-    name: "Cultural Journey",
-    image: "https://images.unsplash.com/photo-1522199710521-72d69614c702",
-    description: "Immerse yourself in local traditions",
-  },
-  {
-    name: "Urban Adventure",
-    image: "https://images.unsplash.com/photo-1496950866446-3253e1470e8e",
-    description: "Discover vibrant city life",
-  },
+    name: "Japan",
+    image: "https://images.unsplash.com/photo-1492571350019-22de08371fd3?q=80&w=1000",
+    description: "Blend of tradition and technology"
+  }
 ];
 
-const features = [
+const testimonials = [
   {
-    title: "AI Trip Planning",
-    description: "Get personalized travel recommendations",
-    icon: Plane,
+    name: "Franccess Wool",
+    text: "Don't just take our word for it—see what fellow travelers are saying!"
   },
   {
-    title: "Smart Scheduling",
-    description: "Optimized itineraries for your time",
-    icon: Calendar,
+    name: "Franccess Wool",
+    text: "Don't just take our word for it—see what fellow travelers are saying!"
   },
   {
-    title: "Budget Tracking",
-    description: "Keep your expenses in check",
-    icon: DollarSign,
-  },
-  {
-    title: "Local Insights",
-    description: "Discover hidden gems and local favorites",
-    icon: Map,
-  },
+    name: "Franccess Wool",
+    text: "Don't just take our word for it—see what fellow travelers are saying!"
+  }
 ];
 
 export default function HomePage() {
@@ -55,51 +43,61 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <Nav />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Plan Your Perfect Trip with AI
-          </h1>
-          <p className="text-lg text-muted-foreground mb-8">
-            Let our AI help you create personalized travel experiences tailored to your preferences
-          </p>
-          <Link href="/plan">
-            <Button size="lg" className="bg-[#FF5A5F] hover:bg-[#FF4449]">
-              Start Planning
-            </Button>
-          </Link>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Hero Section */}
+        <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] md:aspect-[21/9] mb-8 mt-4 rounded-lg overflow-hidden">
+          <img 
+            src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1" 
+            alt="Travel Hero"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute bottom-6 right-6">
+            <Link href="/plan">
+              <Button size="lg" className="bg-[#FF5A5F] hover:bg-[#FF4449] rounded-full">
+                Start Planning
+              </Button>
+            </Link>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {features.map((feature) => (
-            <Card key={feature.title}>
-              <CardContent className="pt-6">
-                <feature.icon className="h-10 w-10 text-[#FF5A5F] mb-4" />
-                <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <section>
-          <h2 className="text-2xl font-bold mb-6">Featured Destinations</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredDestinations.map((destination) => (
-              <Card key={destination.name} className="overflow-hidden">
-                <div className="aspect-[4/3] relative">
+        {/* Popular Destinations */}
+        <section className="mb-12 bg-neutral-100 p-6 rounded-lg">
+          <h2 className="text-2xl font-bold mb-6">Popular Destinations</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {popularDestinations.map((destination) => (
+              <div key={destination.name} className="flex flex-col">
+                <div className="aspect-[4/3] relative bg-neutral-200 rounded-md overflow-hidden mb-2">
                   <img
                     src={destination.image}
                     alt={destination.name}
                     className="object-cover w-full h-full"
                   />
                 </div>
-                <CardHeader>
-                  <CardTitle className="text-lg">{destination.name}</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {destination.description}
-                  </p>
-                </CardHeader>
+                <h3 className="text-center font-medium">{destination.name}</h3>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Testimonials Section */}
+        <section className="mb-12">
+          <h2 className="text-xl font-medium mb-4">
+            Don't just take our word for it—see what fellow travelers are saying!
+          </h2>
+          <div className="space-y-4">
+            {testimonials.map((testimonial, index) => (
+              <Card key={index} className="shadow-sm">
+                <CardContent className="p-4">
+                  <div className="mb-2">
+                    <h3 className="font-semibold">{testimonial.name}</h3>
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="h-4 w-4 fill-current text-yellow-400" />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600">{testimonial.text}</p>
+                </CardContent>
               </Card>
             ))}
           </div>
