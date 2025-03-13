@@ -33,6 +33,7 @@ function Router() {
   );
 }
 
+// Remove ReactQueryDevtools from production
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
