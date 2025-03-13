@@ -27,38 +27,37 @@ export const trips = pgTable("trips", {
     dietaryRestrictions: string[];
     transportationPreferences: string[];
   }>(),
-  isActive: boolean("is_active").notNull().default(true),
-});
-
-export const tripDays = pgTable("trip_days", {
-  id: serial("id").primaryKey(),
-  tripId: integer("trip_id").notNull(),
-  date: timestamp("date").notNull(),
-  activities: jsonb("activities").notNull().$type<{
-    timeSlots: {
-      time: string;
-      activity: string;
-      location: string;
-      duration: string;
-      notes: string;
-      isEdited: boolean;
-      url?: string;
-      originalSuggestion?: string;
-      isOutdoor?: boolean;
+  itinerary: jsonb("itinerary").$type<{
+    days: {
+      date: string;
+      activities: {
+        timeSlots: {
+          time: string;
+          activity: string;
+          location: string;
+          duration: string;
+          notes: string;
+          isEdited: boolean;
+          url?: string;
+          originalSuggestion?: string;
+          isOutdoor?: boolean;
+        }[];
+      };
+      aiSuggestions: {
+        reasoning: string;
+        weatherContext?: {
+          description: string;
+          temperature: number;
+          precipitation_probability: number;
+          is_suitable_for_outdoor: boolean;
+        };
+        alternativeActivities: string[];
+      };
+      userFeedback?: string;
+      isFinalized: boolean;
     }[];
   }>(),
-  aiSuggestions: jsonb("ai_suggestions").notNull().$type<{
-    reasoning: string;
-    weatherContext?: {
-      description: string;
-      temperature: number;
-      precipitation_probability: number;
-      is_suitable_for_outdoor: boolean;
-    };
-    alternativeActivities: string[];
-  }>(),
-  userFeedback: text("user_feedback"),
-  isFinalized: boolean("is_finalized").notNull().default(false),
+  isActive: boolean("is_active").notNull().default(true),
 });
 
 export const locations = pgTable("locations", {
@@ -66,9 +65,9 @@ export const locations = pgTable("locations", {
   name: text("name").notNull(),
   latitude: decimal("latitude").notNull(),
   longitude: decimal("longitude").notNull(),
-  placeId: text("place_id").notNull(), 
+  placeId: text("place_id").notNull(),
   address: text("address").notNull(),
-  type: text("type").notNull(), 
+  type: text("type").notNull(),
   rating: decimal("rating"),
   photos: jsonb("photos").$type<string[]>(),
   openingHours: jsonb("opening_hours").$type<{
@@ -81,10 +80,10 @@ export const locations = pgTable("locations", {
 
 export const tripLocations = pgTable("trip_locations", {
   id: serial("id").primaryKey(),
-  tripDayId: integer("trip_day_id").notNull(),
+  tripId: integer("trip_id").notNull(),
   locationId: integer("location_id").notNull(),
   visitTime: timestamp("visit_time").notNull(),
-  duration: integer("duration").notNull(), 
+  duration: integer("duration").notNull(),
   notes: text("notes"),
   isVisited: boolean("is_visited").notNull().default(false),
 });
@@ -119,7 +118,7 @@ export const insertLocationSchema = createInsertSchema(locations)
 
 export const insertTripLocationSchema = createInsertSchema(tripLocations)
   .pick({
-    tripDayId: true,
+    tripId: true,
     locationId: true,
     duration: true,
     notes: true,
@@ -160,24 +159,42 @@ export const insertTripSchema = createInsertSchema(trips)
       dietaryRestrictions: z.array(z.string()),
       transportationPreferences: z.array(z.string()),
     }),
-  });
-
-export const insertTripDaySchema = createInsertSchema(tripDays)
-  .pick({
-    tripId: true,
-    activities: true,
-    aiSuggestions: true,
-  })
-  .extend({
-    date: z.string().transform((str) => new Date(str)),
+    itinerary: z.object({
+      days: z.array(z.object({
+        date: z.string(),
+        activities: z.object({
+          timeSlots: z.array(z.object({
+            time: z.string(),
+            activity: z.string(),
+            location: z.string(),
+            duration: z.string(),
+            notes: z.string(),
+            isEdited: z.boolean(),
+            url: z.string().optional(),
+            originalSuggestion: z.string().optional(),
+            isOutdoor: z.boolean().optional(),
+          })),
+        }),
+        aiSuggestions: z.object({
+          reasoning: z.string(),
+          weatherContext: z.object({
+            description: z.string(),
+            temperature: z.number(),
+            precipitation_probability: z.number(),
+            is_suitable_for_outdoor: z.boolean(),
+          }).optional(),
+          alternativeActivities: z.array(z.string()),
+        }),
+        userFeedback: z.string().optional(),
+        isFinalized: z.boolean(),
+      })),
+    }).optional(),
   });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Trip = typeof trips.$inferSelect;
 export type InsertTrip = z.infer<typeof insertTripSchema>;
-export type TripDay = typeof tripDays.$inferSelect;
-export type InsertTripDay = z.infer<typeof insertTripDaySchema>;
 export type Location = typeof locations.$inferSelect;
 export type InsertLocation = z.infer<typeof insertLocationSchema>;
 export type TripLocation = typeof tripLocations.$inferSelect;
