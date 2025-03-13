@@ -1,66 +1,60 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, Menu, Map } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useState } from "react";
+import { LogOut, Home, Map, Calendar, FileText } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Nav() {
   const [location] = useLocation();
   const { user, signOut } = useAuth();
-  const [open, setOpen] = useState(false);
-
-  const closeSheet = () => setOpen(false);
+  const isMobile = useIsMobile();
 
   const navItems = [
-    { href: "/", label: "Home" },
-    { href: "/plan", label: "Plan a Trip" },
-    { href: "/my-trips", label: "My Trips" },
-    { href: "/maps", label: "Maps", icon: Map },
+    { href: "/", label: "Home", icon: Home },
+    { href: "/plan", label: "Plan", icon: Map },
+    { href: "/my-trips", label: "Trips", icon: Calendar },
+    { href: "/maps", label: "Maps", icon: FileText },
   ];
+
+  if (isMobile) {
+    return (
+      <>
+        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container flex h-14 items-center justify-center">
+            <Link href="/" className="flex items-center space-x-2">
+              <span className="font-bold">AI Travel Planner</span>
+            </Link>
+          </div>
+        </header>
+
+        {/* Mobile Bottom Navigation */}
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t">
+          <div className="grid grid-cols-4 h-16">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex flex-col items-center justify-center gap-1"
+              >
+                <item.icon className={`h-5 w-5 ${location === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className={`text-xs ${location === item.href ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                  {item.label}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </nav>
+      </>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
-        <Link href="/" className="mr-4 hidden md:flex">
+        <Link href="/" className="mr-4 flex items-center space-x-2">
           <span className="font-bold">AI Travel Planner</span>
         </Link>
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild className="md:hidden">
-            <Button variant="ghost" size="icon" className="mr-2">
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle Menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="pr-0">
-            <div className="px-7">
-              <Link href="/" onClick={closeSheet}>
-                <span className="font-bold">AI Travel Planner</span>
-              </Link>
-            </div>
-            <div className="mt-4 flex flex-col space-y-3 px-2">
-              {navItems.map((item) => (
-                <Button
-                  key={item.href}
-                  variant={location === item.href ? "secondary" : "ghost"}
-                  className="justify-start"
-                  asChild
-                  onClick={closeSheet}
-                >
-                  <Link href={item.href}>
-                    {item.icon && <item.icon className="mr-2 h-4 w-4" />}
-                    {item.label}
-                  </Link>
-                </Button>
-              ))}
-              <Button variant="ghost" className="justify-start" onClick={() => { signOut(); closeSheet(); }}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </Button>
-            </div>
-          </SheetContent>
-        </Sheet>
-        <div className="hidden md:flex">
+        <div className="flex">
           {navItems.map((item) => (
             <Button
               key={item.href}
@@ -69,7 +63,7 @@ export default function Nav() {
               className="ml-2"
             >
               <Link href={item.href}>
-                {item.icon && <item.icon className="mr-2 h-4 w-4" />}
+                <item.icon className="mr-2 h-4 w-4" />
                 {item.label}
               </Link>
             </Button>
@@ -78,7 +72,7 @@ export default function Nav() {
         <div className="flex flex-1 items-center justify-end space-x-2">
           {user && (
             <div className="flex items-center">
-              <span className="hidden md:inline text-sm mr-2 text-muted-foreground">
+              <span className="text-sm mr-2 text-muted-foreground">
                 {user.username}
               </span>
               <Button variant="ghost" size="icon" onClick={signOut}>
