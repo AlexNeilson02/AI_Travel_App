@@ -272,11 +272,13 @@ export default function PlanTrip() {
                           </label>
                           <Popover>
                             <PopoverTrigger asChild>
-                              <Button variant="outline" className="w-full justify-start">
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {form.watch("startDate")
-                                  ? format(form.watch("startDate"), "PPP")
-                                  : "Pick a date"}
+                              <Button variant="outline" className="w-full justify-start text-left px-3 h-9 sm:h-10">
+                                <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                                <span className="truncate text-sm">
+                                  {form.watch("startDate")
+                                    ? format(form.watch("startDate"), "MM/dd/yy")
+                                    : "Pick a date"}
+                                </span>
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
@@ -296,11 +298,13 @@ export default function PlanTrip() {
                           </label>
                           <Popover>
                             <PopoverTrigger asChild>
-                              <Button variant="outline" className="w-full justify-start">
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {form.watch("endDate")
-                                  ? format(form.watch("endDate"), "PPP")
-                                  : "Pick a date"}
+                              <Button variant="outline" className="w-full justify-start text-left px-3 h-9 sm:h-10">
+                                <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                                <span className="truncate text-sm">
+                                  {form.watch("endDate")
+                                    ? format(form.watch("endDate"), "MM/dd/yy")
+                                    : "Pick a date"}
+                                </span>
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
