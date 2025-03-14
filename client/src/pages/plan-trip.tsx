@@ -524,7 +524,7 @@ export default function PlanTrip() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
-                      {suggestions.days.map((day: any, index: number) => (
+                      {suggestions.days?.map((day: any, index: number) => (
                         <div key={index}>
                           <h3 className="font-medium mb-2">
                             {day.dayOfWeek} - {format(new Date(day.date), "MMM d, yyyy")}
@@ -657,14 +657,16 @@ export default function PlanTrip() {
                         </div>
                       ))}
 
-                      <div className="mt-6">
-                        <h3 className="font-medium mb-2">Tips</h3>
-                        <ul className="list-disc list-inside space-y-1 text-sm">
-                          {suggestions.tips.map((tip: string, index: number) => (
-                            <li key={index}>{tip}</li>
-                          ))}
-                        </ul>
-                      </div>
+                      {suggestions.tips && suggestions.tips.length > 0 && (
+                        <div className="mt-6">
+                          <h3 className="font-medium mb-2">Tips</h3>
+                          <ul className="list-disc list-inside space-y-1 text-sm">
+                            {suggestions.tips.map((tip: string, index: number) => (
+                              <li key={index}>{tip}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
                       <Button
                         className="w-full mt-4"
