@@ -117,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let alternativeActivities: string[] = [];
 
         // Ensure activities is always an array
-        const rawActivities = Array.isArray(day.activities) ? day.activities : 
+        const rawActivities = Array.isArray(day.activities) ? day.activities :
                             day.activities?.timeSlots ? day.activities.timeSlots : [];
 
         // Format activities into the expected structure
@@ -148,7 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Check for outdoor activities and get alternatives if needed
         if (weatherData) {
-          const outdoorActivities = formattedActivities.filter(activity => 
+          const outdoorActivities = formattedActivities.filter(activity =>
             activity.isOutdoor || activity.activity.toLowerCase().includes('outdoor')
           );
 
@@ -186,9 +186,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: new Date(endDate),
         budget,
         preferences,
-        days: formattedDays,
+        days: formattedDays.map((day: any, index: number) => ({
+          ...day,
+          accommodation: suggestions.days[index].accommodation || {
+            name: "TBD",
+            cost: 0,
+            url: null
+          },
+          tips: suggestions.tips || []
+        })),
         suggestions: {
-          days: formattedDays
+          days: formattedDays.map((day: any, index: number) => ({
+            ...day,
+            accommodation: suggestions.days[index].accommodation || {
+              name: "TBD",
+              cost: 0,
+              url: null
+            }
+          })),
+          tips: suggestions.tips || []
         }
       };
 
@@ -196,7 +212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(response);
     } catch (error: any) {
       console.error('Error generating suggestions:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: error.message || 'Failed to generate trip suggestions',
         error: error.toString()
       });

@@ -647,8 +647,8 @@ export default function PlanTrip() {
                           <Separator className="my-2" />
                           <div className="flex items-center justify-between text-sm text-muted-foreground">
                             <div className="flex items-center gap-2">
-                              <span>Accommodation: {day.accommodation.name}</span>
-                              {day.accommodation.url && (
+                              <span>Accommodation: {day.accommodation?.name || 'Not specified'}</span>
+                              {day.accommodation?.url && (
                                 <a
                                   href={day.accommodation.url}
                                   target="_blank"
@@ -659,7 +659,7 @@ export default function PlanTrip() {
                                 </a>
                               )}
                             </div>
-                            <span>${day.accommodation.cost}</span>
+                            <span>${day.accommodation?.cost || 0}</span>
                           </div>
                         </div>
                       ))}
