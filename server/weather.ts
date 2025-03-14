@@ -13,27 +13,30 @@ interface WeatherData {
   is_suitable_for_outdoor: boolean;
 }
 
-export async function getWeatherForecast(city: string, date: Date): Promise<WeatherData | null> {
+export async function getWeatherForecast(location: string, date: Date): Promise<WeatherData | null> {
   try {
-    console.log('Starting weather forecast fetch for:', city, 'date:', date);
-    console.log('Using API key:', API_KEY ? 'Present' : 'Missing');
+    console.log('Starting weather forecast fetch for:', location, 'date:', date);
+
+    // Format the location string by removing country and extra spaces
+    const formattedLocation = location.split(',')[0].trim();
+    console.log('Formatted location:', formattedLocation);
 
     // Get coordinates first
     const geoResponse = await axios.get('https://api.openweathermap.org/geo/1.0/direct', {
       params: {
-        q: city,
+        q: formattedLocation,
         limit: 1,
         appid: API_KEY
       }
     });
 
     if (!geoResponse.data || geoResponse.data.length === 0) {
-      console.error('Location not found:', city);
+      console.error('Location not found:', formattedLocation);
       return null;
     }
 
     const { lat, lon } = geoResponse.data[0];
-    console.log(`Found coordinates for ${city}:`, { lat, lon });
+    console.log(`Found coordinates for ${formattedLocation}:`, { lat, lon });
 
     // Get 5-day forecast
     const forecastResponse = await axios.get(`${BASE_URL}/forecast`, {
@@ -47,11 +50,8 @@ export async function getWeatherForecast(city: string, date: Date): Promise<Weat
 
     if (!forecastResponse.data || !forecastResponse.data.list) {
       console.error('No forecast data received');
-      console.log('Forecast response:', forecastResponse.data);
       return null;
     }
-
-    console.log('Received forecast data:', forecastResponse.data.list.length, 'entries');
 
     // Find the forecast closest to the target date
     const targetTimestamp = date.getTime();
@@ -64,8 +64,6 @@ export async function getWeatherForecast(city: string, date: Date): Promise<Weat
 
       return currentDiff < closestDiff ? current : closest;
     });
-
-    console.log('Selected forecast entry:', forecast);
 
     // Determine if weather is suitable for outdoor activities
     const isSuitableForOutdoor = (
@@ -89,7 +87,7 @@ export async function getWeatherForecast(city: string, date: Date): Promise<Weat
       is_suitable_for_outdoor: isSuitableForOutdoor
     };
 
-    console.log('Processed weather data for', city, ':', weatherData);
+    console.log('Processed weather data for', formattedLocation, ':', weatherData);
     return weatherData;
   } catch (error: any) {
     console.error('Error fetching weather data:', error.response?.data || error.message);
@@ -128,5 +126,5 @@ export function suggestAlternativeActivities(weather: WeatherData, activity: str
     );
   }
 
-  return alternativeActivities;
+  return [...new Set(alternativeActivities)]; // Remove duplicates
 }

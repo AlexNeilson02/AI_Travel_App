@@ -106,59 +106,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Raw AI suggestions:', suggestions);
 
+      if (!suggestions || !suggestions.days) {
+        throw new Error('Failed to generate trip suggestions');
+      }
+
       const formattedDays = await Promise.all(suggestions.days.map(async (day: any, index: number) => {
         const date = addDays(new Date(startDate), index);
         const weatherData = await getWeatherForecast(destination, date);
 
         let alternativeActivities: string[] = [];
-        // Ensure day.activities exists and has the expected structure
-        const activities = day.activities ? (
-          Array.isArray(day.activities) ? day.activities : 
-          day.activities.timeSlots ? day.activities.timeSlots :
-          []
-        ) : [];
 
-        if (weatherData && activities.length > 0) {
-          const outdoorActivities = activities.filter((slot: any) => {
-            const activity = typeof slot === 'string' ? slot : slot.activity;
-            const isOutdoor = typeof slot === 'object' ? slot.isOutdoor : false;
-            return isOutdoor || (typeof activity === 'string' && activity.toLowerCase().includes('outdoor'));
-          });
-
-          for (const activity of outdoorActivities) {
-            if (!weatherData.is_suitable_for_outdoor) {
-              const activityName = typeof activity === 'string' ? activity : activity.activity;
-              const alternatives = suggestAlternativeActivities(weatherData, activityName);
-              alternativeActivities.push(...alternatives);
-            }
-          }
-        }
+        // Ensure activities is always an array
+        const rawActivities = Array.isArray(day.activities) ? day.activities : 
+                            day.activities?.timeSlots ? day.activities.timeSlots : [];
 
         // Format activities into the expected structure
-        const formattedActivities = activities.map((slot: any) => {
-          if (typeof slot === 'string') {
+        const formattedActivities = rawActivities.map((activity: any) => {
+          if (typeof activity === 'string') {
             return {
               time: "TBD",
-              activity: slot,
+              activity: activity,
               location: "",
               duration: "2 hours",
               notes: "",
               isEdited: false,
-              isOutdoor: slot.toLowerCase().includes('outdoor')
+              isOutdoor: activity.toLowerCase().includes('outdoor')
             };
           }
           return {
-            time: slot.time || "TBD",
-            activity: slot.activity || "",
-            location: slot.location || "",
-            duration: slot.duration || "2 hours",
-            notes: slot.notes || "",
+            time: activity.time || "TBD",
+            activity: activity.activity || "",
+            location: activity.location || "",
+            duration: activity.duration || "2 hours",
+            notes: activity.notes || "",
             isEdited: false,
-            url: slot.url,
-            originalSuggestion: slot.activity,
-            isOutdoor: slot.isOutdoor || false
+            url: activity.url,
+            originalSuggestion: activity.activity,
+            isOutdoor: activity.isOutdoor || false
           };
         });
+
+        // Check for outdoor activities and get alternatives if needed
+        if (weatherData) {
+          const outdoorActivities = formattedActivities.filter(activity => 
+            activity.isOutdoor || activity.activity.toLowerCase().includes('outdoor')
+          );
+
+          if (!weatherData.is_suitable_for_outdoor) {
+            for (const activity of outdoorActivities) {
+              const alternatives = suggestAlternativeActivities(weatherData, activity.activity);
+              alternativeActivities.push(...alternatives);
+            }
+          }
+        }
 
         return {
           date: format(date, 'yyyy-MM-dd'),
@@ -173,31 +173,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
               precipitation_probability: weatherData.precipitation_probability,
               is_suitable_for_outdoor: weatherData.is_suitable_for_outdoor
             } : undefined,
-            alternativeActivities
+            alternativeActivities: [...new Set(alternativeActivities)]
           },
-          accommodation: day.accommodation || null,
           isFinalized: false
         };
       }));
 
-      // Save the itinerary directly in the trip
-      const tripData = {
+      const response = {
         title: destination,
         destination,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         budget,
         preferences,
-        itinerary: {
+        days: formattedDays,
+        suggestions: {
           days: formattedDays
         }
       };
 
-      console.log('Sending formatted suggestions:', tripData);
-      res.json(tripData);
+      console.log('Sending formatted response:', response);
+      res.json(response);
     } catch (error: any) {
       console.error('Error generating suggestions:', error);
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ 
+        message: error.message || 'Failed to generate trip suggestions',
+        error: error.toString()
+      });
     }
   });
 
