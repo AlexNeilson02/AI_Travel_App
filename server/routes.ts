@@ -118,7 +118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure activities is always an array
         const rawActivities = Array.isArray(day.activities) ? day.activities :
-                            day.activities?.timeSlots ? day.activities.timeSlots : [];
+                          day.activities?.timeSlots ? day.activities.timeSlots : [];
 
         // Format activities into the expected structure
         const formattedActivities = rawActivities.map((activity: any) => {
@@ -135,13 +135,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           return {
             time: activity.time || "TBD",
-            activity: activity.activity || "",
+            activity: activity.activity || activity.name || "",
             location: activity.location || "",
             duration: activity.duration || "2 hours",
             notes: activity.notes || "",
             isEdited: false,
             url: activity.url,
-            originalSuggestion: activity.activity,
+            originalSuggestion: activity.activity || activity.name,
             isOutdoor: activity.isOutdoor || false
           };
         });
@@ -162,8 +162,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         return {
           date: format(date, 'yyyy-MM-dd'),
+          dayOfWeek: format(date, 'EEEE'),
           activities: {
             timeSlots: formattedActivities
+          },
+          accommodation: day.accommodation || {
+            name: "TBD",
+            cost: 0,
+            url: null
           },
           aiSuggestions: {
             reasoning: day.reasoning || "",
@@ -186,24 +192,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: new Date(endDate),
         budget,
         preferences,
-        days: formattedDays.map((day: any, index: number) => ({
-          ...day,
-          accommodation: suggestions.days[index].accommodation || {
-            name: "TBD",
-            cost: 0,
-            url: null
-          },
-          tips: suggestions.tips || []
-        })),
+        days: formattedDays,
         suggestions: {
-          days: formattedDays.map((day: any, index: number) => ({
-            ...day,
-            accommodation: suggestions.days[index].accommodation || {
-              name: "TBD",
-              cost: 0,
-              url: null
-            }
-          })),
+          days: formattedDays,
           tips: suggestions.tips || []
         }
       };

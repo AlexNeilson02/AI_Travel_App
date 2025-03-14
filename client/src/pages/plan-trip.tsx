@@ -533,14 +533,14 @@ export default function PlanTrip() {
 
                           <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                             <div className="flex flex-col gap-2">
-                              {day.weatherContext ? (
+                              {day.aiSuggestions?.weatherContext ? (
                                 <div className="flex items-center gap-2 text-sm">
                                   <ThermometerSun className="h-4 w-4" />
-                                  <span>{Math.round(day.weatherContext.temperature)}°F</span>
+                                  <span>{Math.round(day.aiSuggestions.weatherContext.temperature)}°F</span>
                                   <CloudRain className="h-4 w-4 ml-2" />
-                                  <span>{Math.round(day.weatherContext.precipitation_probability)}%</span>
+                                  <span>{Math.round(day.aiSuggestions.weatherContext.precipitation_probability)}%</span>
                                   <span className="text-muted-foreground">
-                                    {day.weatherContext.description}
+                                    {day.aiSuggestions.weatherContext.description}
                                   </span>
                                 </div>
                               ) : (
@@ -559,7 +559,7 @@ export default function PlanTrip() {
                             </Button>
                           </div>
 
-                          {day.weatherContext && !day.weatherContext.is_suitable_for_outdoor && (
+                          {day.aiSuggestions?.weatherContext && !day.aiSuggestions.weatherContext.is_suitable_for_outdoor && (
                             <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-900/50">
                               <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
                                 <AlertTriangle className="h-4 w-4" />
@@ -568,13 +568,13 @@ export default function PlanTrip() {
                               <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
                                 Weather conditions may not be suitable for outdoor activities.
                               </p>
-                              {day.alternativeActivities && day.alternativeActivities.length > 0 && (
+                              {day.aiSuggestions.alternativeActivities && day.aiSuggestions.alternativeActivities.length > 0 && (
                                 <div className="mt-2">
                                   <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
                                     Suggested Alternatives:
                                   </span>
                                   <ul className="mt-1 list-disc list-inside text-sm text-yellow-700 dark:text-yellow-300">
-                                    {day.alternativeActivities.map((alt: string, index: number) => (
+                                    {day.aiSuggestions.alternativeActivities.map((alt: string, index: number) => (
                                       <li key={index}>{alt}</li>
                                     ))}
                                   </ul>
@@ -584,25 +584,19 @@ export default function PlanTrip() {
                           )}
 
                           <div className="space-y-2">
-                            {day.activities.timeSlots.map((activity: any, actIndex: number) => (
+                            {day.activities?.timeSlots?.map((activity: any, actIndex: number) => (
                               <div key={actIndex} className="flex items-center justify-between">
-                                {editingActivity?.day === day.day && editingActivity?.index === actIndex ? (
+                                {editingActivity?.day === index + 1 && editingActivity?.index === actIndex ? (
                                   <div className="flex-1 flex gap-2">
                                     <Input
                                       value={editedActivity?.name}
                                       onChange={(e) => setEditedActivity({ ...editedActivity!, name: e.target.value })}
                                       className="flex-1"
                                     />
-                                    <Input
-                                      type="number"
-                                      value={editedActivity?.cost}
-                                      onChange={(e) => setEditedActivity({ ...editedActivity!, cost: Number(e.target.value) })}
-                                      className="w-24"
-                                    />
                                     <Button
                                       size="icon"
                                       variant="ghost"
-                                      onClick={() => handleSaveActivity(day.day, actIndex)}
+                                      onClick={() => handleSaveActivity(index + 1, actIndex)}
                                     >
                                       <Check className="h-4 w-4" />
                                     </Button>
@@ -634,7 +628,7 @@ export default function PlanTrip() {
                                       <Button
                                         size="icon"
                                         variant="ghost"
-                                        onClick={() => handleEditActivity(day.day, actIndex, activity)}
+                                        onClick={() => handleEditActivity(index + 1, actIndex, activity)}
                                       >
                                         <Edit2 className="h-4 w-4" />
                                       </Button>
@@ -664,35 +658,34 @@ export default function PlanTrip() {
                         </div>
                       ))}
 
-                      <div className="mt-6">
-                        <h3 className="font-medium mb-2">Tips</h3>
-                        <ul className="list-disc list-inside space-y-1 text-sm">
-                          {suggestions.tips.map((tip: string, index: number) => (
-                            <li key={index}>{tip}</li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <Button
-                        className="w-full mt-4"
-                        onClick={() => createTripMutation.mutate(form.getValues())}
-                        disabled={createTripMutation.isPending}
-                      >
-                        {createTripMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : null}
-                        Save Trip
-                      </Button>
+                    <div className="mt-6">
+                      <h3 className="font-medium mb-2">Tips</h3>
+                      <ul className="list-disc list-inside space-y-1 text-sm">
+                        {suggestions.tips.map((tip: string, index: number) => (
+                          <li key={index}>{tip}</li>
+                        ))}
+                      </ul>
                     </div>
-                  </CardContent>
-                </Card>
-              </>
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                Fill out the form to get AI-powered trip suggestions
-              </div>
-            )}
-          </div>
+
+                    <Button
+                      className="w-full mt-4"
+                      onClick={() => createTripMutation.mutate(form.getValues())}
+                      disabled={createTripMutation.isPending}
+                    >
+                      {createTripMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
+                      Save Trip
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              Fill out the form to get AI-powered trip suggestions
+            </div>
+          )}
         </div>
 
         <Dialog open={showWeatherDialog} onOpenChange={setShowWeatherDialog}>
