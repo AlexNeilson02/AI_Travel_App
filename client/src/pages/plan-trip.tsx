@@ -181,7 +181,7 @@ export default function PlanTrip() {
     if (!editedActivity || !suggestions) return;
 
     const updatedSuggestions = { ...suggestions };
-    updatedSuggestions.days[day - 1].activities[index] = editedActivity;
+    updatedSuggestions.days[day - 1].activities.timeSlots[index] = editedActivity;
     setSuggestions(updatedSuggestions);
     setEditingActivity(null);
     setEditedActivity(null);
@@ -192,7 +192,7 @@ export default function PlanTrip() {
 
     if (day.weatherContext) {
       const weatherContext = day.weatherContext;
-      const activities = day.activities.map((activity: any) => activity.name).join(", ");
+      const activities = day.activities.timeSlots.map((activity: any) => activity.activity).join(", ");
 
       let impact = "";
 
@@ -584,7 +584,7 @@ export default function PlanTrip() {
                           )}
 
                           <div className="space-y-2">
-                            {day.activities.map((activity: any, actIndex: number) => (
+                            {day.activities.timeSlots.map((activity: any, actIndex: number) => (
                               <div key={actIndex} className="flex items-center justify-between">
                                 {editingActivity?.day === day.day && editingActivity?.index === actIndex ? (
                                   <div className="flex-1 flex gap-2">
@@ -617,7 +617,7 @@ export default function PlanTrip() {
                                 ) : (
                                   <>
                                     <div className="flex items-center gap-2">
-                                      <span>{activity.name}</span>
+                                      <span>{activity.activity}</span>
                                       {activity.url && (
                                         <a
                                           href={activity.url}
@@ -630,7 +630,7 @@ export default function PlanTrip() {
                                       )}
                                     </div>
                                     <div className="flex items-center gap-2">
-                                      <span>${activity.cost}</span>
+                                      <span className="text-muted-foreground">{activity.time}</span>
                                       <Button
                                         size="icon"
                                         variant="ghost"
