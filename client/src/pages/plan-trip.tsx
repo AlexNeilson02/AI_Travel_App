@@ -239,7 +239,6 @@ export default function PlanTrip() {
   return (
     <div className="min-h-screen bg-background">
       <Nav />
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid lg:grid-cols-2 gap-8">
           <div>
@@ -658,34 +657,35 @@ export default function PlanTrip() {
                         </div>
                       ))}
 
-                    <div className="mt-6">
-                      <h3 className="font-medium mb-2">Tips</h3>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
-                        {suggestions.tips.map((tip: string, index: number) => (
-                          <li key={index}>{tip}</li>
-                        ))}
-                      </ul>
-                    </div>
+                      <div className="mt-6">
+                        <h3 className="font-medium mb-2">Tips</h3>
+                        <ul className="list-disc list-inside space-y-1 text-sm">
+                          {suggestions.tips.map((tip: string, index: number) => (
+                            <li key={index}>{tip}</li>
+                          ))}
+                        </ul>
+                      </div>
 
-                    <Button
-                      className="w-full mt-4"
-                      onClick={() => createTripMutation.mutate(form.getValues())}
-                      disabled={createTripMutation.isPending}
-                    >
-                      {createTripMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : null}
-                      Save Trip
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              Fill out the form to get AI-powered trip suggestions
-            </div>
-          )}
+                      <Button
+                        className="w-full mt-4"
+                        onClick={() => createTripMutation.mutate(form.getValues())}
+                        disabled={createTripMutation.isPending}
+                      >
+                        {createTripMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : null}
+                        Save Trip
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Fill out the form to get AI-powered trip suggestions
+              </div>
+            )}
+          </div>
         </div>
 
         <Dialog open={showWeatherDialog} onOpenChange={setShowWeatherDialog}>
