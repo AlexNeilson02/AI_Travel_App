@@ -7,6 +7,29 @@ import { pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
 
+const getDestinationImage = (location: string) => {
+  const imageMap: Record<string, string> = {
+    "El Salvador": "https://images.pexels.com/photos/13059657/pexels-photo-13059657.jpeg",
+    "Mexico": "https://images.pexels.com/photos/3879071/pexels-photo-3879071.jpeg",
+    "Brazil": "https://images.pexels.com/photos/2868242/pexels-photo-2868242.jpeg",
+    "Costa Rica": "https://images.pexels.com/photos/2166559/pexels-photo-2166559.jpeg",
+    "Peru": "https://images.pexels.com/photos/2356045/pexels-photo-2356045.jpeg",
+    "Colombia": "https://images.pexels.com/photos/3889843/pexels-photo-3889843.jpeg",
+    "Argentina": "https://images.pexels.com/photos/13294159/pexels-photo-13294159.jpeg",
+    "Chile": "https://images.pexels.com/photos/3879160/pexels-photo-3879160.jpeg",
+    "United States": "https://images.pexels.com/photos/290386/pexels-photo-290386.jpeg",
+    "Canada": "https://images.pexels.com/photos/417074/pexels-photo-417074.jpeg",
+    "Spain": "https://images.pexels.com/photos/819764/pexels-photo-819764.jpeg",
+    "France": "https://images.pexels.com/photos/699466/pexels-photo-699466.jpeg",
+    "Italy": "https://images.pexels.com/photos/1797161/pexels-photo-1797161.jpeg",
+    "Germany": "https://images.pexels.com/photos/109629/pexels-photo-109629.jpeg",
+    "UK": "https://images.pexels.com/photos/460672/pexels-photo-460672.jpeg",
+    "Greece": "https://images.pexels.com/photos/1010657/pexels-photo-1010657.jpeg"
+  };
+
+  return imageMap[location] || "https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg";
+};
+
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -103,17 +126,6 @@ export class DatabaseStorage implements IStorage {
         return acc;
       }, {} as Record<string, number>);
 
-      const defaultImages: Record<string, string> = {
-        "Greece": "https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=1000",
-        "Italy": "https://images.unsplash.com/photo-1534445867742-43195f401b6c?q=80&w=1000",
-        "Japan": "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?q=80&w=1000",
-        "France": "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?q=80&w=1000",
-        "Spain": "https://images.unsplash.com/photo-1511527661048-7fe73d85e9a4?q=80&w=1000",
-        "Thailand": "https://images.unsplash.com/photo-1528181304800-259b08848526?q=80&w=1000",
-        "Germany": "https://images.unsplash.com/photo-1554072675-d8dc9b6c954f?q=80&w=1000",
-        "UK": "https://images.unsplash.com/photo-1520986606214-8b456906c813?q=80&w=1000",
-      };
-
       const popularDestinations = Object.entries(destinationCounts)
         .sort(([, a], [, b]) => b - a)
         .slice(0, 8)
@@ -123,29 +135,6 @@ export class DatabaseStorage implements IStorage {
           image: getDestinationImage(name),
           description: `${count} trips planned`
         }));
-
-      const getDestinationImage = (location: string) => {
-        const imageMap: Record<string, string> = {
-          "El Salvador": "https://images.pexels.com/photos/13059657/pexels-photo-13059657.jpeg",
-          "Mexico": "https://images.pexels.com/photos/3879071/pexels-photo-3879071.jpeg",
-          "Brazil": "https://images.pexels.com/photos/2868242/pexels-photo-2868242.jpeg",
-          "Costa Rica": "https://images.pexels.com/photos/2166559/pexels-photo-2166559.jpeg",
-          "Peru": "https://images.pexels.com/photos/2356045/pexels-photo-2356045.jpeg",
-          "Colombia": "https://images.pexels.com/photos/3889843/pexels-photo-3889843.jpeg",
-          "Argentina": "https://images.pexels.com/photos/13294159/pexels-photo-13294159.jpeg",
-          "Chile": "https://images.pexels.com/photos/3879160/pexels-photo-3879160.jpeg",
-          "United States": "https://images.pexels.com/photos/290386/pexels-photo-290386.jpeg",
-          "Canada": "https://images.pexels.com/photos/417074/pexels-photo-417074.jpeg",
-          "Spain": "https://images.pexels.com/photos/819764/pexels-photo-819764.jpeg",
-          "France": "https://images.pexels.com/photos/699466/pexels-photo-699466.jpeg",
-          "Italy": "https://images.pexels.com/photos/1797161/pexels-photo-1797161.jpeg",
-          "Germany": "https://images.pexels.com/photos/109629/pexels-photo-109629.jpeg",
-          "UK": "https://images.pexels.com/photos/460672/pexels-photo-460672.jpeg",
-          "Greece": "https://images.pexels.com/photos/1010657/pexels-photo-1010657.jpeg"
-        };
-        
-        return imageMap[location] || "https://images.pexels.com/photos/2325446/pexels-photo-2325446.jpeg";
-      };
 
       return popularDestinations.length > 0 
         ? popularDestinations 
