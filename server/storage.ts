@@ -114,19 +114,13 @@ export class DatabaseStorage implements IStorage {
         "UK": "https://images.unsplash.com/photo-1520986606214-8b456906c813?q=80&w=1000",
       };
 
-      const getDestinationImage = (location: string) => {
-        // Use specific search terms for better results
-        const searchTerms = `${location} landmark travel tourism destination`;
-        return `https://source.unsplash.com/featured/1600x900/?${encodeURIComponent(searchTerms)}`;
-      };
-
       const popularDestinations = Object.entries(destinationCounts)
         .sort(([, a], [, b]) => b - a)
         .slice(0, 8)
         .map(([name, count]) => ({
           name,
           count,
-          image: getDestinationImage(name),
+          image: defaultImages[name] || "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=1000",
           description: `${count} trips planned`
         }));
 
@@ -154,17 +148,17 @@ export class DatabaseStorage implements IStorage {
       return [
         {
           name: "Greece",
-          image: "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg",
+          image: "https://images.unsplash.com/photo-1503152394-c571994fd383?q=80&w=1000",
           description: "Ancient ruins and stunning islands"
         },
         {
           name: "Italy",
-          image: "https://images.pexels.com/photos/1797161/pexels-photo-1797161.jpeg",
+          image: "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?q=80&w=1000",
           description: "Historic cities and delicious cuisine"
         },
         {
           name: "Japan",
-          image: "https://images.pexels.com/photos/3408354/pexels-photo-3408354.jpeg",
+          image: "https://images.unsplash.com/photo-1492571350019-22de08371fd3?q=80&w=1000",
           description: "Blend of tradition and technology"
         }
       ];
