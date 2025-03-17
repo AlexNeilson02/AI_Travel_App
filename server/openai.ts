@@ -9,9 +9,11 @@ export async function generateTripSuggestions(
   budget: number,
   duration: number,
   startDate: string,
+  numberOfPeople: number = 1,
   chatHistory: { role: string; content: string }[] = []
 ): Promise<any> {
-  const systemPrompt = `Create a detailed travel itinerary for a ${duration}-day trip to ${destination} starting on ${startDate} with the following preferences: ${preferences.join(", ")}. The total budget is $${budget}.
+  const totalBudget = budget * numberOfPeople;
+  const systemPrompt = `Create a detailed travel itinerary for ${numberOfPeople} person(s) on a ${duration}-day trip to ${destination} starting on ${startDate} with the following preferences: ${preferences.join(", ")}. The total budget is $${totalBudget} (calculated as $${budget} per person). 
 
 Important planning criteria:
 1. Group activities by geographical proximity to minimize travel time
@@ -19,8 +21,9 @@ Important planning criteria:
 3. Consider logical flow between locations
 4. Account for opening hours and peak times
 5. Space activities appropriately throughout the day
+6. The budget should cover activities and accommodations for ${numberOfPeople} person(s)
 
-Please provide a day-by-day itinerary with activities, estimated costs, and suggested accommodations. Include URLs for each activity and accommodation when available. Format the response as a JSON object with the following structure:
+Please provide a day-by-day itinerary with activities, estimated costs (shown as per person), and suggested accommodations. Include URLs for each activity and accommodation when available. Format the response as a JSON object with the following structure:
   {
     "days": [
       {
@@ -29,7 +32,8 @@ Please provide a day-by-day itinerary with activities, estimated costs, and sugg
         "dayOfWeek": string,
         "activities": [{ 
           "name": string, 
-          "cost": number, 
+          "cost": number,
+          "totalCost": number,
           "duration": string,
           "url": string,
           "location": string,
@@ -39,13 +43,18 @@ Please provide a day-by-day itinerary with activities, estimated costs, and sugg
         "accommodation": { 
           "name": string, 
           "cost": number,
+          "totalCost": number,
           "url": string,
           "location": string
         },
-        "meals": { "budget": number }
+        "meals": { 
+          "budget": number,
+          "totalBudget": number
+        }
       }
     ],
     "totalCost": number,
+    "perPersonCost": number,
     "tips": [string]
   }`;
 
@@ -63,8 +72,7 @@ Please provide a day-by-day itinerary with activities, estimated costs, and sugg
     const response = await openai.chat.completions.create({
       model: "gpt-4",
       messages,
-      temperature: 0.7,
-      response_format: { type: "json_object" }
+      temperature: 0.7
     });
 
     const content = response.choices[0].message.content;
@@ -108,7 +116,8 @@ Please provide a day-by-day itinerary with activities, estimated costs, and sugg
                 proximityGroup: activity.proximityGroup,
                 time: activity.time,
                 duration: activity.duration,
-                cost: activity.cost
+                cost: activity.cost,
+                totalCost: activity.cost * numberOfPeople
               })));
             }
             day.alternativeActivities = alternatives;

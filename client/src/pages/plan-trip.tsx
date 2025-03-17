@@ -33,6 +33,7 @@ export default function PlanTrip() {
   const [selectedDay, setSelectedDay] = useState<any>(null);
   const [weatherImpact, setWeatherImpact] = useState<string>("");
   const [editingAccommodation, setEditingAccommodation] = useState<number | null>(null);
+  const [numberOfPeople, setNumberPeople] = useState(1);
 
   const form = useForm({
     resolver: zodResolver(insertTripSchema),
@@ -69,6 +70,7 @@ export default function PlanTrip() {
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/suggest-trip", {
         ...data,
+        numberOfPeople,
         chatHistory,
       });
       return res.json();
@@ -78,6 +80,11 @@ export default function PlanTrip() {
       if (!currentQuestion) {
         getQuestionMutation.mutate();
       }
+      // Show toast about budget calculation
+      toast({
+        title: "Budget Calculation",
+        description: `Total budget: $${data.totalCost} ($${form.getValues().budget} per person × ${numberOfPeople} people)`,
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -346,7 +353,25 @@ export default function PlanTrip() {
 
                       <div>
                         <label className="block text-sm font-medium mb-2">
-                          Budget
+                          Number of People
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="1"
+                            value={numberOfPeople}
+                            onChange={(e) => setNumberPeople(parseInt(e.target.value) || 1)}
+                            className="w-24"
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            Budget will be calculated per person
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Budget (per person)
                         </label>
                         <div className="relative">
                           <DollarSign className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
@@ -356,6 +381,11 @@ export default function PlanTrip() {
                             {...form.register("budget", { valueAsNumber: true })}
                           />
                         </div>
+                        {numberOfPeople > 1 && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Total budget: ${(form.watch("budget") || 0) * numberOfPeople}
+                          </p>
+                        )}
                       </div>
 
                       <div>
