@@ -154,17 +154,17 @@ export class DatabaseStorage implements IStorage {
       return [
         {
           name: "Greece",
-          image: "https://images.unsplash.com/photo-1503152394-c571994fd383?q=80&w=1000",
+          image: "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg",
           description: "Ancient ruins and stunning islands"
         },
         {
           name: "Italy",
-          image: "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?q=80&w=1000",
+          image: "https://images.pexels.com/photos/1797161/pexels-photo-1797161.jpeg",
           description: "Historic cities and delicious cuisine"
         },
         {
           name: "Japan",
-          image: "https://images.unsplash.com/photo-1492571350019-22de08371fd3?q=80&w=1000",
+          image: "https://images.pexels.com/photos/3408354/pexels-photo-3408354.jpeg",
           description: "Blend of tradition and technology"
         }
       ];
