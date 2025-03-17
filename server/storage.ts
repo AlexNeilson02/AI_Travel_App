@@ -114,15 +114,10 @@ export class DatabaseStorage implements IStorage {
         "UK": "https://images.unsplash.com/photo-1520986606214-8b456906c813?q=80&w=1000",
       };
 
-      const destinationImages: Record<string, string> = {
-        "El Salvador": "https://images.unsplash.com/photo-1591465001609-ded6360ecaab?q=80&w=1000",
-        "Mexico": "https://images.unsplash.com/photo-1512813195386-6cf811ad3542?q=80&w=1000",
-        "Brazil": "https://images.unsplash.com/photo-1516306580123-e6e52b1b7b5f?q=80&w=1000",
-        "Costa Rica": "https://images.unsplash.com/photo-1601581875309-fafbf2d3ed3a?q=80&w=1000",
-        "Peru": "https://images.unsplash.com/photo-1526392060635-9d6019884377?q=80&w=1000",
-        "Colombia": "https://images.unsplash.com/photo-1589994160839-163cd867cfe8?q=80&w=1000",
-        "Argentina": "https://images.unsplash.com/photo-1589909202802-8f4aadce1849?q=80&w=1000",
-        "Chile": "https://images.unsplash.com/photo-1542963118-866c69d0f261?q=80&w=1000"
+      const getDestinationImage = (location: string) => {
+        // Use specific search terms for better results
+        const searchTerms = `${location} landmark travel tourism destination`;
+        return `https://source.unsplash.com/featured/1600x900/?${encodeURIComponent(searchTerms)}`;
       };
 
       const popularDestinations = Object.entries(destinationCounts)
@@ -131,7 +126,7 @@ export class DatabaseStorage implements IStorage {
         .map(([name, count]) => ({
           name,
           count,
-          image: destinationImages[name] || `https://source.unsplash.com/1600x900/?${encodeURIComponent(name)},landmark`,
+          image: getDestinationImage(name),
           description: `${count} trips planned`
         }));
 
