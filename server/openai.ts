@@ -11,23 +11,36 @@ export async function generateTripSuggestions(
   startDate: string,
   chatHistory: { role: string; content: string }[] = []
 ): Promise<any> {
-  const systemPrompt = `Create a detailed travel itinerary for a ${duration}-day trip to ${destination} with the following preferences: ${preferences.join(", ")}. The total budget is $${budget}. Please provide a day-by-day itinerary with activities, estimated costs, and suggested accommodations. Include URLs for each activity and accommodation. Format the response as a JSON object with the following structure:
+  const systemPrompt = `Create a detailed travel itinerary for a ${duration}-day trip to ${destination} starting on ${startDate} with the following preferences: ${preferences.join(", ")}. The total budget is $${budget}.
+
+Important planning criteria:
+1. Group activities by geographical proximity to minimize travel time
+2. Schedule outdoor activities during optimal times of day
+3. Consider logical flow between locations
+4. Account for opening hours and peak times
+5. Space activities appropriately throughout the day
+
+Please provide a day-by-day itinerary with activities, estimated costs, and suggested accommodations. Include URLs for each activity and accommodation when available. Format the response as a JSON object with the following structure:
   {
     "days": [
       {
         "day": number,
-        "date": string,
+        "date": string (YYYY-MM-DD format),
         "dayOfWeek": string,
         "activities": [{ 
           "name": string, 
           "cost": number, 
           "duration": string,
-          "url": string
+          "url": string,
+          "location": string,
+          "time": string (HH:MM format),
+          "proximityGroup": string (area/neighborhood name)
         }],
         "accommodation": { 
           "name": string, 
           "cost": number,
-          "url": string
+          "url": string,
+          "location": string
         },
         "meals": { "budget": number }
       }
@@ -38,7 +51,10 @@ export async function generateTripSuggestions(
 
   try {
     const messages = [
-      { role: "system" as const, content: "You are an expert travel planner with extensive knowledge of destinations worldwide. Always include official website URLs for activities and accommodations when available. Always respond with valid JSON." },
+      { 
+        role: "system" as const, 
+        content: "You are an expert travel planner with extensive knowledge of destinations worldwide. Focus on creating geographically optimized itineraries that minimize travel time between activities. Always include time slots and location details for better planning. Always respond with valid JSON." 
+      },
       ...chatHistory.map(msg => ({ role: msg.role as "user" | "assistant", content: msg.content })),
       { role: "user" as const, content: systemPrompt },
     ];
@@ -48,11 +64,12 @@ export async function generateTripSuggestions(
       model: "gpt-4",
       messages,
       temperature: 0.7,
+      response_format: { type: "json_object" }
     });
 
     const content = response.choices[0].message.content;
     if (!content) {
-      console.error('No content received from OpenAI.  Check API key and network connectivity.');
+      console.error('No content received from OpenAI. Check API key and network connectivity.');
       return null;
     }
 
@@ -83,12 +100,23 @@ export async function generateTripSuggestions(
             activity.name.toLowerCase().includes('hike')
           );
           if (!weather.is_suitable_for_outdoor && outdoorActivities.length > 0) {
-            day.alternativeActivities = suggestAlternativeActivities(weather, outdoorActivities[0].name);
+            const alternatives = [];
+            for (const activity of outdoorActivities) {
+              const activityAlternatives = suggestAlternativeActivities(weather, activity.name);
+              alternatives.push(...activityAlternatives.map(alt => ({
+                name: alt,
+                proximityGroup: activity.proximityGroup,
+                time: activity.time,
+                duration: activity.duration,
+                cost: activity.cost
+              })));
+            }
+            day.alternativeActivities = alternatives;
           } else {
             day.alternativeActivities = [];
           }
         } else {
-          console.warn(`No weather data available for ${destination} on ${day.date}.  Check weather API and location data.`);
+          console.warn(`No weather data available for ${destination} on ${day.date}. Check weather API and location data.`);
           day.weatherContext = null;
           day.alternativeActivities = [];
         }
