@@ -115,14 +115,14 @@ export class DatabaseStorage implements IStorage {
       };
 
       const destinationImages: Record<string, string> = {
-        "El Salvador": "https://images.unsplash.com/photo-1593053272490-a7abac40dbbd?q=80&w=1000",
-        "Mexico": "https://images.unsplash.com/photo-1518638150340-f706e86654de?q=80&w=1000",
-        "Brazil": "https://images.unsplash.com/photo-1483729558449-99ef09a8c325?q=80&w=1000",
-        "Costa Rica": "https://images.unsplash.com/photo-1518259102261-b40117eabbc9?q=80&w=1000",
+        "El Salvador": "https://images.unsplash.com/photo-1591465001609-ded6360ecaab?q=80&w=1000",
+        "Mexico": "https://images.unsplash.com/photo-1512813195386-6cf811ad3542?q=80&w=1000",
+        "Brazil": "https://images.unsplash.com/photo-1516306580123-e6e52b1b7b5f?q=80&w=1000",
+        "Costa Rica": "https://images.unsplash.com/photo-1601581875309-fafbf2d3ed3a?q=80&w=1000",
         "Peru": "https://images.unsplash.com/photo-1526392060635-9d6019884377?q=80&w=1000",
-        "Colombia": "https://images.unsplash.com/photo-1567748534085-467f8a8a475d?q=80&w=1000",
-        "Argentina": "https://images.unsplash.com/photo-1612294037637-ec328d0e075e?q=80&w=1000",
-        "Chile": "https://images.unsplash.com/photo-1544585424-0fb2b5280a82?q=80&w=1000"
+        "Colombia": "https://images.unsplash.com/photo-1589994160839-163cd867cfe8?q=80&w=1000",
+        "Argentina": "https://images.unsplash.com/photo-1589909202802-8f4aadce1849?q=80&w=1000",
+        "Chile": "https://images.unsplash.com/photo-1542963118-866c69d0f261?q=80&w=1000"
       };
 
       const popularDestinations = Object.entries(destinationCounts)
