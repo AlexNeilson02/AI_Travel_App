@@ -104,14 +104,14 @@ export class DatabaseStorage implements IStorage {
       }, {} as Record<string, number>);
 
       const defaultImages: Record<string, string> = {
-        "Greece": "https://images.unsplash.com/photo-1503152394-c571994fd383?q=80&w=1000",
-        "Italy": "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?q=80&w=1000",
-        "Japan": "https://images.unsplash.com/photo-1492571350019-22de08371fd3?q=80&w=1000",
-        "France": "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=1000",
-        "Spain": "https://images.unsplash.com/photo-1543783207-ec64e4d95325?q=80&w=1000",
-        "Thailand": "https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?q=80&w=1000",
-        "Germany": "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?q=80&w=1000",
-        "UK": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?q=80&w=1000",
+        "Greece": "https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=1000",
+        "Italy": "https://images.unsplash.com/photo-1534445867742-43195f401b6c?q=80&w=1000",
+        "Japan": "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?q=80&w=1000",
+        "France": "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?q=80&w=1000",
+        "Spain": "https://images.unsplash.com/photo-1511527661048-7fe73d85e9a4?q=80&w=1000",
+        "Thailand": "https://images.unsplash.com/photo-1528181304800-259b08848526?q=80&w=1000",
+        "Germany": "https://images.unsplash.com/photo-1554072675-d8dc9b6c954f?q=80&w=1000",
+        "UK": "https://images.unsplash.com/photo-1520986606214-8b456906c813?q=80&w=1000",
       };
 
       const popularDestinations = Object.entries(destinationCounts)

@@ -17,17 +17,17 @@ type Destination = {
 const defaultDestinations = [
   {
     name: "Greece",
-    image: "https://images.unsplash.com/photo-1503152394-c571994fd383?q=80&w=1000",
+    image: "https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=1000",
     description: "Ancient ruins and stunning islands"
   },
   {
     name: "Italy",
-    image: "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?q=80&w=1000",
+    image: "https://images.unsplash.com/photo-1534445867742-43195f401b6c?q=80&w=1000",
     description: "Historic cities and delicious cuisine"
   },
   {
     name: "Japan",
-    image: "https://images.unsplash.com/photo-1492571350019-22de08371fd3?q=80&w=1000",
+    image: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?q=80&w=1000",
     description: "Blend of tradition and technology"
   }
 ];
