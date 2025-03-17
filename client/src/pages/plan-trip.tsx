@@ -32,6 +32,7 @@ export default function PlanTrip() {
   const [showWeatherDialog, setShowWeatherDialog] = useState(false);
   const [selectedDay, setSelectedDay] = useState<any>(null);
   const [weatherImpact, setWeatherImpact] = useState<string>("");
+  const [editingAccommodation, setEditingAccommodation] = useState<number | null>(null);
 
   const form = useForm({
     resolver: zodResolver(insertTripSchema),
@@ -174,17 +175,42 @@ export default function PlanTrip() {
 
   const handleEditActivity = (day: number, index: number, activity: any) => {
     setEditingActivity({ day, index });
-    setEditedActivity({ ...activity });
+    setEditedActivity({
+      name: activity.activity,
+      cost: activity.cost || 0,
+      duration: activity.duration,
+      url: activity.url
+    });
   };
 
   const handleSaveActivity = (day: number, index: number) => {
     if (!editedActivity || !suggestions) return;
 
     const updatedSuggestions = { ...suggestions };
-    updatedSuggestions.days[day - 1].activities.timeSlots[index] = editedActivity;
+    const activityUpdate = {
+      ...updatedSuggestions.days[day - 1].activities.timeSlots[index],
+      activity: editedActivity.name,
+      cost: editedActivity.cost,
+      duration: editedActivity.duration,
+      url: editedActivity.url
+    };
+    updatedSuggestions.days[day - 1].activities.timeSlots[index] = activityUpdate;
     setSuggestions(updatedSuggestions);
     setEditingActivity(null);
     setEditedActivity(null);
+  };
+
+  const handleEditAccommodation = (dayIndex: number) => {
+    setEditingAccommodation(dayIndex);
+  };
+
+  const handleSaveAccommodation = (dayIndex: number, updatedAccommodation: any) => {
+    if (!suggestions) return;
+
+    const updatedSuggestions = { ...suggestions };
+    updatedSuggestions.days[dayIndex].accommodation = updatedAccommodation;
+    setSuggestions(updatedSuggestions);
+    setEditingAccommodation(null);
   };
 
   const showWeatherImpact = (day: any) => {
@@ -530,129 +556,134 @@ export default function PlanTrip() {
                             {day.dayOfWeek} - {format(new Date(day.date), "MMM d, yyyy")}
                           </h3>
 
-                          <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-                            <div className="flex flex-col gap-2">
-                              {day.aiSuggestions?.weatherContext ? (
-                                <div className="flex items-center gap-2 text-sm">
-                                  <ThermometerSun className="h-4 w-4" />
-                                  <span>{Math.round(day.aiSuggestions.weatherContext.temperature)}°F</span>
-                                  <CloudRain className="h-4 w-4 ml-2" />
-                                  <span>{Math.round(day.aiSuggestions.weatherContext.precipitation_probability)}%</span>
-                                  <span className="text-muted-foreground">
-                                    {day.aiSuggestions.weatherContext.description}
-                                  </span>
-                                </div>
-                              ) : (
-                                <div className="text-sm text-muted-foreground">
-                                  No weather data available yet
-                                </div>
-                              )}
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => showWeatherImpact(day)}
-                              className="whitespace-nowrap"
-                            >
-                              See how this affects my trip
-                            </Button>
-                          </div>
-
-                          {day.aiSuggestions?.weatherContext && !day.aiSuggestions.weatherContext.is_suitable_for_outdoor && (
-                            <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-900/50">
-                              <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
-                                <AlertTriangle className="h-4 w-4" />
-                                <span className="font-medium">Weather Advisory</span>
-                              </div>
-                              <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
-                                Weather conditions may not be suitable for outdoor activities.
-                              </p>
-                              {day.aiSuggestions.alternativeActivities && day.aiSuggestions.alternativeActivities.length > 0 && (
-                                <div className="mt-2">
-                                  <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                                    Suggested Alternatives:
-                                  </span>
-                                  <ul className="mt-1 list-disc list-inside text-sm text-yellow-700 dark:text-yellow-300">
-                                    {day.aiSuggestions.alternativeActivities.map((alt: string, index: number) => (
-                                      <li key={index}>{alt}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
                           <div className="space-y-2">
                             {day.activities?.timeSlots?.map((activity: any, actIndex: number) => (
-                              <div key={actIndex} className="flex items-center justify-between">
+                              <div key={actIndex} className="flex items-center justify-between p-2 border rounded">
                                 {editingActivity?.day === index + 1 && editingActivity?.index === actIndex ? (
-                                  <div className="flex-1 flex gap-2">
+                                  <div className="flex-1 space-y-2">
                                     <Input
                                       value={editedActivity?.name}
                                       onChange={(e) => setEditedActivity({ ...editedActivity!, name: e.target.value })}
-                                      className="flex-1"
+                                      placeholder="Activity name"
                                     />
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      onClick={() => handleSaveActivity(index + 1, actIndex)}
-                                    >
-                                      <Check className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      onClick={() => setEditingActivity(null)}
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
+                                    <div className="flex gap-2">
+                                      <Input
+                                        type="number"
+                                        value={editedActivity?.cost}
+                                        onChange={(e) => setEditedActivity({ ...editedActivity!, cost: parseFloat(e.target.value) })}
+                                        placeholder="Cost"
+                                        className="w-24"
+                                      />
+                                      <Input
+                                        value={editedActivity?.duration}
+                                        onChange={(e) => setEditedActivity({ ...editedActivity!, duration: e.target.value })}
+                                        placeholder="Duration"
+                                      />
+                                    </div>
+                                    <div className="flex justify-end gap-2">
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleSaveActivity(index + 1, actIndex)}
+                                      >
+                                        <Check className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => setEditingActivity(null)}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </div>
                                   </div>
                                 ) : (
                                   <>
-                                    <div className="flex items-center gap-2">
-                                      <span>{activity.activity}</span>
-                                      {activity.url && (
-                                        <a
-                                          href={activity.url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-primary hover:text-primary/80"
-                                        >
-                                          <ExternalLink className="h-4 w-4" />
-                                        </a>
-                                      )}
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <span>{activity.activity}</span>
+                                        {activity.url && (
+                                          <a
+                                            href={activity.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary hover:text-primary/80"
+                                          >
+                                            <ExternalLink className="h-4 w-4" />
+                                          </a>
+                                        )}
+                                      </div>
+                                      <div className="text-sm text-muted-foreground">
+                                        {activity.duration} • ${activity.cost || 0}
+                                      </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-muted-foreground">{activity.time}</span>
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        onClick={() => handleEditActivity(index + 1, actIndex, activity)}
-                                      >
-                                        <Edit2 className="h-4 w-4" />
-                                      </Button>
-                                    </div>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() => handleEditActivity(index + 1, actIndex, activity)}
+                                    >
+                                      <Edit2 className="h-4 w-4" />
+                                    </Button>
                                   </>
                                 )}
                               </div>
                             ))}
                           </div>
+
                           <Separator className="my-2" />
-                          <div className="flex items-center justify-between text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2">
-                              <span>Accommodation: {day.accommodation?.name || 'Not specified'}</span>
-                              {day.accommodation?.url && (
-                                <a
-                                  href={day.accommodation.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-primary hover:text-primary/80"
+
+                          <div className="flex items-center justify-between p-2 border rounded">
+                            {editingAccommodation === index ? (
+                              <div className="flex-1 space-y-2">
+                                <Input
+                                  value={day.accommodation?.name}
+                                  onChange={(e) => {
+                                    const updated = { ...day.accommodation, name: e.target.value };
+                                    handleSaveAccommodation(index, updated);
+                                  }}
+                                  placeholder="Accommodation name"
+                                />
+                                <div className="flex gap-2">
+                                  <Input
+                                    type="number"
+                                    value={day.accommodation?.cost}
+                                    onChange={(e) => {
+                                      const updated = { ...day.accommodation, cost: parseFloat(e.target.value) };
+                                      handleSaveAccommodation(index, updated);
+                                    }}
+                                    placeholder="Cost"
+                                    className="w-24"
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span>Accommodation: {day.accommodation?.name || 'Not specified'}</span>
+                                    {day.accommodation?.url && (
+                                      <a
+                                        href={day.accommodation.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-primary hover:text-primary/80"
+                                      >
+                                        <ExternalLink className="h-4 w-4" />
+                                      </a>
+                                    )}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">
+                                    ${day.accommodation?.cost || 0}
+                                  </div>
+                                </div>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => handleEditAccommodation(index)}
                                 >
-                                  <ExternalLink className="h-4 w-4" />
-                                </a>
-                              )}
-                            </div>
-                            <span>${day.accommodation?.cost || 0}</span>
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -690,21 +721,7 @@ export default function PlanTrip() {
           </div>
         </div>
 
-        <Dialog open={showWeatherDialog} onOpenChange={setShowWeatherDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                Weather Impact on {selectedDay?.date ? format(new Date(selectedDay.date), "MMMM d") : ""}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="py-4">
-              <p className="text-sm text-muted-foreground">{weatherImpact}</p>
-            </div>
-            <DialogFooter>
-              <Button onClick={() => setShowWeatherDialog(false)}>Close</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/*Removed Weather Dialog*/}
       </main>
     </div>
   );
