@@ -3,6 +3,17 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --primary: 357 100% 67%;
+    --primary-light: 357 100% 72%;
+    --secondary: 177 100% 33%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 28%;
+    --muted: 0 0% 97%;
+    --muted-foreground: 0 0% 46%;
+    --border: 0 0% 90%;
+  }
+
   * {
     @apply border-border;
   }
