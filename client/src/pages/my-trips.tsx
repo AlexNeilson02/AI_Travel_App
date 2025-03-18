@@ -3,8 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Trip } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, DollarSign, MapPin, Trash2, Download, Edit2, ExternalLink } from "lucide-react";
-import { format } from "date-fns";
+import { Loader2, Calendar, DollarSign, MapPin, Trash2, Download, Edit2, ExternalLink, ChevronRight } from "lucide-react";
+import { format, parseISO } from "date-fns";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +25,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 interface TimeSlot {
   time: string;
@@ -41,7 +42,7 @@ interface TripDay {
   activities: {
     timeSlots: TimeSlot[];
   };
-  aiSuggestions: {
+  aiSuggestions?: {
     reasoning: string;
     weatherContext?: {
       description: string;
@@ -57,6 +58,7 @@ interface TripDay {
 
 export default function MyTrips() {
   const { toast } = useToast();
+  const [expandedTrip, setExpandedTrip] = useState<number | null>(null);
   const [editingActivity, setEditingActivity] = useState<{ tripId: number; dayIndex: number; slotIndex: number } | null>(null);
   const [editedActivity, setEditedActivity] = useState<Partial<TimeSlot> | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -146,7 +148,11 @@ export default function MyTrips() {
     pdf.setFontSize(12);
     pdf.text(`Destination: ${trip.destination}`, 20, yPos);
     yPos += lineHeight;
-    pdf.text(`Dates: ${format(new Date(trip.startDate), "MMM d")} - ${format(new Date(trip.endDate), "MMM d, yyyy")}`, 20, yPos);
+
+    // Fix date display in PDF
+    const startDate = parseISO(trip.startDate);
+    const endDate = parseISO(trip.endDate);
+    pdf.text(`Dates: ${format(startDate, "MMM d")} - ${format(endDate, "MMM d, yyyy")}`, 20, yPos);
     yPos += lineHeight;
     pdf.text(`Budget: $${trip.budget}`, 20, yPos);
     yPos += lineHeight * 2;
@@ -165,7 +171,8 @@ export default function MyTrips() {
         }
 
         pdf.setFontSize(14);
-        pdf.text(format(new Date(day.date), "EEEE, MMMM d, yyyy"), 20, yPos);
+        const dayDate = parseISO(day.date);
+        pdf.text(format(dayDate, "EEEE, MMMM d, yyyy"), 20, yPos);
         yPos += lineHeight;
         pdf.setFontSize(12);
 
@@ -209,7 +216,7 @@ export default function MyTrips() {
             <CardContent className="flex flex-col items-center justify-center h-64">
               <p className="text-muted-foreground mb-4">No trips planned yet</p>
               <Button variant="outline" asChild>
-                <Link href="/plan">Plan Your First Trip</Link>
+                <Link href="/plan-trip">Plan Your First Trip</Link>
               </Button>
             </CardContent>
           </Card>
@@ -252,9 +259,15 @@ export default function MyTrips() {
                   </AlertDialog>
                 </div>
 
-                <CardHeader>
-                  <CardTitle>
+                <CardHeader className="cursor-pointer" onClick={() => setExpandedTrip(expandedTrip === trip.id ? null : trip.id)}>
+                  <CardTitle className="flex items-center justify-between pr-24">
                     <span>{trip.title}</span>
+                    <ChevronRight 
+                      className={cn(
+                        "h-5 w-5 transition-transform", 
+                        expandedTrip === trip.id ? "rotate-90" : ""
+                      )} 
+                    />
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -265,21 +278,21 @@ export default function MyTrips() {
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
                       <Calendar className="h-4 w-4 mr-2" />
-                      {format(new Date(trip.startDate), "MMM d")} -{" "}
-                      {format(new Date(trip.endDate), "MMM d, yyyy")}
+                      {format(parseISO(trip.startDate), "MMM d")} -{" "}
+                      {format(parseISO(trip.endDate), "MMM d, yyyy")}
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
                       <DollarSign className="h-4 w-4 mr-2" />
                       Budget: ${trip.budget}
                     </div>
 
-                    {trip.itinerary?.days && (
+                    {expandedTrip === trip.id && trip.itinerary?.days && (
                       <div className="mt-4 space-y-4">
                         <h3 className="font-medium">Itinerary</h3>
                         {trip.itinerary.days.map((day: TripDay, dayIndex: number) => (
                           <div key={dayIndex} className="border rounded-lg p-4">
                             <h4 className="font-medium mb-2">
-                              {format(new Date(day.date), "EEEE, MMMM d")}
+                              {format(parseISO(day.date), "EEEE, MMMM d")}
                             </h4>
                             {day.activities.timeSlots.map((slot, slotIndex) => (
                               <div key={slotIndex} className="ml-4 mb-2">
