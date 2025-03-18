@@ -31,6 +31,8 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
       }
     });
 
+    console.log('Geocoding response:', geoResponse.data);
+
     const geoData = geoResponse.data as GeocodingResponse;
     if (!geoData.results?.[0]) {
       console.error('Location not found:', location);
@@ -51,6 +53,8 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
         timezone: 'auto'
       }
     });
+
+    console.log('Weather API response:', forecastResponse.data);
 
     const hourlyData = forecastResponse.data.hourly;
     if (!hourlyData) {
@@ -84,7 +88,7 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
       is_suitable_for_outdoor: isSuitableForOutdoor(temperature, windSpeed, precipProb, description)
     };
 
-    console.log('Weather data for', location, ':', weatherData);
+    console.log('Processed weather data:', weatherData);
     return weatherData;
   } catch (error: any) {
     console.error('Error fetching weather data:', error.response?.data || error.message);
