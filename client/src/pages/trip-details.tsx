@@ -173,8 +173,8 @@ export default function TripDetails() {
                               <h4 className="font-medium">
                                 {format(new Date(day.date), "EEEE, MMMM d, yyyy")}
                               </h4>
-                              {day.aiSuggestions.weatherContext ? (
-                                <div className="flex items-center gap-2 text-sm">
+                              {day.aiSuggestions.weatherContext && (
+                                <div className="flex items-center gap-2 text-sm bg-muted p-2 rounded mt-2">
                                   <ThermometerSun className="h-4 w-4" />
                                   <span>{Math.round(day.aiSuggestions.weatherContext.temperature)}°F</span>
                                   <CloudRain className="h-4 w-4 ml-2" />
@@ -182,10 +182,6 @@ export default function TripDetails() {
                                   <span className="text-muted-foreground">
                                     {day.aiSuggestions.weatherContext.description}
                                   </span>
-                                </div>
-                              ) : (
-                                <div className="text-sm text-muted-foreground">
-                                  No weather data available yet
                                 </div>
                               )}
                             </div>

@@ -10,16 +10,39 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { CalendarIcon, DollarSign, Send, Edit2, Check, X, ExternalLink, ThermometerSun, CloudRain, AlertTriangle } from "lucide-react";
+import {
+  CalendarIcon,
+  DollarSign,
+  Send,
+  Edit2,
+  Check,
+  X,
+  ExternalLink,
+  ThermometerSun,
+  CloudRain,
+  AlertTriangle,
+} from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function PlanTrip() {
   const { toast } = useToast();
@@ -587,9 +610,46 @@ export default function PlanTrip() {
                     <div className="space-y-6">
                       {suggestions.days?.map((day: any, index: number) => (
                         <div key={index}>
-                          <h3 className="font-medium mb-2">
-                            {day.dayOfWeek} - {format(new Date(day.date), "MMM d, yyyy")}
-                          </h3>
+                          <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+                            <div className="flex flex-col gap-2">
+                              <h3 className="font-medium">
+                                {day.dayOfWeek} - {format(new Date(day.date), "MMM d, yyyy")}
+                              </h3>
+                              {/* Add weather information display */}
+                              {day.weatherContext && (
+                                <div className="flex items-center gap-2 text-sm bg-muted p-2 rounded">
+                                  <ThermometerSun className="h-4 w-4" />
+                                  <span>{Math.round(day.weatherContext.temperature)}°F</span>
+                                  <CloudRain className="h-4 w-4 ml-2" />
+                                  <span>{Math.round(day.weatherContext.precipitation_probability)}%</span>
+                                  <span className="text-muted-foreground">
+                                    {day.weatherContext.description}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => showWeatherImpact(day)}
+                              className="whitespace-nowrap"
+                            >
+                              See weather impact
+                            </Button>
+                          </div>
+
+                          {/* Weather Warning */}
+                          {day.weatherContext && !day.weatherContext.is_suitable_for_outdoor && (
+                            <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-900/50">
+                              <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
+                                <AlertTriangle className="h-4 w-4" />
+                                <span className="font-medium">Weather Advisory</span>
+                              </div>
+                              <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+                                Weather conditions may not be suitable for outdoor activities.
+                              </p>
+                            </div>
+                          )}
 
                           <div className="space-y-2">
                             {day.activities?.timeSlots?.map((activity: any, actIndex: number) => (
