@@ -573,102 +573,173 @@ export default function PlanTrip() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
-                      {suggestions.days?.map((day: any, index: number) => (
-                        <div key={index}>
-                          <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-                            <div className="flex flex-col gap-2 w-full">
-                              <h3 className="font-medium">
-                                {day.dayOfWeek} - {format(new Date(day.date), "MMM d, yyyy")}
-                              </h3>
-                              {/* Weather information display */}
-                              {day.weatherContext && (
-                                <div className="flex items-center gap-4 text-base bg-muted p-3 rounded-lg w-full">
-                                  <div className="flex items-center gap-2">
-                                    <ThermometerSun className="h-5 w-5 text-orange-500" />
-                                    <span className="font-medium">{Math.round(day.weatherContext.temperature)}°F</span>
+                      {suggestions.days?.map((day: any, index: number) => {
+                        console.log('Day data:', day);
+                        console.log('Weather context:', day.weatherContext);
+                        return (
+                          <div key={index}>
+                            <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+                              <div className="flex flex-col gap-2 w-full">
+                                <h3 className="font-medium">
+                                  {day.dayOfWeek} - {format(new Date(day.date), "MMM d, yyyy")}
+                                </h3>
+                                {/* Weather information display */}
+                                {day.weatherContext && (
+                                  <div className="flex items-center gap-4 text-base bg-muted p-3 rounded-lg w-full">
+                                    <div className="flex items-center gap-2">
+                                      <ThermometerSun className="h-5 w-5 text-orange-500" />
+                                      <span className="font-medium">
+                                        {Math.round(day.weatherContext.temperature)}°F
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <CloudRain className="h-5 w-5 text-blue-500" />
+                                      <span className="font-medium">
+                                        {Math.round(day.weatherContext.precipitation_probability)}%
+                                      </span>
+                                    </div>
+                                    <span className="text-muted-foreground">
+                                      {day.weatherContext.description}
+                                    </span>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <CloudRain className="h-5 w-5 text-blue-500" />
-                                    <span className="font-medium">{Math.round(day.weatherContext.precipitation_probability)}%</span>
-                                  </div>
-                                  <span className="text-muted-foreground">
-                                    {day.weatherContext.description}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Weather Warning - only show if outdoor activities might be affected */}
-                          {day.weatherContext && !day.weatherContext.is_suitable_for_outdoor && (
-                            <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-900/50">
-                              <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
-                                <AlertTriangle className="h-4 w-4" />
-                                <span className="font-medium">Weather Advisory</span>
-                              </div>
-                              <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
-                                Weather conditions may not be suitable for outdoor activities.
-                                {day.alternativeActivities?.length > 0 && (
-                                  <>
-                                    <br />
-                                    Consider these indoor alternatives: {day.alternativeActivities.join(", ")}.
-                                  </>
                                 )}
-                              </p>
+                              </div>
                             </div>
-                          )}
 
-                          <div className="space-y-2">
-                            {day.activities?.timeSlots?.map((activity: any, actIndex: number) => (
-                              <div key={actIndex} className="flex items-center justify-between p-2 border rounded">
-                                {editingActivity?.day === index + 1 && editingActivity?.index === actIndex ? (
+                            {/* Weather Warning - only show if outdoor activities might be affected */}
+                            {day.weatherContext && !day.weatherContext.is_suitable_for_outdoor && (
+                              <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-900/50">
+                                <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
+                                  <AlertTriangle className="h-4 w-4" />
+                                  <span className="font-medium">Weather Advisory</span>
+                                </div>
+                                <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+                                  Weather conditions may not be suitable for outdoor activities.
+                                  {day.alternativeActivities?.length > 0 && (
+                                    <>
+                                      <br />
+                                      Consider these indoor alternatives: {day.alternativeActivities.join(", ")}.
+                                    </>
+                                  )}
+                                </p>
+                              </div>
+                            )}
+
+                            <div className="space-y-2">
+                              {day.activities?.timeSlots?.map((activity: any, actIndex: number) => (
+                                <div key={actIndex} className="flex items-center justify-between p-2 border rounded">
+                                  {editingActivity?.day === index + 1 && editingActivity?.index === actIndex ? (
+                                    <div className="flex-1 space-y-2">
+                                      <Input
+                                        value={editedActivity?.name}
+                                        onChange={(e) => setEditedActivity({ ...editedActivity!, name: e.target.value })}
+                                        placeholder="Activity name"
+                                      />
+                                      <div className="flex gap-2">
+                                        <Input
+                                          type="number"
+                                          value={editedActivity?.cost}
+                                          onChange={(e) => setEditedActivity({ ...editedActivity!, cost: parseFloat(e.target.value) })}
+                                          placeholder="Cost per person"
+                                          className="w-32"
+                                        />
+                                        <Input
+                                          value={editedActivity?.duration}
+                                          onChange={(e) => setEditedActivity({ ...editedActivity!, duration: e.target.value })}
+                                          placeholder="Duration"
+                                        />
+                                      </div>
+                                      <div className="text-sm text-muted-foreground">
+                                        Total for {numberOfPeople} {numberOfPeople === 1 ? 'person' : 'people'}: ${(editedActivity?.cost || 0) * numberOfPeople}
+                                      </div>
+                                      <div className="flex justify-end gap-2">
+                                        <Button
+                                          size="sm"
+                                          onClick={() => handleSaveActivity(index + 1, actIndex)}
+                                        >
+                                          <Check className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => setEditingActivity(null)}
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                          <span>{activity.activity}</span>
+                                          {activity.url && (
+                                            <a
+                                              href={activity.url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-primary hover:text-primary/80"
+                                            >
+                                              <ExternalLink className="h-4 w-4" />
+                                            </a>
+                                          )}
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">
+                                          {activity.duration} • ${activity.cost} per person
+                                          {numberOfPeople > 1 && ` (Total: $${(activity.cost || 0) * numberOfPeople})`}
+                                        </div>
+                                      </div>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        onClick={() => handleEditActivity(index + 1, actIndex, activity)}
+                                      >
+                                        <Edit2 className="h-4 w-4" />
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+
+                            <Separator className="my-2" />
+
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between p-2 border rounded">
+                                {editingAccommodation === index ? (
                                   <div className="flex-1 space-y-2">
                                     <Input
-                                      value={editedActivity?.name}
-                                      onChange={(e) => setEditedActivity({ ...editedActivity!, name: e.target.value })}
-                                      placeholder="Activity name"
+                                      value={day.accommodation?.name}
+                                      onChange={(e) => {
+                                        const updated = { ...day.accommodation, name: e.target.value };
+                                        handleSaveAccommodation(index, updated);
+                                      }}
+                                      placeholder="Accommodation name"
                                     />
                                     <div className="flex gap-2">
                                       <Input
                                         type="number"
-                                        value={editedActivity?.cost}
-                                        onChange={(e) => setEditedActivity({ ...editedActivity!, cost: parseFloat(e.target.value) })}
+                                        value={day.accommodation?.cost}
+                                        onChange={(e) => {
+                                          const updated = { ...day.accommodation, cost: parseFloat(e.target.value) };
+                                          handleSaveAccommodation(index, updated);
+                                        }}
                                         placeholder="Cost per person"
                                         className="w-32"
                                       />
-                                      <Input
-                                        value={editedActivity?.duration}
-                                        onChange={(e) => setEditedActivity({ ...editedActivity!, duration: e.target.value })}
-                                        placeholder="Duration"
-                                      />
                                     </div>
                                     <div className="text-sm text-muted-foreground">
-                                      Total for {numberOfPeople} {numberOfPeople === 1 ? 'person' : 'people'}: ${(editedActivity?.cost || 0) * numberOfPeople}
-                                    </div>
-                                    <div className="flex justify-end gap-2">
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleSaveActivity(index + 1, actIndex)}
-                                      >
-                                        <Check className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => setEditingActivity(null)}
-                                      >
-                                        <X className="h-4 w-4" />
-                                      </Button>
+                                      Total for {numberOfPeople} {numberOfPeople === 1 ? 'person' : 'people'}: ${(day.accommodation?.cost || 0) * numberOfPeople}
                                     </div>
                                   </div>
                                 ) : (
                                   <>
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2">
-                                        <span>{activity.activity}</span>
-                                        {activity.url && (
+                                        <span>Accommodation: {day.accommodation?.name || 'Not specified'}</span>
+                                        {day.accommodation?.url && (
                                           <a
-                                            href={activity.url}
+                                            href={day.accommodation.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-primary hover:text-primary/80"
@@ -678,97 +749,34 @@ export default function PlanTrip() {
                                         )}
                                       </div>
                                       <div className="text-sm text-muted-foreground">
-                                        {activity.duration} • ${activity.cost} per person
-                                        {numberOfPeople > 1 && ` (Total: $${(activity.cost || 0) * numberOfPeople})`}
+                                        ${day.accommodation?.cost} per person
+                                        {numberOfPeople > 1 && ` (Total: $${(day.accommodation?.cost || 0) * numberOfPeople})`}
                                       </div>
                                     </div>
                                     <Button
                                       size="icon"
                                       variant="ghost"
-                                      onClick={() => handleEditActivity(index + 1, actIndex, activity)}
+                                      onClick={() => handleEditAccommodation(index)}
                                     >
                                       <Edit2 className="h-4 w-4" />
                                     </Button>
                                   </>
                                 )}
                               </div>
-                            ))}
-                          </div>
 
-                          <Separator className="my-2" />
-
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between p-2 border rounded">
-                              {editingAccommodation === index ? (
-                                <div className="flex-1 space-y-2">
-                                  <Input
-                                    value={day.accommodation?.name}
-                                    onChange={(e) => {
-                                      const updated = { ...day.accommodation, name: e.target.value };
-                                      handleSaveAccommodation(index, updated);
-                                    }}
-                                    placeholder="Accommodation name"
-                                  />
-                                  <div className="flex gap-2">
-                                    <Input
-                                      type="number"
-                                      value={day.accommodation?.cost}
-                                      onChange={(e) => {
-                                        const updated = { ...day.accommodation, cost: parseFloat(e.target.value) };
-                                        handleSaveAccommodation(index, updated);
-                                      }}
-                                      placeholder="Cost per person"
-                                      className="w-32"
-                                    />
-                                  </div>
+                              <div className="p-2 border rounded">
+                                <div className="flex items-center justify-between">
+                                  <span>Daily Meal Budget</span>
                                   <div className="text-sm text-muted-foreground">
-                                    Total for {numberOfPeople} {numberOfPeople === 1 ? 'person' : 'people'}: ${(day.accommodation?.cost || 0) * numberOfPeople}
+                                    ${day.meals?.budget} per person
+                                    {numberOfPeople > 1 && ` (Total: $${(day.meals?.budget || 0) * numberOfPeople})`}
                                   </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                      <span>Accommodation: {day.accommodation?.name || 'Not specified'}</span>
-                                      {day.accommodation?.url && (
-                                        <a
-                                          href={day.accommodation.url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-primary hover:text-primary/80"
-                                        >
-                                          <ExternalLink className="h-4 w-4" />
-                                        </a>
-                                      )}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground">
-                                      ${day.accommodation?.cost} per person
-                                      {numberOfPeople > 1 && ` (Total: $${(day.accommodation?.cost || 0) * numberOfPeople})`}
-                                    </div>
-                                  </div>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    onClick={() => handleEditAccommodation(index)}
-                                  >
-                                    <Edit2 className="h-4 w-4" />
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-
-                            <div className="p-2 border rounded">
-                              <div className="flex items-center justify-between">
-                                <span>Daily Meal Budget</span>
-                                <div className="text-sm text-muted-foreground">
-                                  ${day.meals?.budget} per person
-                                  {numberOfPeople > 1 && ` (Total: $${(day.meals?.budget || 0) * numberOfPeople})`}
                                 </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
 
                       {suggestions.tips && suggestions.tips.length > 0 && (
                         <div className="mt-6">

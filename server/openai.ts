@@ -104,7 +104,9 @@ Important:
     // Process each day
     const formattedDays = await Promise.all(expectedDays.map(async (date) => {
       const existingDay = itinerary.days?.find((d: any) => d.date === date);
+      // Get weather data for this day
       const weatherData = await getWeatherForecast(destination, new Date(date));
+      console.log('Weather data for', date, ':', weatherData);
 
       if (existingDay) {
         return {
@@ -157,6 +159,7 @@ Important:
     // Sort days by date
     formattedDays.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
+    console.log('Formatted days with weather:', formattedDays);
     return {
       days: formattedDays,
       totalCost: itinerary.totalCost || 0,
