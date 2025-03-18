@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { users, trips, type User, type InsertUser, type Trip, type InsertTrip } from "@shared/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -16,7 +16,6 @@ export interface IStorage {
   getUserTrips(userId: number): Promise<Trip[]>;
   updateTrip(id: number, trip: Partial<Trip>): Promise<Trip>;
   deleteTrip(id: number): Promise<void>;
-  getPopularDestinations(): Promise<Array<{ destination: string; count: number }>>;
   sessionStore: session.Store;
 }
 
@@ -98,21 +97,6 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTrip(id: number): Promise<void> {
     await this.updateTrip(id, { isActive: false });
-  }
-
-  async getPopularDestinations(): Promise<Array<{ destination: string; count: number }>> {
-    const result = await db
-      .select({
-        destination: trips.destination,
-        count: sql<number>`cast(count(*) as integer)`,
-      })
-      .from(trips)
-      .where(eq(trips.isActive, true))
-      .groupBy(trips.destination)
-      .orderBy(sql`count(*) desc`)
-      .limit(10);
-
-    return result;
   }
 }
 

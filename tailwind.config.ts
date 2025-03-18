@@ -16,34 +16,13 @@ export default {
         button: ["20px", { lineHeight: "1.2", fontWeight: "600" }],
       },
       colors: {
-        border: "var(--border)",
-        input: "var(--input)",
-        ring: "var(--ring)",
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-        primary: "#FF5A5F",
-        secondary: "#00A699",
+        primary: "#52B69A",
+        secondary: "#76C893",
         neutral: {
-          900: "#484848",
-          800: "#767676",
+          900: "#FFA92C",
+          800: "#FFC570",
           200: "#C0C0C0",
           100: "#F6FAF9",
-        },
-        muted: {
-          DEFAULT: "var(--muted)",
-          foreground: "var(--muted-foreground)",
-        },
-        accent: {
-          DEFAULT: "var(--accent)",
-          foreground: "var(--accent-foreground)",
-        },
-        popover: {
-          DEFAULT: "var(--popover)",
-          foreground: "var(--popover-foreground)",
-        },
-        card: {
-          DEFAULT: "var(--card)",
-          foreground: "var(--card-foreground)",
         },
       },
       spacing: {
@@ -56,11 +35,6 @@ export default {
       },
       blur: {
         card: "4px",
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
       },
     },
   },
