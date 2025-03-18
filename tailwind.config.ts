@@ -4,37 +4,53 @@ export default {
   darkMode: ["class"],
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
     extend: {
-      fontFamily: {
-        sans: ["forma", "sans-serif"],
-      },
-      fontSize: {
-        h1: ["31px", { lineHeight: "1.2", fontWeight: "700" }],
-        h2: ["25px", { lineHeight: "1.2", fontWeight: "700" }],
-        h3: ["21px", { lineHeight: "1.2", fontWeight: "700" }],
-        base: ["16px", { lineHeight: "1.5", fontWeight: "400" }],
-        button: ["20px", { lineHeight: "1.2", fontWeight: "600" }],
-      },
       colors: {
-        primary: "#52B69A",
-        secondary: "#76C893",
-        neutral: {
-          900: "#FFA92C",
-          800: "#FFC570",
-          200: "#C0C0C0",
-          100: "#F6FAF9",
+        border: "var(--border)",
+        input: "var(--input)",
+        ring: "var(--ring)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        primary: {
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
+        },
+        secondary: {
+          DEFAULT: "var(--secondary)",
+          foreground: "var(--secondary-foreground)",
+        },
+        destructive: {
+          DEFAULT: "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
+        },
+        muted: {
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)",
+        },
+        accent: {
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
+        },
+        popover: {
+          DEFAULT: "var(--popover)",
+          foreground: "var(--popover-foreground)",
+        },
+        card: {
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
         },
       },
-      spacing: {
-        element: "16px",
-        button: "16px",
-        vertical: "24px",
-      },
-      dropShadow: {
-        button: "0 0 4px rgba(0, 0, 0, 0.15)",
-      },
-      blur: {
-        card: "4px",
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
     },
   },
