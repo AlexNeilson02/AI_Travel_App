@@ -4,7 +4,7 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertTripSchema } from "@shared/schema";
 import { generateTripSuggestions } from "./openai";
-import { addDays, format } from "date-fns";
+import { format } from "date-fns";
 import { getWeatherForecast, suggestAlternativeActivities } from "./weather";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -82,7 +82,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('Received suggestions request:', { destination, preferences, budget, startDate, endDate });
 
     try {
-      const dayCount = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
+      // Calculate the exact number of days including both start and end date
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const dayCount = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+      console.log('Trip duration:', { dayCount, startDate, endDate });
 
       const formattedPreferences = [
         ...preferences.accommodationType.map((type: string) => `Accommodation: ${type}`),
@@ -101,6 +106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         budget,
         dayCount,
         startDate,
+        endDate,
         numberOfPeople,
         chatHistory
       );
@@ -111,17 +117,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error('Failed to generate trip suggestions');
       }
 
-      const formattedDays = await Promise.all(suggestions.days.map(async (day: any, index: number) => {
-        // Use UTC date to prevent timezone issues
-        const tripDate = new Date(startDate);
-        tripDate.setUTCDate(tripDate.getUTCDate() + index);
-        const weatherData = await getWeatherForecast(destination, tripDate);
+      // Validate that the itinerary includes all days from startDate to endDate
+      console.log('Validating itinerary dates...');
+      const parsedStartDate = new Date(startDate);
+      const parsedEndDate = new Date(endDate);
+      const expectedDays = [];
 
-        let alternativeActivities: string[] = [];
+      for (let d = new Date(parsedStartDate); d <= parsedEndDate; d.setDate(d.getDate() + 1)) {
+        expectedDays.push(d.toISOString().split("T")[0]); // Store dates in YYYY-MM-DD format
+      }
+
+      const aiGeneratedDates = suggestions.days.map((day: any) => day.date);
+      const missingDates = expectedDays.filter(date => !aiGeneratedDates.includes(date));
+
+      if (missingDates.length > 0) {
+        console.warn(`Missing itinerary dates: ${missingDates.join(", ")}`);
+
+        // Add missing dates with placeholders
+        for (const date of missingDates) {
+          suggestions.days.push({
+            day: suggestions.days.length + 1,
+            date: date,
+            dayOfWeek: new Date(date).toLocaleDateString("en-US", { weekday: "long" }),
+            activities: [],
+            accommodation: null,
+            meals: { budget: 0, totalBudget: 0 },
+          });
+        }
+
+        // Sort itinerary by date
+        suggestions.days.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      }
+
+      // Format each day with weather data and proper structure
+      const formattedDays = await Promise.all(suggestions.days.map(async (day: any) => {
+        const dayDate = new Date(day.date);
+        const weatherData = await getWeatherForecast(destination, dayDate);
 
         // Ensure activities is always an array
         const rawActivities = Array.isArray(day.activities) ? day.activities :
-                              day.activities?.timeSlots ? day.activities.timeSlots : [];
+                            day.activities?.timeSlots ? day.activities.timeSlots : [];
 
         // Format activities into the expected structure
         const formattedActivities = rawActivities.map((activity: any) => {
@@ -153,23 +188,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         });
 
-        // Check for outdoor activities and get alternatives if needed
-        if (weatherData) {
-          const outdoorActivities = formattedActivities.filter(activity =>
+        // Check for weather impact on outdoor activities
+        let alternativeActivities: string[] = [];
+        if (weatherData && !weatherData.is_suitable_for_outdoor) {
+          const outdoorActivities = formattedActivities.filter((activity: any) =>
             activity.isOutdoor || activity.activity.toLowerCase().includes('outdoor')
           );
-
-          if (!weatherData.is_suitable_for_outdoor) {
-            for (const activity of outdoorActivities) {
-              const alternatives = suggestAlternativeActivities(weatherData, activity.activity);
-              alternativeActivities.push(...alternatives);
-            }
+          for (const activity of outdoorActivities) {
+            const alternatives = suggestAlternativeActivities(weatherData, activity.activity);
+            alternativeActivities.push(...alternatives);
           }
         }
 
         return {
-          date: format(tripDate, 'yyyy-MM-dd'),
-          dayOfWeek: format(tripDate, 'EEEE'),
+          date: format(dayDate, 'yyyy-MM-dd'),
+          dayOfWeek: format(dayDate, 'EEEE'),
           activities: {
             timeSlots: formattedActivities
           },
@@ -192,7 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               precipitation_probability: weatherData.precipitation_probability,
               is_suitable_for_outdoor: weatherData.is_suitable_for_outdoor
             } : undefined,
-            alternativeActivities: [...new Set(alternativeActivities)]
+            alternativeActivities: alternativeActivities
           },
           isFinalized: false
         };

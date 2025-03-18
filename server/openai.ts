@@ -127,12 +127,6 @@ Format response as JSON:
       itinerary.days.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
     }
 
-    // Ensure that the duration matches endDate - startDate
-    const calculatedDuration = (parsedEndDate.getTime() - parsedStartDate.getTime()) / (1000 * 60 * 60 * 24) + 1;
-    if (calculatedDuration !== duration) {
-      console.warn(`Mismatch: Duration (${duration} days) does not match computed trip length (${calculatedDuration} days).`);
-    }
-
     // Add weather data for each day
     console.log('Adding weather data to itinerary...');
     for (const day of itinerary.days) {
