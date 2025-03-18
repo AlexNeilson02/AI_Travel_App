@@ -576,17 +576,21 @@ export default function PlanTrip() {
                       {suggestions.days?.map((day: any, index: number) => (
                         <div key={index}>
                           <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-                            <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-2 w-full">
                               <h3 className="font-medium">
                                 {day.dayOfWeek} - {format(new Date(day.date), "MMM d, yyyy")}
                               </h3>
                               {/* Weather information display */}
                               {day.weatherContext && (
-                                <div className="flex items-center gap-2 text-sm bg-muted p-2 rounded">
-                                  <ThermometerSun className="h-4 w-4" />
-                                  <span>{Math.round(day.weatherContext.temperature)}°F</span>
-                                  <CloudRain className="h-4 w-4 ml-2" />
-                                  <span>{Math.round(day.weatherContext.precipitation_probability)}%</span>
+                                <div className="flex items-center gap-4 text-base bg-muted p-3 rounded-lg w-full">
+                                  <div className="flex items-center gap-2">
+                                    <ThermometerSun className="h-5 w-5 text-orange-500" />
+                                    <span className="font-medium">{Math.round(day.weatherContext.temperature)}°F</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <CloudRain className="h-5 w-5 text-blue-500" />
+                                    <span className="font-medium">{Math.round(day.weatherContext.precipitation_probability)}%</span>
+                                  </div>
                                   <span className="text-muted-foreground">
                                     {day.weatherContext.description}
                                   </span>
@@ -595,7 +599,7 @@ export default function PlanTrip() {
                             </div>
                           </div>
 
-                          {/* Weather Warning - keep this for important alerts */}
+                          {/* Weather Warning - only show if outdoor activities might be affected */}
                           {day.weatherContext && !day.weatherContext.is_suitable_for_outdoor && (
                             <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-900/50">
                               <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
