@@ -85,7 +85,7 @@ export default function HomePage() {
           />
           <div className="absolute bottom-6 right-6">
             <Link href="/plan">
-              <Button size="lg" className="bg-primary hover:bg-primary-light text-white font-bold px-8 py-6 rounded-full shadow-lg transform transition-transform hover:scale-105">
+              <Button size="lg" className="bg-[#FF5A5F] hover:bg-[#FF4449] rounded-full">
                 Start Planning
               </Button>
             </Link>
