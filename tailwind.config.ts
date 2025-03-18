@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -16,25 +17,35 @@ export default {
         button: ["20px", { lineHeight: "1.2", fontWeight: "600" }],
       },
       colors: {
-        primary: "#52B69A",
-        secondary: "#76C893",
+        primary: "#FF5A5F",
+        secondary: "#00A699",
+        accent: "#FC642D",
         neutral: {
-          900: "#FFA92C",
-          800: "#FFC570",
-          200: "#C0C0C0",
-          100: "#F6FAF9",
+          900: "#484848",
+          800: "#767676",
+          200: "#DDDDDD",
+          100: "#F7F7F7",
         },
+        background: "white",
+        foreground: "#484848",
+        muted: "#F7F7F7",
+        "muted-foreground": "#767676",
+        border: "#DDDDDD",
       },
       spacing: {
         element: "16px",
         button: "16px",
         vertical: "24px",
       },
-      dropShadow: {
-        button: "0 0 4px rgba(0, 0, 0, 0.15)",
+      boxShadow: {
+        card: "0 6px 16px rgba(0,0,0,0.12)",
+        button: "0 2px 4px rgba(0,0,0,0.08)",
+        dropdown: "0 2px 16px rgba(0,0,0,0.15)",
       },
-      blur: {
-        card: "4px",
+      borderRadius: {
+        lg: "12px",
+        md: "8px",
+        sm: "4px",
       },
     },
   },
