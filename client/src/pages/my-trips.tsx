@@ -25,6 +25,33 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+interface TripDay {
+  date: string;
+  activities: {
+    timeSlots: Array<{
+      time: string;
+      activity: string;
+      location: string;
+      duration: string;
+      notes: string;
+      isEdited: boolean;
+      url?: string;
+    }>;
+  };
+  aiSuggestions: {
+    reasoning: string;
+    weatherContext?: {
+      description: string;
+      temperature: number;
+      precipitation_probability: number;
+      is_suitable_for_outdoor: boolean;
+    };
+    alternativeActivities: string[];
+  };
+  userFeedback?: string;
+  isFinalized: boolean;
+}
+
 export default function MyTrips() {
   const { toast } = useToast();
   const [expandedTrip, setExpandedTrip] = useState<number | null>(null);
@@ -292,90 +319,43 @@ export default function MyTrips() {
                       Budget: ${trip.budget}
                     </div>
 
-                    {expandedTrip === trip.id && trip.tripDays && (
+                    {expandedTrip === trip.id && trip.itinerary?.days && (
                       <div className="mt-4 space-y-4">
                         <h3 className="font-medium">Itinerary</h3>
-                        {trip.tripDays.map((day) => (
-                          <div key={day.id} className="border rounded-lg p-4">
+                        {trip.itinerary.days.map((day: TripDay, dayIndex: number) => (
+                          <div key={dayIndex} className="border rounded-lg p-4">
                             <h4 className="font-medium mb-2">
                               {format(new Date(day.date), "EEEE, MMMM d")}
                             </h4>
-                            {day.activities.timeSlots.map((slot, index) => (
-                              <div key={index} className="ml-4 mb-2 relative">
+                            {day.activities.timeSlots.map((slot, slotIndex) => (
+                              <div key={slotIndex} className="ml-4 mb-2">
                                 <div className="flex items-start justify-between">
                                   <div>
                                     <p className="font-medium">{slot.time}</p>
-                                    {editingTrip === trip.id ? (
-                                      <div className="space-y-2 mt-2">
-                                        <div>
-                                          <Label>Activity</Label>
-                                          <Input
-                                            value={editData.activity}
-                                            onChange={(e) => setEditData({ ...editData, activity: e.target.value })}
-                                          />
-                                        </div>
-                                        <div>
-                                          <Label>Location</Label>
-                                          <Input
-                                            value={editData.location}
-                                            onChange={(e) => setEditData({ ...editData, location: e.target.value })}
-                                          />
-                                        </div>
-                                        <div>
-                                          <Label>Time</Label>
-                                          <Input
-                                            value={editData.time}
-                                            onChange={(e) => setEditData({ ...editData, time: e.target.value })}
-                                          />
-                                        </div>
-                                        <div>
-                                          <Label>Duration</Label>
-                                          <Input
-                                            value={editData.duration}
-                                            onChange={(e) => setEditData({ ...editData, duration: e.target.value })}
-                                          />
-                                        </div>
-                                        <div className="flex justify-end gap-2 mt-2">
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setEditingTrip(null)}
-                                          >
-                                            Cancel
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            onClick={() => handleSave(trip.id, day.id, index)}
-                                          >
-                                            Save
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <>
-                                        <p>{slot.activity}</p>
-                                        {slot.location && (
-                                          <p className="text-sm text-muted-foreground">
-                                            Location: {slot.location}
-                                          </p>
-                                        )}
-                                        {slot.duration && (
-                                          <p className="text-sm text-muted-foreground">
-                                            Duration: {slot.duration}
-                                          </p>
-                                        )}
-                                      </>
+                                    <p>{slot.activity}</p>
+                                    {slot.location && (
+                                      <p className="text-sm text-muted-foreground">
+                                        Location: {slot.location}
+                                      </p>
+                                    )}
+                                    {slot.duration && (
+                                      <p className="text-sm text-muted-foreground">
+                                        Duration: {slot.duration}
+                                      </p>
+                                    )}
+                                    {slot.notes && (
+                                      <p className="text-sm text-muted-foreground">
+                                        Notes: {slot.notes}
+                                      </p>
                                     )}
                                   </div>
-                                  {!editingTrip && (
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleEdit(trip.id, day.id, index, slot)}
-                                    >
-                                      <Edit2 className="h-4 w-4" />
-                                    </Button>
-                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleEdit(trip.id, dayIndex, slotIndex, slot)}
+                                  >
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
                                 </div>
                               </div>
                             ))}
