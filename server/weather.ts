@@ -1,8 +1,5 @@
 import axios from 'axios';
 
-const API_KEY = process.env.OPENWEATHERMAP_API_KEY;
-const BASE_URL = 'https://api.openweathermap.org/data/2.5';
-
 interface WeatherData {
   description: string;
   temperature: number;
@@ -13,6 +10,13 @@ interface WeatherData {
   is_suitable_for_outdoor: boolean;
 }
 
+interface GeocodingResponse {
+  results?: Array<{
+    latitude: number;
+    longitude: number;
+  }>;
+}
+
 export async function getWeatherForecast(location: string, date: Date): Promise<WeatherData | null> {
   try {
     console.log('Starting weather forecast fetch for:', location, 'date:', date);
@@ -21,69 +25,79 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
     const formattedLocation = location.split(',')[0].trim();
     console.log('Formatted location:', formattedLocation);
 
-    // Get coordinates first
-    const geoResponse = await axios.get('https://api.openweathermap.org/geo/1.0/direct', {
+    // Get coordinates using Open-Meteo Geocoding API
+    const geoResponse = await axios.get('https://geocoding-api.open-meteo.com/v1/search', {
       params: {
-        q: formattedLocation,
-        limit: 1,
-        appid: API_KEY
+        name: formattedLocation,
+        count: 1,
+        language: 'en',
+        format: 'json'
       }
     });
 
-    if (!geoResponse.data || geoResponse.data.length === 0) {
+    const geoData = geoResponse.data as GeocodingResponse;
+    if (!geoData.results || geoData.results.length === 0) {
       console.error('Location not found:', formattedLocation);
       return null;
     }
 
-    const { lat, lon } = geoResponse.data[0];
-    console.log(`Found coordinates for ${formattedLocation}:`, { lat, lon });
+    const { latitude, longitude } = geoData.results[0];
+    console.log(`Found coordinates for ${formattedLocation}:`, { latitude, longitude });
 
-    // Get 5-day forecast
-    const forecastResponse = await axios.get(`${BASE_URL}/forecast`, {
+    // Get weather forecast from Open-Meteo API
+    const forecastResponse = await axios.get('https://api.open-meteo.com/v1/forecast', {
       params: {
-        lat,
-        lon,
-        appid: API_KEY,
-        units: 'imperial'
+        latitude,
+        longitude,
+        hourly: ['temperature_2m', 'relative_humidity_2m', 'precipitation_probability', 'weather_code', 'apparent_temperature', 'wind_speed_10m'],
+        temperature_unit: 'fahrenheit',
+        wind_speed_unit: 'mph',
+        timezone: 'auto'
       }
     });
 
-    if (!forecastResponse.data || !forecastResponse.data.list) {
+    if (!forecastResponse.data || !forecastResponse.data.hourly) {
       console.error('No forecast data received');
       return null;
     }
 
     // Find the forecast closest to the target date
     const targetTimestamp = date.getTime();
-    const forecast = forecastResponse.data.list.reduce((closest: any, current: any) => {
-      const currentDate = new Date(current.dt * 1000);
-      const closestDate = new Date(closest.dt * 1000);
-
-      const currentDiff = Math.abs(currentDate.getTime() - targetTimestamp);
-      const closestDiff = Math.abs(closestDate.getTime() - targetTimestamp);
-
-      return currentDiff < closestDiff ? current : closest;
+    const hourlyData = forecastResponse.data.hourly;
+    const timeIndex = hourlyData.time.findIndex((time: string) => {
+      const forecastTime = new Date(time).getTime();
+      return forecastTime >= targetTimestamp;
     });
 
+    if (timeIndex === -1) {
+      console.error('No forecast data available for the target date');
+      return null;
+    }
+
+    // Convert weather code to description
+    const weatherCode = hourlyData.weather_code[timeIndex];
+    const description = getWeatherDescription(weatherCode);
+
     // Determine if weather is suitable for outdoor activities
+    const temperature = hourlyData.temperature_2m[timeIndex];
+    const windSpeed = hourlyData.wind_speed_10m[timeIndex];
+    const precipProb = hourlyData.precipitation_probability[timeIndex];
+
     const isSuitableForOutdoor = (
-      forecast.weather && 
-      forecast.weather[0] && 
-      !['Rain', 'Snow', 'Thunderstorm'].includes(forecast.weather[0].main) &&
-      forecast.main && 
-      forecast.main.temp >= 40 &&
-      forecast.main.temp <= 95 &&
-      forecast.wind && 
-      forecast.wind.speed <= 20
+      temperature >= 40 &&
+      temperature <= 95 &&
+      windSpeed <= 20 &&
+      precipProb < 50 &&
+      !['thunderstorm', 'heavy rain', 'snow', 'heavy snow'].includes(description.toLowerCase())
     );
 
     const weatherData: WeatherData = {
-      description: forecast.weather[0].description,
-      temperature: forecast.main.temp,
-      feels_like: forecast.main.feels_like,
-      humidity: forecast.main.humidity,
-      wind_speed: forecast.wind.speed,
-      precipitation_probability: forecast.pop * 100,
+      description,
+      temperature,
+      feels_like: hourlyData.apparent_temperature[timeIndex],
+      humidity: hourlyData.relative_humidity_2m[timeIndex],
+      wind_speed: windSpeed,
+      precipitation_probability: precipProb,
       is_suitable_for_outdoor: isSuitableForOutdoor
     };
 
@@ -95,36 +109,61 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
   }
 }
 
+function getWeatherDescription(code: number): string {
+  // WMO Weather interpretation codes (https://open-meteo.com/en/docs)
+  const weatherCodes: { [key: number]: string } = {
+    0: 'Clear sky',
+    1: 'Mainly clear',
+    2: 'Partly cloudy',
+    3: 'Overcast',
+    45: 'Foggy',
+    48: 'Depositing rime fog',
+    51: 'Light drizzle',
+    53: 'Moderate drizzle',
+    55: 'Dense drizzle',
+    61: 'Slight rain',
+    63: 'Moderate rain',
+    65: 'Heavy rain',
+    71: 'Slight snow',
+    73: 'Moderate snow',
+    75: 'Heavy snow',
+    77: 'Snow grains',
+    80: 'Slight rain showers',
+    81: 'Moderate rain showers',
+    82: 'Violent rain showers',
+    85: 'Slight snow showers',
+    86: 'Heavy snow showers',
+    95: 'Thunderstorm',
+    96: 'Thunderstorm with slight hail',
+    99: 'Thunderstorm with heavy hail'
+  };
+  return weatherCodes[code] || 'Unknown';
+}
+
 export function suggestAlternativeActivities(weather: WeatherData, activity: string): string[] {
-  const alternativeActivities: string[] = [];
+  const alternativeActivities: Set<string> = new Set();
 
   if (!weather.is_suitable_for_outdoor && activity.toLowerCase().includes('outdoor')) {
-    alternativeActivities.push(
-      'Visit a local museum',
-      'Explore an indoor market',
-      'Take a cooking class',
-      'Visit an art gallery',
-      'Check out local cafes'
-    );
+    alternativeActivities.add('Visit a local museum');
+    alternativeActivities.add('Explore an indoor market');
+    alternativeActivities.add('Take a cooking class');
+    alternativeActivities.add('Visit an art gallery');
+    alternativeActivities.add('Check out local cafes');
   }
 
   if (weather.temperature > 95) {
-    alternativeActivities.push(
-      'Visit an indoor ice rink',
-      'Explore air-conditioned shopping centers',
-      'Visit an aquarium',
-      'Indoor spa day'
-    );
+    alternativeActivities.add('Visit an indoor ice rink');
+    alternativeActivities.add('Explore air-conditioned shopping centers');
+    alternativeActivities.add('Visit an aquarium');
+    alternativeActivities.add('Indoor spa day');
   }
 
   if (weather.precipitation_probability > 50) {
-    alternativeActivities.push(
-      'Watch a local theater performance',
-      'Visit indoor attractions',
-      'Try local restaurants',
-      'Visit indoor entertainment centers'
-    );
+    alternativeActivities.add('Watch a local theater performance');
+    alternativeActivities.add('Visit indoor attractions');
+    alternativeActivities.add('Try local restaurants');
+    alternativeActivities.add('Visit indoor entertainment centers');
   }
 
-  return [...new Set(alternativeActivities)]; // Remove duplicates
+  return Array.from(alternativeActivities);
 }
