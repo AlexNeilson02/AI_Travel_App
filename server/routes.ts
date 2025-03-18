@@ -84,7 +84,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Calculate the exact number of days including both start and end date
       const start = new Date(startDate);
+      start.setUTCHours(0, 0, 0, 0);  // Ensure consistent UTC midnight
       const end = new Date(endDate);
+      end.setUTCHours(0, 0, 0, 0);  // Ensure consistent UTC midnight
+
       const dayCount = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
       console.log('Trip duration:', { dayCount, startDate, endDate });
@@ -111,20 +114,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         chatHistory
       );
 
-      console.log('Raw AI suggestions:', suggestions);
-
       if (!suggestions || !suggestions.days) {
         throw new Error('Failed to generate trip suggestions');
       }
 
       // Validate that the itinerary includes all days from startDate to endDate
       console.log('Validating itinerary dates...');
-      const parsedStartDate = new Date(startDate);
-      const parsedEndDate = new Date(endDate);
       const expectedDays = [];
+      const currentDate = new Date(start);
 
-      for (let d = new Date(parsedStartDate); d <= parsedEndDate; d.setDate(d.getDate() + 1)) {
-        expectedDays.push(d.toISOString().split("T")[0]); // Store dates in YYYY-MM-DD format
+      // Generate all expected dates
+      while (currentDate <= end) {
+        expectedDays.push(currentDate.toISOString().split('T')[0]);
+        currentDate.setDate(currentDate.getDate() + 1);
       }
 
       const aiGeneratedDates = suggestions.days.map((day: any) => day.date);
@@ -135,10 +137,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Add missing dates with placeholders
         for (const date of missingDates) {
+          const dayDate = new Date(date);
           suggestions.days.push({
             day: suggestions.days.length + 1,
             date: date,
-            dayOfWeek: new Date(date).toLocaleDateString("en-US", { weekday: "long" }),
+            dayOfWeek: format(dayDate, 'EEEE'),
             activities: [],
             accommodation: null,
             meals: { budget: 0, totalBudget: 0 },
@@ -152,6 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Format each day with weather data and proper structure
       const formattedDays = await Promise.all(suggestions.days.map(async (day: any) => {
         const dayDate = new Date(day.date);
+        dayDate.setUTCHours(0, 0, 0, 0);  // Ensure consistent UTC midnight
         const weatherData = await getWeatherForecast(destination, dayDate);
 
         // Ensure activities is always an array

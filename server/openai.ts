@@ -98,11 +98,15 @@ Format response as JSON:
     // Validate that the itinerary includes all days from startDate to endDate
     console.log('Validating itinerary dates...');
     const parsedStartDate = new Date(startDate);
+    parsedStartDate.setUTCHours(0, 0, 0, 0);
     const parsedEndDate = new Date(endDate);
+    parsedEndDate.setUTCHours(0, 0, 0, 0);
     const expectedDays = [];
 
-    for (let d = new Date(parsedStartDate); d <= parsedEndDate; d.setDate(d.getDate() + 1)) {
-      expectedDays.push(d.toISOString().split("T")[0]); // Store dates in YYYY-MM-DD format
+    const currentDate = new Date(parsedStartDate);
+    while (currentDate <= parsedEndDate) {
+      expectedDays.push(currentDate.toISOString().split('T')[0]);
+      currentDate.setDate(currentDate.getDate() + 1);
     }
 
     const aiGeneratedDates = itinerary.days.map((day: any) => day.date);
@@ -125,51 +129,6 @@ Format response as JSON:
 
       // Sort itinerary by date
       itinerary.days.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    }
-
-    // Add weather data for each day
-    console.log('Adding weather data to itinerary...');
-    for (const day of itinerary.days) {
-      try {
-        console.log(`Fetching weather for ${destination} on ${day.date}`);
-        const weather = await getWeatherForecast(destination, new Date(day.date));
-        if (weather) {
-          console.log(`Weather data received for ${day.date}:`, weather);
-          day.weatherContext = weather;
-
-          // Suggest alternative activities if weather is bad
-          const outdoorActivities = day.activities.filter((activity: any) => 
-            ["outdoor", "park", "garden", "walk", "hike"].some(keyword => 
-              activity.name.toLowerCase().includes(keyword)
-            )
-          );
-          if (!weather.is_suitable_for_outdoor && outdoorActivities.length > 0) {
-            const alternatives = [];
-            for (const activity of outdoorActivities) {
-              const activityAlternatives = suggestAlternativeActivities(weather, activity.name);
-              alternatives.push(...activityAlternatives.map(alt => ({
-                name: alt,
-                proximityGroup: activity.proximityGroup,
-                time: activity.time,
-                duration: activity.duration,
-                cost: activity.cost,
-                totalCost: activity.cost * numberOfPeople
-              })));
-            }
-            day.alternativeActivities = alternatives;
-          } else {
-            day.alternativeActivities = [];
-          }
-        } else {
-          console.warn(`No weather data available for ${destination} on ${day.date}.`);
-          day.weatherContext = null;
-          day.alternativeActivities = [];
-        }
-      } catch (error) {
-        console.error(`Error fetching weather for ${destination} on ${day.date}:`, error);
-        day.weatherContext = null;
-        day.alternativeActivities = [];
-      }
     }
 
     return itinerary;
