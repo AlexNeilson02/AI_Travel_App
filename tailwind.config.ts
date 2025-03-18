@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -6,7 +7,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["forma", "sans-serif"],
+        sans: ["poppins", "sans-serif"],
       },
       fontSize: {
         h1: ["31px", { lineHeight: "1.2", fontWeight: "700" }],
@@ -16,8 +17,14 @@ export default {
         button: ["20px", { lineHeight: "1.2", fontWeight: "600" }],
       },
       colors: {
-        primary: "#52B69A",
-        secondary: "#76C893",
+        primary: {
+          DEFAULT: "#52B69A",
+          light: "#76C893",
+        },
+        secondary: {
+          DEFAULT: "#FFA92C",
+          light: "#FFC570",
+        },
         neutral: {
           900: "#FFA92C",
           800: "#FFC570",
@@ -25,17 +32,15 @@ export default {
           100: "#F6FAF9",
         },
       },
-      spacing: {
-        element: "16px",
-        button: "16px",
-        vertical: "24px",
-      },
       dropShadow: {
-        button: "0 0 4px rgba(0, 0, 0, 0.15)",
+        DEFAULT: "0 0 4px rgba(0, 0, 0, 0.15)",
+        primary: "0 4px 8px rgba(0, 0, 0, 0.15)",
+        secondary: "0 2px 4px rgba(0, 0, 0, 0.10)",
       },
       blur: {
-        card: "4px",
-      },
+        sm: "4px",
+        md: "8px",
+      }
     },
   },
   plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
