@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Trip } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, DollarSign, MapPin, Trash2, Download, ChevronDown, ChevronUp, Edit2, ExternalLink } from "lucide-react";
+import { Loader2, Calendar, DollarSign, MapPin, Trash2, Download, Edit2, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import {
   AlertDialog,
@@ -57,7 +57,6 @@ interface TripDay {
 
 export default function MyTrips() {
   const { toast } = useToast();
-  const [expandedTrip, setExpandedTrip] = useState<number | null>(null);
   const [editingActivity, setEditingActivity] = useState<{ tripId: number; dayIndex: number; slotIndex: number } | null>(null);
   const [editedActivity, setEditedActivity] = useState<Partial<TimeSlot> | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -254,17 +253,8 @@ export default function MyTrips() {
                 </div>
 
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between pr-12">
-                    <span className="hover:underline cursor-pointer" onClick={() => setExpandedTrip(expandedTrip === trip.id ? null : trip.id)}>
-                      {trip.title}
-                    </span>
-                    <button onClick={() => setExpandedTrip(expandedTrip === trip.id ? null : trip.id)}>
-                      {expandedTrip === trip.id ? (
-                        <ChevronUp className="h-5 w-5" />
-                      ) : (
-                        <ChevronDown className="h-5 w-5" />
-                      )}
-                    </button>
+                  <CardTitle>
+                    <span>{trip.title}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -283,7 +273,7 @@ export default function MyTrips() {
                       Budget: ${trip.budget}
                     </div>
 
-                    {expandedTrip === trip.id && trip.itinerary?.days && (
+                    {trip.itinerary?.days && (
                       <div className="mt-4 space-y-4">
                         <h3 className="font-medium">Itinerary</h3>
                         {trip.itinerary.days.map((day: TripDay, dayIndex: number) => (
