@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Trip } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, DollarSign, MapPin, Trash2, Download, ChevronDown, ChevronUp, Edit2 } from "lucide-react";
+import { Loader2, Calendar, DollarSign, MapPin, Trash2, Download, ChevronDown, ChevronUp, Edit2, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import {
   AlertDialog,
@@ -24,19 +24,22 @@ import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
+interface TimeSlot {
+  time: string;
+  activity: string;
+  location: string;
+  duration: string;
+  notes: string;
+  isEdited: boolean;
+  url?: string;
+}
 
 interface TripDay {
   date: string;
   activities: {
-    timeSlots: Array<{
-      time: string;
-      activity: string;
-      location: string;
-      duration: string;
-      notes: string;
-      isEdited: boolean;
-      url?: string;
-    }>;
+    timeSlots: TimeSlot[];
   };
   aiSuggestions: {
     reasoning: string;
@@ -55,13 +58,9 @@ interface TripDay {
 export default function MyTrips() {
   const { toast } = useToast();
   const [expandedTrip, setExpandedTrip] = useState<number | null>(null);
-  const [editingTrip, setEditingTrip] = useState<number | null>(null);
-  const [editData, setEditData] = useState<{
-    activity?: string;
-    location?: string;
-    time?: string;
-    duration?: string;
-  }>({});
+  const [editingActivity, setEditingActivity] = useState<{ tripId: number; dayIndex: number; slotIndex: number } | null>(null);
+  const [editedActivity, setEditedActivity] = useState<Partial<TimeSlot> | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   const { data: trips, isLoading } = useQuery<Trip[]>({
     queryKey: ["/api/trips"],
@@ -78,168 +77,125 @@ export default function MyTrips() {
         description: "Trip deleted successfully",
       });
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
   });
 
   const updateActivityMutation = useMutation({
     mutationFn: async ({
       tripId,
-      dayId,
+      dayIndex,
       slotIndex,
       updates
     }: {
       tripId: number;
-      dayId: number;
+      dayIndex: number;
       slotIndex: number;
-      updates: any;
+      updates: Partial<TimeSlot>;
     }) => {
-      await apiRequest("PATCH", `/api/trips/${tripId}/days/${dayId}/activities/${slotIndex}`, updates);
+      const trip = trips?.find(t => t.id === tripId);
+      if (!trip || !trip.itinerary?.days) return;
+
+      const updatedDays = [...trip.itinerary.days];
+      updatedDays[dayIndex].activities.timeSlots[slotIndex] = {
+        ...updatedDays[dayIndex].activities.timeSlots[slotIndex],
+        ...updates,
+        isEdited: true
+      };
+
+      await apiRequest("PATCH", `/api/trips/${tripId}`, {
+        itinerary: {
+          days: updatedDays
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
-      setEditingTrip(null);
+      setEditingActivity(null);
+      setEditedActivity(null);
+      setShowEditDialog(false);
       toast({
         title: "Success",
         description: "Activity updated successfully",
       });
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
   });
 
-  const generatePDF = async (tripId: number) => {
-    try {
-      const response = await apiRequest("GET", `/api/trips/${tripId}`);
-      const tripData = await response.json();
+  const handleEditActivity = (tripId: number, dayIndex: number, slotIndex: number, activity: TimeSlot) => {
+    setEditingActivity({ tripId, dayIndex, slotIndex });
+    setEditedActivity(activity);
+    setShowEditDialog(true);
+  };
 
-      const pdf = new jsPDF();
-      let yPos = 20;
-      const lineHeight = 10;
+  const handleSaveActivity = () => {
+    if (!editingActivity || !editedActivity) return;
 
-      // Title and Basic Info
-      pdf.setFontSize(20);
-      pdf.text(tripData.title, 20, yPos);
-      yPos += lineHeight * 2;
+    updateActivityMutation.mutate({
+      ...editingActivity,
+      updates: editedActivity
+    });
+  };
 
-      pdf.setFontSize(12);
-      pdf.text(`Destination: ${tripData.destination}`, 20, yPos);
-      yPos += lineHeight;
-      pdf.text(`Dates: ${format(new Date(tripData.startDate), "MMM d")} - ${format(new Date(tripData.endDate), "MMM d, yyyy")}`, 20, yPos);
-      yPos += lineHeight;
-      pdf.text(`Budget: $${tripData.budget}`, 20, yPos);
-      yPos += lineHeight * 2;
+  const generatePDF = async (trip: Trip) => {
+    const pdf = new jsPDF();
+    let yPos = 20;
+    const lineHeight = 10;
 
-      // Preferences
+    // Title and Basic Info
+    pdf.setFontSize(20);
+    pdf.text(trip.title, 20, yPos);
+    yPos += lineHeight * 2;
+
+    pdf.setFontSize(12);
+    pdf.text(`Destination: ${trip.destination}`, 20, yPos);
+    yPos += lineHeight;
+    pdf.text(`Dates: ${format(new Date(trip.startDate), "MMM d")} - ${format(new Date(trip.endDate), "MMM d, yyyy")}`, 20, yPos);
+    yPos += lineHeight;
+    pdf.text(`Budget: $${trip.budget}`, 20, yPos);
+    yPos += lineHeight * 2;
+
+    // Itinerary
+    if (trip.itinerary?.days) {
       pdf.setFontSize(16);
-      pdf.text("Trip Preferences", 20, yPos);
+      pdf.text("Daily Itinerary", 20, yPos);
       yPos += lineHeight;
       pdf.setFontSize(12);
 
-      if (tripData.preferences) {
-        const preferences = [
-          { label: "Accommodation", items: tripData.preferences.accommodationType },
-          { label: "Activities", items: tripData.preferences.activityTypes },
-          { label: "Activity Frequency", items: [tripData.preferences.activityFrequency] },
-          { label: "Must-See Attractions", items: tripData.preferences.mustSeeAttractions },
-        ];
+      trip.itinerary.days.forEach((day: TripDay) => {
+        if (yPos > 270) {
+          pdf.addPage();
+          yPos = 20;
+        }
 
-        preferences.forEach(pref => {
-          if (pref.items && pref.items.length > 0) {
-            if (yPos > 270) {
-              pdf.addPage();
-              yPos = 20;
-            }
-            pdf.text(`${pref.label}: ${pref.items.join(", ")}`, 20, yPos);
-            yPos += lineHeight;
-          }
-        });
-      }
-      yPos += lineHeight;
-
-      // Itinerary
-      if (tripData.tripDays && tripData.tripDays.length > 0) {
-        pdf.setFontSize(16);
-        pdf.text("Daily Itinerary", 20, yPos);
+        pdf.setFontSize(14);
+        pdf.text(format(new Date(day.date), "EEEE, MMMM d, yyyy"), 20, yPos);
         yPos += lineHeight;
         pdf.setFontSize(12);
 
-        tripData.tripDays.forEach((day: any) => {
+        day.activities.timeSlots.forEach((slot: TimeSlot) => {
           if (yPos > 270) {
             pdf.addPage();
             yPos = 20;
           }
-
-          // Day header
-          pdf.setFontSize(14);
-          pdf.text(format(new Date(day.date), "EEEE, MMMM d, yyyy"), 20, yPos);
+          pdf.text(`• ${slot.time} - ${slot.activity}`, 30, yPos);
           yPos += lineHeight;
-          pdf.setFontSize(12);
-
-          day.activities.timeSlots.forEach((slot: any) => {
-            if (yPos > 270) {
-              pdf.addPage();
-              yPos = 20;
-            }
-            pdf.text(`• ${slot.time} - ${slot.activity}`, 30, yPos);
+          if (slot.location) {
+            pdf.text(`  Location: ${slot.location}`, 35, yPos);
             yPos += lineHeight;
-            if (slot.location) {
-              pdf.text(`  Location: ${slot.location}`, 35, yPos);
-              yPos += lineHeight;
-            }
-          });
-          yPos += lineHeight;
+          }
         });
-      }
-
-      pdf.save(`${tripData.title.replace(/\s+/g, '_')}_itinerary.pdf`);
-
-      toast({
-        title: "Success",
-        description: "Trip details downloaded as PDF",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to generate PDF",
-        variant: "destructive",
+        yPos += lineHeight;
       });
     }
-  };
 
-  const handleEdit = (tripId: number, dayId: number, slotIndex: number, currentData: any) => {
-    setEditingTrip(tripId);
-    setEditData({
-      activity: currentData.activity,
-      location: currentData.location,
-      time: currentData.time,
-      duration: currentData.duration,
-    });
-  };
-
-  const handleSave = (tripId: number, dayId: number, slotIndex: number) => {
-    updateActivityMutation.mutate({
-      tripId,
-      dayId,
-      slotIndex,
-      updates: editData,
+    pdf.save(`${trip.title.replace(/\s+/g, '_')}_itinerary.pdf`);
+    toast({
+      title: "Success",
+      description: "Trip details downloaded as PDF",
     });
   };
 
   return (
     <div className="min-h-screen bg-background">
       <Nav />
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">My Trips</h1>
@@ -263,6 +219,14 @@ export default function MyTrips() {
             {trips.map((trip) => (
               <Card key={trip.id} className="relative">
                 <div className="absolute top-4 right-4 flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => generatePDF(trip)}
+                    title="Download PDF"
+                  >
+                    <Download className="h-4 w-4 text-muted-foreground" />
+                  </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="icon">
@@ -348,11 +312,21 @@ export default function MyTrips() {
                                         Notes: {slot.notes}
                                       </p>
                                     )}
+                                    {slot.url && (
+                                      <a
+                                        href={slot.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-primary hover:text-primary/80 inline-flex items-center gap-1"
+                                      >
+                                        Visit website <ExternalLink className="h-3 w-3" />
+                                      </a>
+                                    )}
                                   </div>
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => handleEdit(trip.id, dayIndex, slotIndex, slot)}
+                                    onClick={() => handleEditActivity(trip.id, dayIndex, slotIndex, slot)}
                                   >
                                     <Edit2 className="h-4 w-4" />
                                   </Button>
@@ -363,18 +337,6 @@ export default function MyTrips() {
                         ))}
                       </div>
                     )}
-
-                    <div className="mt-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => generatePDF(trip.id)}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download PDF
-                      </Button>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -382,6 +344,71 @@ export default function MyTrips() {
           </div>
         )}
       </main>
+
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Activity</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Activity</Label>
+              <Input
+                value={editedActivity?.activity}
+                onChange={(e) => setEditedActivity({ ...editedActivity, activity: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Location</Label>
+              <Input
+                value={editedActivity?.location}
+                onChange={(e) => setEditedActivity({ ...editedActivity, location: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Time</Label>
+              <Input
+                value={editedActivity?.time}
+                onChange={(e) => setEditedActivity({ ...editedActivity, time: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Duration</Label>
+              <Input
+                value={editedActivity?.duration}
+                onChange={(e) => setEditedActivity({ ...editedActivity, duration: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Textarea
+                value={editedActivity?.notes}
+                onChange={(e) => setEditedActivity({ ...editedActivity, notes: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Website URL (optional)</Label>
+              <Input
+                value={editedActivity?.url}
+                onChange={(e) => setEditedActivity({ ...editedActivity, url: e.target.value })}
+                placeholder="https://"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveActivity} disabled={updateActivityMutation.isPending}>
+              {updateActivityMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
