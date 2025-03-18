@@ -18,12 +18,12 @@ export default {
       },
       colors: {
         primary: {
-          DEFAULT: "#52B69A",
-          light: "#76C893",
+          DEFAULT: "#80bdce",
+          light: "#80bdce",
         },
         secondary: {
-          DEFAULT: "#FFA92C",
-          light: "#FFC570",
+          DEFAULT: "#80bdce",
+          light: "#80bdce",
         },
         neutral: {
           900: "#FFA92C",
