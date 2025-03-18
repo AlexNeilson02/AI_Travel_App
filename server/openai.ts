@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { getWeatherForecast } from "./weather";
+import { format } from 'date-fns';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -101,63 +102,43 @@ Important:
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    // Process each day
+    // Process each day with weather data
     const formattedDays = await Promise.all(expectedDays.map(async (date) => {
       const existingDay = itinerary.days?.find((d: any) => d.date === date);
+
       // Get weather data for this day
       const weatherData = await getWeatherForecast(destination, new Date(date));
       console.log('Weather data for', date, ':', weatherData);
 
-      if (existingDay) {
-        return {
-          date,
-          dayOfWeek: new Date(date).toLocaleDateString("en-US", { weekday: "long" }),
-          activities: {
-            timeSlots: (existingDay.activities?.timeSlots || []).map((activity: any) => ({
-              time: activity.time || "09:00",
-              activity: activity.activity || activity.name || "Free time",
-              location: activity.location || "TBD",
-              duration: activity.duration || "2 hours",
-              cost: activity.cost || 0,
-              notes: activity.notes || "",
-              url: activity.url || null,
-              isEdited: false
-            }))
-          },
-          accommodation: {
-            name: existingDay.accommodation?.name || "TBD",
-            cost: existingDay.accommodation?.cost || 0,
-            location: existingDay.accommodation?.location || "",
-            url: existingDay.accommodation?.url || null
-          },
-          meals: {
-            budget: existingDay.meals?.budget || 50
-          },
-          weatherContext: weatherData || undefined
-        };
-      } else {
-        return {
-          date,
-          dayOfWeek: new Date(date).toLocaleDateString("en-US", { weekday: "long" }),
-          activities: {
-            timeSlots: []
-          },
-          accommodation: {
-            name: "TBD",
-            cost: 0,
-            location: "",
-            url: null
-          },
-          meals: {
-            budget: 50
-          },
-          weatherContext: weatherData || undefined
-        };
-      }
+      // Format each day's data including weather
+      return {
+        date: format(new Date(date), 'yyyy-MM-dd'),
+        dayOfWeek: format(new Date(date), 'EEEE'),
+        activities: {
+          timeSlots: (existingDay?.activities?.timeSlots || []).map((activity: any) => ({
+            time: activity.time || "09:00",
+            activity: activity.activity || activity.name || "Free time",
+            location: activity.location || "TBD",
+            duration: activity.duration || "2 hours",
+            cost: activity.cost || 0,
+            notes: activity.notes || "",
+            url: activity.url || null,
+            isEdited: false
+          }))
+        },
+        accommodation: {
+          name: existingDay?.accommodation?.name || "TBD",
+          cost: existingDay?.accommodation?.cost || 0,
+          location: existingDay?.accommodation?.location || "",
+          url: existingDay?.accommodation?.url || null
+        },
+        meals: {
+          budget: existingDay?.meals?.budget || 50
+        },
+        // Include weather data in the response
+        weatherContext: weatherData || undefined
+      };
     }));
-
-    // Sort days by date
-    formattedDays.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     console.log('Formatted days with weather:', formattedDays);
     return {

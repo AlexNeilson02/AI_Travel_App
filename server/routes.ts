@@ -114,42 +114,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         chatHistory
       );
 
+      console.log('Received suggestions from OpenAI with weather:', suggestions);
+
       if (!suggestions || !suggestions.days) {
         throw new Error('Failed to generate trip suggestions');
-      }
-
-      // Validate that the itinerary includes all days from startDate to endDate
-      console.log('Validating itinerary dates...');
-      const expectedDays = [];
-      const currentDate = new Date(start);
-
-      // Generate all expected dates
-      while (currentDate <= end) {
-        expectedDays.push(currentDate.toISOString().split('T')[0]);
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-
-      const aiGeneratedDates = suggestions.days.map((day: any) => day.date);
-      const missingDates = expectedDays.filter(date => !aiGeneratedDates.includes(date));
-
-      if (missingDates.length > 0) {
-        console.warn(`Missing itinerary dates: ${missingDates.join(", ")}`);
-
-        // Add missing dates with placeholders
-        for (const date of missingDates) {
-          const dayDate = new Date(date);
-          suggestions.days.push({
-            day: suggestions.days.length + 1,
-            date: date,
-            dayOfWeek: format(dayDate, 'EEEE'),
-            activities: [],
-            accommodation: null,
-            meals: { budget: 0, totalBudget: 0 },
-          });
-        }
-
-        // Sort itinerary by date
-        suggestions.days.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
       }
 
       // Format each day with weather data and proper structure
@@ -157,10 +125,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const dayDate = new Date(day.date);
         dayDate.setUTCHours(0, 0, 0, 0);  // Ensure consistent UTC midnight
         const weatherData = await getWeatherForecast(destination, dayDate);
+        console.log('Weather data for day:', day.date, weatherData);
 
         // Ensure activities is always an array
         const rawActivities = Array.isArray(day.activities) ? day.activities :
-                            day.activities?.timeSlots ? day.activities.timeSlots : [];
+                           day.activities?.timeSlots ? day.activities.timeSlots : [];
 
         // Format activities into the expected structure
         const formattedActivities = rawActivities.map((activity: any) => {
@@ -221,19 +190,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             budget: day.meals?.budget || 0,
             totalBudget: (day.meals?.budget || 0) * numberOfPeople
           },
-          aiSuggestions: {
-            reasoning: day.reasoning || "",
-            weatherContext: weatherData ? {
-              description: weatherData.description,
-              temperature: weatherData.temperature,
-              precipitation_probability: weatherData.precipitation_probability,
-              is_suitable_for_outdoor: weatherData.is_suitable_for_outdoor
-            } : undefined,
-            alternativeActivities: alternativeActivities
-          },
-          isFinalized: false
+          weatherContext: weatherData ? {
+            description: weatherData.description,
+            temperature: weatherData.temperature,
+            precipitation_probability: weatherData.precipitation_probability,
+            is_suitable_for_outdoor: weatherData.is_suitable_for_outdoor
+          } : undefined,
+          alternativeActivities: alternativeActivities
         };
       }));
+
+      console.log('Sending formatted response with weather:', formattedDays[0]?.weatherContext);
 
       const response = {
         title: destination,
@@ -251,7 +218,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
 
-      console.log('Sending formatted response:', response);
       res.json(response);
     } catch (error: any) {
       console.error('Error generating suggestions:', error);

@@ -21,14 +21,10 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
   try {
     console.log('Starting weather forecast fetch for:', location, 'date:', date);
 
-    // Format the location string by removing country and extra spaces
-    const formattedLocation = location.split(',')[0].trim();
-    console.log('Formatted location:', formattedLocation);
-
-    // Get coordinates using Open-Meteo Geocoding API
+    // Get coordinates from Open-Meteo Geocoding API
     const geoResponse = await axios.get('https://geocoding-api.open-meteo.com/v1/search', {
       params: {
-        name: formattedLocation,
+        name: location.split(',')[0].trim(), // Remove country and spaces
         count: 1,
         language: 'en',
         format: 'json'
@@ -36,15 +32,15 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
     });
 
     const geoData = geoResponse.data as GeocodingResponse;
-    if (!geoData.results || geoData.results.length === 0) {
-      console.error('Location not found:', formattedLocation);
+    if (!geoData.results?.[0]) {
+      console.error('Location not found:', location);
       return null;
     }
 
     const { latitude, longitude } = geoData.results[0];
-    console.log(`Found coordinates for ${formattedLocation}:`, { latitude, longitude });
+    console.log(`Found coordinates for ${location}:`, { latitude, longitude });
 
-    // Get weather forecast from Open-Meteo API
+    // Get weather from Open-Meteo API
     const forecastResponse = await axios.get('https://api.open-meteo.com/v1/forecast', {
       params: {
         latitude,
@@ -56,40 +52,27 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
       }
     });
 
-    if (!forecastResponse.data || !forecastResponse.data.hourly) {
+    const hourlyData = forecastResponse.data.hourly;
+    if (!hourlyData) {
       console.error('No forecast data received');
       return null;
     }
 
-    // Find the forecast closest to the target date
-    const targetTimestamp = date.getTime();
-    const hourlyData = forecastResponse.data.hourly;
-    const timeIndex = hourlyData.time.findIndex((time: string) => {
-      const forecastTime = new Date(time).getTime();
-      return forecastTime >= targetTimestamp;
-    });
+    // Find matching time for the target date
+    const timeIndex = hourlyData.time.findIndex((time: string) => 
+      new Date(time).getTime() >= date.getTime()
+    );
 
     if (timeIndex === -1) {
       console.error('No forecast data available for the target date');
       return null;
     }
 
-    // Convert weather code to description
     const weatherCode = hourlyData.weather_code[timeIndex];
     const description = getWeatherDescription(weatherCode);
-
-    // Determine if weather is suitable for outdoor activities
     const temperature = hourlyData.temperature_2m[timeIndex];
     const windSpeed = hourlyData.wind_speed_10m[timeIndex];
     const precipProb = hourlyData.precipitation_probability[timeIndex];
-
-    const isSuitableForOutdoor = (
-      temperature >= 40 &&
-      temperature <= 95 &&
-      windSpeed <= 20 &&
-      precipProb < 50 &&
-      !['thunderstorm', 'heavy rain', 'snow', 'heavy snow'].includes(description.toLowerCase())
-    );
 
     const weatherData: WeatherData = {
       description,
@@ -98,15 +81,24 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
       humidity: hourlyData.relative_humidity_2m[timeIndex],
       wind_speed: windSpeed,
       precipitation_probability: precipProb,
-      is_suitable_for_outdoor: isSuitableForOutdoor
+      is_suitable_for_outdoor: isSuitableForOutdoor(temperature, windSpeed, precipProb, description)
     };
 
-    console.log('Processed weather data for', formattedLocation, ':', weatherData);
+    console.log('Weather data for', location, ':', weatherData);
     return weatherData;
   } catch (error: any) {
     console.error('Error fetching weather data:', error.response?.data || error.message);
     return null;
   }
+}
+
+function isSuitableForOutdoor(temp: number, windSpeed: number, precipProb: number, description: string): boolean {
+  return (
+    temp >= 40 && temp <= 95 &&
+    windSpeed <= 20 &&
+    precipProb < 50 &&
+    !['thunderstorm', 'heavy rain', 'snow', 'heavy snow'].includes(description.toLowerCase())
+  );
 }
 
 function getWeatherDescription(code: number): string {

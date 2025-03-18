@@ -90,11 +90,11 @@ export default function PlanTrip() {
       return res.json();
     },
     onSuccess: (data) => {
+      console.log('Received trip suggestions with weather:', data);
       setSuggestions(data);
       if (!currentQuestion) {
         getQuestionMutation.mutate();
       }
-      // Show toast about budget calculation
       toast({
         title: "Budget Calculation",
         description: `Total budget: $${data.totalCost} ($${form.getValues().budget} per person × ${numberOfPeople} people)`,
@@ -114,7 +114,6 @@ export default function PlanTrip() {
       console.log('Creating trip with data:', data);
       const formattedItinerary = {
         days: suggestions.days.map((day: any) => {
-          // Subtract one day from the date to fix offset
           const date = new Date(day.date);
           date.setDate(date.getDate() - 1);
 
@@ -260,7 +259,6 @@ export default function PlanTrip() {
       form.setValue("preferences.mustSeeAttractions", [...current, value]);
     }
   };
-
 
   return (
     <div className="min-h-screen bg-background">
@@ -574,8 +572,7 @@ export default function PlanTrip() {
                   <CardContent>
                     <div className="space-y-6">
                       {suggestions.days?.map((day: any, index: number) => {
-                        console.log('Day data:', day);
-                        console.log('Weather context:', day.weatherContext);
+                        console.log('Rendering day with weather:', day.weatherContext);
                         return (
                           <div key={index}>
                             <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
@@ -583,7 +580,6 @@ export default function PlanTrip() {
                                 <h3 className="font-medium">
                                   {day.dayOfWeek} - {format(new Date(day.date), "MMM d, yyyy")}
                                 </h3>
-                                {/* Weather information display */}
                                 {day.weatherContext && (
                                   <div className="flex items-center gap-4 text-base bg-muted p-3 rounded-lg w-full">
                                     <div className="flex items-center gap-2">
@@ -606,7 +602,6 @@ export default function PlanTrip() {
                               </div>
                             </div>
 
-                            {/* Weather Warning - only show if outdoor activities might be affected */}
                             {day.weatherContext && !day.weatherContext.is_suitable_for_outdoor && (
                               <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-900/50">
                                 <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
