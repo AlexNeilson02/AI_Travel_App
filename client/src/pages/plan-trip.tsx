@@ -99,27 +99,33 @@ export default function PlanTrip() {
     mutationFn: async (data: any) => {
       console.log('Creating trip with data:', data);
       const formattedItinerary = {
-        days: suggestions.days.map((day: any) => ({
-          date: format(new Date(day.date), "yyyy-MM-dd"),
-          activities: {
-            timeSlots: day.activities.timeSlots.map((activity: any) => ({
-              time: activity.time || "00:00",
-              activity: activity.name || activity.activity,
-              location: activity.location || "TBD",
-              duration: activity.duration || "2 hours",
-              notes: activity.notes || "",
-              isEdited: false,
-              url: activity.url,
-            })),
-          },
-          aiSuggestions: {
-            reasoning: day.aiSuggestions?.reasoning || "Initial AI suggestion",
-            weatherContext: day.weatherContext,
-            alternativeActivities: day.alternativeActivities || [],
-          },
-          userFeedback: "",
-          isFinalized: false,
-        })),
+        days: suggestions.days.map((day: any) => {
+          // Subtract one day from the date to fix offset
+          const date = new Date(day.date);
+          date.setDate(date.getDate() - 1);
+
+          return {
+            date: format(date, "yyyy-MM-dd"),
+            activities: {
+              timeSlots: day.activities.timeSlots.map((activity: any) => ({
+                time: activity.time || "00:00",
+                activity: activity.name || activity.activity,
+                location: activity.location || "TBD",
+                duration: activity.duration || "2 hours",
+                notes: activity.notes || "",
+                isEdited: false,
+                url: activity.url,
+              })),
+            },
+            aiSuggestions: {
+              reasoning: day.aiSuggestions?.reasoning || "Initial AI suggestion",
+              weatherContext: day.weatherContext,
+              alternativeActivities: day.alternativeActivities || [],
+            },
+            userFeedback: "",
+            isFinalized: false,
+          };
+        }),
       };
 
       const tripRes = await apiRequest("POST", "/api/trips", {

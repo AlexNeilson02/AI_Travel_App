@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Trip } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, DollarSign, MapPin, Trash2, Download, Edit2, ExternalLink, ChevronRight } from "lucide-react";
+import { Loader2, Calendar, DollarSign, MapPin, Trash2, Download, Edit2, ExternalLink, ChevronRight, Plus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import {
   AlertDialog,
@@ -62,6 +62,17 @@ export default function MyTrips() {
   const [editingActivity, setEditingActivity] = useState<{ tripId: number; dayIndex: number; slotIndex: number } | null>(null);
   const [editedActivity, setEditedActivity] = useState<Partial<TimeSlot> | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showAddActivityDialog, setShowAddActivityDialog] = useState(false);
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
+  const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
+  const [newActivity, setNewActivity] = useState<Partial<TimeSlot>>({
+    time: "",
+    activity: "",
+    location: "",
+    duration: "",
+    notes: "",
+    url: ""
+  });
 
   const { data: trips, isLoading } = useQuery<Trip[]>({
     queryKey: ["/api/trips"],
@@ -120,6 +131,54 @@ export default function MyTrips() {
     },
   });
 
+  const addActivityMutation = useMutation({
+    mutationFn: async ({
+      tripId,
+      dayIndex,
+      activity
+    }: {
+      tripId: number;
+      dayIndex: number;
+      activity: Partial<TimeSlot>;
+    }) => {
+      const trip = trips?.find(t => t.id === tripId);
+      if (!trip || !trip.itinerary?.days) return;
+
+      const updatedDays = [...trip.itinerary.days];
+      updatedDays[dayIndex].activities.timeSlots.push({
+        time: activity.time || "09:00",
+        activity: activity.activity || "",
+        location: activity.location || "",
+        duration: activity.duration || "2 hours",
+        notes: activity.notes || "",
+        isEdited: true,
+        url: activity.url
+      });
+
+      await apiRequest("PATCH", `/api/trips/${tripId}`, {
+        itinerary: {
+          days: updatedDays
+        }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+      setShowAddActivityDialog(false);
+      setNewActivity({
+        time: "",
+        activity: "",
+        location: "",
+        duration: "",
+        notes: "",
+        url: ""
+      });
+      toast({
+        title: "Success",
+        description: "Activity added successfully",
+      });
+    },
+  });
+
   const handleEditActivity = (tripId: number, dayIndex: number, slotIndex: number, activity: TimeSlot) => {
     setEditingActivity({ tripId, dayIndex, slotIndex });
     setEditedActivity(activity);
@@ -132,6 +191,22 @@ export default function MyTrips() {
     updateActivityMutation.mutate({
       ...editingActivity,
       updates: editedActivity
+    });
+  };
+
+  const handleAddActivity = (tripId: number, dayIndex: number) => {
+    setSelectedTripId(tripId);
+    setSelectedDayIndex(dayIndex);
+    setShowAddActivityDialog(true);
+  };
+
+  const handleSaveNewActivity = () => {
+    if (selectedTripId === null || selectedDayIndex === null) return;
+
+    addActivityMutation.mutate({
+      tripId: selectedTripId,
+      dayIndex: selectedDayIndex,
+      activity: newActivity
     });
   };
 
@@ -262,11 +337,11 @@ export default function MyTrips() {
                 <CardHeader className="cursor-pointer" onClick={() => setExpandedTrip(expandedTrip === trip.id ? null : trip.id)}>
                   <CardTitle className="flex items-center justify-between pr-24">
                     <span>{trip.title}</span>
-                    <ChevronRight 
+                    <ChevronRight
                       className={cn(
-                        "h-5 w-5 transition-transform", 
+                        "h-5 w-5 transition-transform",
                         expandedTrip === trip.id ? "rotate-90" : ""
-                      )} 
+                      )}
                     />
                   </CardTitle>
                 </CardHeader>
@@ -291,9 +366,19 @@ export default function MyTrips() {
                         <h3 className="font-medium">Itinerary</h3>
                         {trip.itinerary.days.map((day: TripDay, dayIndex: number) => (
                           <div key={dayIndex} className="border rounded-lg p-4">
-                            <h4 className="font-medium mb-2">
-                              {format(parseISO(day.date), "EEEE, MMMM d")}
-                            </h4>
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium">
+                                {format(parseISO(day.date), "EEEE, MMMM d")}
+                              </h4>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleAddActivity(trip.id, dayIndex)}
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add Activity
+                              </Button>
+                            </div>
                             {day.activities.timeSlots.map((slot, slotIndex) => (
                               <div key={slotIndex} className="ml-4 mb-2">
                                 <div className="flex items-start justify-between">
@@ -407,6 +492,73 @@ export default function MyTrips() {
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showAddActivityDialog} onOpenChange={setShowAddActivityDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Activity</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Time</Label>
+              <Input
+                type="time"
+                value={newActivity.time}
+                onChange={(e) => setNewActivity({ ...newActivity, time: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Activity</Label>
+              <Input
+                value={newActivity.activity}
+                onChange={(e) => setNewActivity({ ...newActivity, activity: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Location</Label>
+              <Input
+                value={newActivity.location}
+                onChange={(e) => setNewActivity({ ...newActivity, location: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Duration</Label>
+              <Input
+                value={newActivity.duration}
+                onChange={(e) => setNewActivity({ ...newActivity, duration: e.target.value })}
+                placeholder="e.g. 2 hours"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Textarea
+                value={newActivity.notes}
+                onChange={(e) => setNewActivity({ ...newActivity, notes: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Website URL (optional)</Label>
+              <Input
+                value={newActivity.url}
+                onChange={(e) => setNewActivity({ ...newActivity, url: e.target.value })}
+                placeholder="https://"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddActivityDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveNewActivity} disabled={addActivityMutation.isPending}>
+              {addActivityMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Add Activity"
               )}
             </Button>
           </DialogFooter>
