@@ -36,13 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+
 
 export default function PlanTrip() {
   const { toast } = useToast();
@@ -52,9 +46,6 @@ export default function PlanTrip() {
   const [userResponse, setUserResponse] = useState<string>("");
   const [editingActivity, setEditingActivity] = useState<{ day: number; index: number } | null>(null);
   const [editedActivity, setEditedActivity] = useState<{ name: string; cost: number; duration: string; url?: string } | null>(null);
-  const [showWeatherDialog, setShowWeatherDialog] = useState(false);
-  const [selectedDay, setSelectedDay] = useState<any>(null);
-  const [weatherImpact, setWeatherImpact] = useState<string>("");
   const [editingAccommodation, setEditingAccommodation] = useState<number | null>(null);
   const [numberOfPeople, setNumberPeople] = useState(1);
 
@@ -248,32 +239,6 @@ export default function PlanTrip() {
     setEditingAccommodation(null);
   };
 
-  const showWeatherImpact = (day: any) => {
-    setSelectedDay(day);
-
-    if (day.weatherContext) {
-      const weatherContext = day.weatherContext;
-      const activities = day.activities.timeSlots.map((activity: any) => activity.activity).join(", ");
-
-      let impact = "";
-
-      if (weatherContext.is_suitable_for_outdoor) {
-        impact = `The forecast for ${format(new Date(day.date), "MMMM d")} looks favorable with ${weatherContext.description} and a temperature of ${Math.round(weatherContext.temperature)}°F. This weather is suitable for your planned activities: ${activities}.`;
-      } else {
-        impact = `The weather forecast for ${format(new Date(day.date), "MMMM d")} shows ${weatherContext.description} with a temperature of ${Math.round(weatherContext.temperature)}°F and ${Math.round(weatherContext.precipitation_probability)}% chance of precipitation. This might affect your outdoor plans.`;
-
-        if (day.alternativeActivities && day.alternativeActivities.length > 0) {
-          impact += ` Consider these indoor alternatives: ${day.alternativeActivities.join(", ")}.`;
-        }
-      }
-
-      setWeatherImpact(impact);
-    } else {
-      setWeatherImpact("Weather data isn't available yet for this date. Check back closer to your trip date for a weather impact analysis.");
-    }
-
-    setShowWeatherDialog(true);
-  };
 
   const handleAccommodationTypeChange = (value: string) => {
     const current = form.getValues("preferences.accommodationType") as string[];
@@ -615,7 +580,7 @@ export default function PlanTrip() {
                               <h3 className="font-medium">
                                 {day.dayOfWeek} - {format(new Date(day.date), "MMM d, yyyy")}
                               </h3>
-                              {/* Add weather information display */}
+                              {/* Weather information display */}
                               {day.weatherContext && (
                                 <div className="flex items-center gap-2 text-sm bg-muted p-2 rounded">
                                   <ThermometerSun className="h-4 w-4" />
@@ -628,17 +593,9 @@ export default function PlanTrip() {
                                 </div>
                               )}
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => showWeatherImpact(day)}
-                              className="whitespace-nowrap"
-                            >
-                              See weather impact
-                            </Button>
                           </div>
 
-                          {/* Weather Warning */}
+                          {/* Weather Warning - keep this for important alerts */}
                           {day.weatherContext && !day.weatherContext.is_suitable_for_outdoor && (
                             <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-900/50">
                               <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
@@ -647,6 +604,12 @@ export default function PlanTrip() {
                               </div>
                               <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
                                 Weather conditions may not be suitable for outdoor activities.
+                                {day.alternativeActivities?.length > 0 && (
+                                  <>
+                                    <br />
+                                    Consider these indoor alternatives: {day.alternativeActivities.join(", ")}.
+                                  </>
+                                )}
                               </p>
                             </div>
                           )}
@@ -835,8 +798,6 @@ export default function PlanTrip() {
             )}
           </div>
         </div>
-
-        {/*Removed Weather Dialog*/}
       </main>
     </div>
   );

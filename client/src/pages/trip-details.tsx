@@ -174,7 +174,7 @@ export default function TripDetails() {
                                 {format(new Date(day.date), "EEEE, MMMM d, yyyy")}
                               </h4>
                               {day.aiSuggestions.weatherContext && (
-                                <div className="flex items-center gap-2 text-sm bg-muted p-2 rounded mt-2">
+                                <div className="flex items-center gap-2 text-sm bg-muted p-2 rounded">
                                   <ThermometerSun className="h-4 w-4" />
                                   <span>{Math.round(day.aiSuggestions.weatherContext.temperature)}°F</span>
                                   <CloudRain className="h-4 w-4 ml-2" />
@@ -204,19 +204,13 @@ export default function TripDetails() {
                               </div>
                               <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
                                 Weather conditions may not be suitable for outdoor activities.
+                                {day.aiSuggestions.alternativeActivities?.length > 0 && (
+                                  <>
+                                    <br />
+                                    Consider these indoor alternatives: {day.aiSuggestions.alternativeActivities.join(", ")}.
+                                  </>
+                                )}
                               </p>
-                              {day.aiSuggestions.alternativeActivities.length > 0 && (
-                                <div className="mt-2">
-                                  <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                                    Suggested Alternatives:
-                                  </span>
-                                  <ul className="mt-1 list-disc list-inside text-sm text-yellow-700 dark:text-yellow-300">
-                                    {day.aiSuggestions.alternativeActivities.map((alt, index) => (
-                                      <li key={index}>{alt}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
                             </div>
                           )}
 
