@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { getWeatherForecast, suggestAlternativeActivities } from "./weather";
+import { getWeatherForecast } from "./weather";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -11,15 +11,13 @@ export async function generateTripSuggestions(
   startDate: string,
   endDate: string,
   numberOfPeople: number = 1,
-  chatHistory: { role: "user" | "assistant" | "system"; content: string }[] = []
+  chatHistory: Array<{ role: "user" | "assistant" | "system"; content: string }> = []
 ): Promise<any> {
   const totalBudget = budget * numberOfPeople;
 
-  const systemPrompt = `Create a detailed travel itinerary for ${numberOfPeople} person(s) to ${destination} from ${startDate} to ${endDate}. Budget: $${totalBudget} ($${budget} per person). Preferences: ${preferences.join(", ")}.
+  const systemPrompt = `You are an expert travel planner. Create a detailed travel itinerary for ${numberOfPeople} person(s) to ${destination} from ${startDate} to ${endDate}. Budget: $${totalBudget} ($${budget} per person). Preferences: ${preferences.join(", ")}.
 
-Important: Format all responses as properly escaped JSON strings. Each response must be valid JSON that can be parsed.
-
-Required JSON structure:
+Your response must be a valid JSON object with this exact structure:
 {
   "days": [
     {
@@ -52,30 +50,31 @@ Required JSON structure:
   "totalCost": number,
   "perPersonCost": number,
   "tips": ["Tip 1", "Tip 2"]
-}`;
+}
+
+Important:
+1. Each activity should have a specific time, location, and realistic cost
+2. Include accommodation suggestions with real costs
+3. Each day must have a proper date format (YYYY-MM-DD)
+4. Activities should be geographically logical to minimize travel time
+5. Consider the weather and time of day for outdoor activities
+6. Stay within the total budget for the group`;
 
   try {
-    const messages = [
-      { 
-        role: "system", 
-        content: "You are an expert travel planner. Always respond with valid, properly formatted JSON." 
-      },
-      ...chatHistory,
-      { role: "user", content: systemPrompt }
-    ];
-
     console.log('Generating trip suggestions with OpenAI...');
     const response = await openai.chat.completions.create({
       model: "gpt-4",
-      messages,
-      temperature: 0.7,
-      response_format: { type: "json_object" } // Enforce JSON response
+      messages: [
+        { role: "system", content: "You are an expert travel planner focused on creating detailed, realistic itineraries." },
+        ...chatHistory,
+        { role: "user", content: systemPrompt }
+      ],
+      temperature: 0.7
     });
 
     const content = response.choices[0].message.content;
     if (!content) {
-      console.error('No content received from OpenAI');
-      throw new Error('Failed to generate trip suggestions: No content received');
+      throw new Error('No content received from OpenAI');
     }
 
     console.log('Parsing OpenAI response...');
@@ -88,7 +87,7 @@ Required JSON structure:
       throw new Error('Failed to parse trip suggestions');
     }
 
-    // Validate and format the response
+    // Format dates correctly
     const parsedStartDate = new Date(startDate);
     parsedStartDate.setUTCHours(0, 0, 0, 0);
     const parsedEndDate = new Date(endDate);
@@ -102,13 +101,12 @@ Required JSON structure:
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    // Ensure all days are present and properly formatted
+    // Process each day
     const formattedDays = await Promise.all(expectedDays.map(async (date) => {
       const existingDay = itinerary.days?.find((d: any) => d.date === date);
       const weatherData = await getWeatherForecast(destination, new Date(date));
 
       if (existingDay) {
-        // Format existing day data
         return {
           date,
           dayOfWeek: new Date(date).toLocaleDateString("en-US", { weekday: "long" }),
@@ -133,20 +131,9 @@ Required JSON structure:
           meals: {
             budget: existingDay.meals?.budget || 50
           },
-          aiSuggestions: {
-            reasoning: existingDay.reasoning || "",
-            weatherContext: weatherData ? {
-              description: weatherData.description,
-              temperature: weatherData.temperature,
-              precipitation_probability: weatherData.precipitation_probability,
-              is_suitable_for_outdoor: weatherData.is_suitable_for_outdoor
-            } : undefined,
-            alternativeActivities: []
-          },
-          isFinalized: false
+          weatherContext: weatherData || undefined
         };
       } else {
-        // Create placeholder day
         return {
           date,
           dayOfWeek: new Date(date).toLocaleDateString("en-US", { weekday: "long" }),
@@ -162,17 +149,7 @@ Required JSON structure:
           meals: {
             budget: 50
           },
-          aiSuggestions: {
-            reasoning: "",
-            weatherContext: weatherData ? {
-              description: weatherData.description,
-              temperature: weatherData.temperature,
-              precipitation_probability: weatherData.precipitation_probability,
-              is_suitable_for_outdoor: weatherData.is_suitable_for_outdoor
-            } : undefined,
-            alternativeActivities: []
-          },
-          isFinalized: false
+          weatherContext: weatherData || undefined
         };
       }
     }));
