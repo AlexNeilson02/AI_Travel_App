@@ -9,21 +9,26 @@ export async function generateTripSuggestions(
   budget: number,
   duration: number,
   startDate: string,
+  endDate: string,
   numberOfPeople: number = 1,
   chatHistory: { role: string; content: string }[] = []
 ): Promise<any> {
   const totalBudget = budget * numberOfPeople;
-  const systemPrompt = `Create a detailed travel itinerary for ${numberOfPeople} person(s) on a ${duration}-day trip to ${destination} starting on ${startDate} with the following preferences: ${preferences.join(", ")}. The total budget is $${totalBudget} (calculated as $${budget} per person). 
+
+  // Updated system prompt with precise date range
+  const systemPrompt = `Create a detailed travel itinerary for ${numberOfPeople} person(s) on a ${duration}-day trip to ${destination}, starting on ${startDate} and ending on ${endDate}, ensuring each day is accounted for. Preferences: ${preferences.join(", ")}. The total budget is $${totalBudget} (calculated as $${budget} per person). 
 
 Important planning criteria:
-1. Group activities by geographical proximity to minimize travel time
-2. Schedule outdoor activities during optimal times of day
-3. Consider logical flow between locations
-4. Account for opening hours and peak times
-5. Space activities appropriately throughout the day
-6. The budget should cover activities and accommodations for ${numberOfPeople} person(s)
+1. Group activities by geographical proximity to minimize travel time.
+2. Schedule outdoor activities during optimal times of day.
+3. Consider logical flow between locations.
+4. Account for opening hours and peak times.
+5. Space activities appropriately throughout the day.
+6. The budget should cover activities and accommodations for ${numberOfPeople} person(s).
 
-Please provide a day-by-day itinerary with activities, estimated costs (shown as per person), and suggested accommodations. Include URLs for each activity and accommodation when available. Format the response as a JSON object with the following structure:
+Please provide a daily itinerary including activities, estimated costs (per person), accommodations, and meals. Each day should be correctly sequenced from ${startDate} to ${endDate}.
+
+Format response as JSON:
   {
     "days": [
       {
@@ -61,11 +66,11 @@ Please provide a day-by-day itinerary with activities, estimated costs (shown as
   try {
     const messages = [
       { 
-        role: "system" as const, 
-        content: "You are an expert travel planner with extensive knowledge of destinations worldwide. Focus on creating geographically optimized itineraries that minimize travel time between activities. Always include time slots and location details for better planning. Always respond with valid JSON." 
+        role: "system", 
+        content: "You are an expert travel planner with extensive knowledge of destinations worldwide. Focus on creating geographically optimized itineraries that minimize travel time between activities. Always respond with valid JSON." 
       },
       ...chatHistory.map(msg => ({ role: msg.role as "user" | "assistant", content: msg.content })),
-      { role: "user" as const, content: systemPrompt },
+      { role: "user", content: systemPrompt },
     ];
 
     console.log('Generating trip suggestions with OpenAI...');
@@ -90,6 +95,44 @@ Please provide a day-by-day itinerary with activities, estimated costs (shown as
       return null;
     }
 
+    // Validate that the itinerary includes all days from startDate to endDate
+    console.log('Validating itinerary dates...');
+    const parsedStartDate = new Date(startDate);
+    const parsedEndDate = new Date(endDate);
+    const expectedDays = [];
+
+    for (let d = new Date(parsedStartDate); d <= parsedEndDate; d.setDate(d.getDate() + 1)) {
+      expectedDays.push(d.toISOString().split("T")[0]); // Store dates in YYYY-MM-DD format
+    }
+
+    const aiGeneratedDates = itinerary.days.map((day: any) => day.date);
+    const missingDates = expectedDays.filter(date => !aiGeneratedDates.includes(date));
+
+    if (missingDates.length > 0) {
+      console.warn(`Missing itinerary dates: ${missingDates.join(", ")}`);
+
+      // Add missing dates with placeholders
+      for (const date of missingDates) {
+        itinerary.days.push({
+          day: itinerary.days.length + 1,
+          date: date,
+          dayOfWeek: new Date(date).toLocaleDateString("en-US", { weekday: "long" }),
+          activities: [],
+          accommodation: null,
+          meals: { budget: 0, totalBudget: 0 },
+        });
+      }
+
+      // Sort itinerary by date
+      itinerary.days.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    }
+
+    // Ensure that the duration matches endDate - startDate
+    const calculatedDuration = (parsedEndDate.getTime() - parsedStartDate.getTime()) / (1000 * 60 * 60 * 24) + 1;
+    if (calculatedDuration !== duration) {
+      console.warn(`Mismatch: Duration (${duration} days) does not match computed trip length (${calculatedDuration} days).`);
+    }
+
     // Add weather data for each day
     console.log('Adding weather data to itinerary...');
     for (const day of itinerary.days) {
@@ -99,13 +142,12 @@ Please provide a day-by-day itinerary with activities, estimated costs (shown as
         if (weather) {
           console.log(`Weather data received for ${day.date}:`, weather);
           day.weatherContext = weather;
-          // If weather is not suitable for outdoor activities, suggest alternatives
+
+          // Suggest alternative activities if weather is bad
           const outdoorActivities = day.activities.filter((activity: any) => 
-            activity.name.toLowerCase().includes('outdoor') ||
-            activity.name.toLowerCase().includes('park') ||
-            activity.name.toLowerCase().includes('garden') ||
-            activity.name.toLowerCase().includes('walk') ||
-            activity.name.toLowerCase().includes('hike')
+            ["outdoor", "park", "garden", "walk", "hike"].some(keyword => 
+              activity.name.toLowerCase().includes(keyword)
+            )
           );
           if (!weather.is_suitable_for_outdoor && outdoorActivities.length > 0) {
             const alternatives = [];
@@ -125,7 +167,7 @@ Please provide a day-by-day itinerary with activities, estimated costs (shown as
             day.alternativeActivities = [];
           }
         } else {
-          console.warn(`No weather data available for ${destination} on ${day.date}. Check weather API and location data.`);
+          console.warn(`No weather data available for ${destination} on ${day.date}.`);
           day.weatherContext = null;
           day.alternativeActivities = [];
         }
@@ -139,33 +181,6 @@ Please provide a day-by-day itinerary with activities, estimated costs (shown as
     return itinerary;
   } catch (error: any) {
     console.error("Failed to generate trip suggestions:", error);
-    throw new Error(`Failed to generate trip suggestions: ${error.message}. Check OpenAI API configuration and request parameters.`);
-  }
-}
-
-export async function getTripRefinementQuestions(
-  currentPreferences: string[]
-): Promise<string> {
-  const prompt = `You are a travel advisor starting a conversation with a traveler. Ignore the current preferences for now and ask an open-ended question to understand their overall expectations and travel style for this trip. Focus on what would make this trip special or meaningful to them. The question should be friendly, conversational, and encourage them to share their vision for the trip.`;
-
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system" as const,
-          content: "You are a friendly travel advisor helping to plan the perfect trip. Ask focused, specific questions one at a time.",
-        },
-        {
-          role: "user" as const,
-          content: prompt,
-        },
-      ],
-    });
-
-    return response.choices[0].message.content || "What would make this trip truly special for you? Tell me about your ideal experience.";
-  } catch (error: any) {
-    console.error("Failed to generate question:", error);
-    throw new Error(`Failed to generate question: ${error.message}. Check OpenAI API configuration.`);
+    throw new Error(`Failed to generate trip suggestions: ${error.message}.`);
   }
 }

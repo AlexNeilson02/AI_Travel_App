@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertTripSchema } from "@shared/schema";
-import { generateTripSuggestions, getTripRefinementQuestions } from "./openai";
+import { generateTripSuggestions } from "./openai";
 import { addDays, format } from "date-fns";
 import { getWeatherForecast, suggestAlternativeActivities } from "./weather";
 
@@ -121,7 +121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure activities is always an array
         const rawActivities = Array.isArray(day.activities) ? day.activities :
-                          day.activities?.timeSlots ? day.activities.timeSlots : [];
+                              day.activities?.timeSlots ? day.activities.timeSlots : [];
 
         // Format activities into the expected structure
         const formattedActivities = rawActivities.map((activity: any) => {
@@ -222,27 +222,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: error.message || 'Failed to generate trip suggestions',
         error: error.toString()
       });
-    }
-  });
-
-  app.post("/api/trip-questions", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    const { preferences } = req.body;
-    try {
-      const flatPreferences = [
-        ...preferences.accommodationType.map((type: string) => `Accommodation: ${type}`),
-        ...preferences.activityTypes.map((type: string) => `Activity: ${type}`),
-        `Activity Frequency: ${preferences.activityFrequency}`,
-        ...preferences.mustSeeAttractions.map((attraction: string) => `Must See: ${attraction}`),
-        ...preferences.dietaryRestrictions.map((restriction: string) => `Dietary: ${restriction}`),
-        ...preferences.transportationPreferences.map((pref: string) => `Transportation: ${pref}`)
-      ];
-
-      const question = await getTripRefinementQuestions(flatPreferences);
-      res.json({ question });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
     }
   });
 
