@@ -601,14 +601,17 @@ export default function PlanTrip() {
                                         type="number"
                                         value={editedActivity?.cost}
                                         onChange={(e) => setEditedActivity({ ...editedActivity!, cost: parseFloat(e.target.value) })}
-                                        placeholder="Cost"
-                                        className="w-24"
+                                        placeholder="Cost per person"
+                                        className="w-32"
                                       />
                                       <Input
                                         value={editedActivity?.duration}
                                         onChange={(e) => setEditedActivity({ ...editedActivity!, duration: e.target.value })}
                                         placeholder="Duration"
                                       />
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                      Total for {numberOfPeople} {numberOfPeople === 1 ? 'person' : 'people'}: ${(editedActivity?.cost || 0) * numberOfPeople}
                                     </div>
                                     <div className="flex justify-end gap-2">
                                       <Button
@@ -643,7 +646,8 @@ export default function PlanTrip() {
                                         )}
                                       </div>
                                       <div className="text-sm text-muted-foreground">
-                                        {activity.duration} • ${activity.cost || 0}
+                                        {activity.duration} • ${activity.cost} per person
+                                        {numberOfPeople > 1 && ` (Total: $${(activity.cost || 0) * numberOfPeople})`}
                                       </div>
                                     </div>
                                     <Button
@@ -661,59 +665,75 @@ export default function PlanTrip() {
 
                           <Separator className="my-2" />
 
-                          <div className="flex items-center justify-between p-2 border rounded">
-                            {editingAccommodation === index ? (
-                              <div className="flex-1 space-y-2">
-                                <Input
-                                  value={day.accommodation?.name}
-                                  onChange={(e) => {
-                                    const updated = { ...day.accommodation, name: e.target.value };
-                                    handleSaveAccommodation(index, updated);
-                                  }}
-                                  placeholder="Accommodation name"
-                                />
-                                <div className="flex gap-2">
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between p-2 border rounded">
+                              {editingAccommodation === index ? (
+                                <div className="flex-1 space-y-2">
                                   <Input
-                                    type="number"
-                                    value={day.accommodation?.cost}
+                                    value={day.accommodation?.name}
                                     onChange={(e) => {
-                                      const updated = { ...day.accommodation, cost: parseFloat(e.target.value) };
+                                      const updated = { ...day.accommodation, name: e.target.value };
                                       handleSaveAccommodation(index, updated);
                                     }}
-                                    placeholder="Cost"
-                                    className="w-24"
+                                    placeholder="Accommodation name"
                                   />
-                                </div>
-                              </div>
-                            ) : (
-                              <>
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <span>Accommodation: {day.accommodation?.name || 'Not specified'}</span>
-                                    {day.accommodation?.url && (
-                                      <a
-                                        href={day.accommodation.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-primary hover:text-primary/80"
-                                      >
-                                        <ExternalLink className="h-4 w-4" />
-                                      </a>
-                                    )}
+                                  <div className="flex gap-2">
+                                    <Input
+                                      type="number"
+                                      value={day.accommodation?.cost}
+                                      onChange={(e) => {
+                                        const updated = { ...day.accommodation, cost: parseFloat(e.target.value) };
+                                        handleSaveAccommodation(index, updated);
+                                      }}
+                                      placeholder="Cost per person"
+                                      className="w-32"
+                                    />
                                   </div>
                                   <div className="text-sm text-muted-foreground">
-                                    ${day.accommodation?.cost || 0}
+                                    Total for {numberOfPeople} {numberOfPeople === 1 ? 'person' : 'people'}: ${(day.accommodation?.cost || 0) * numberOfPeople}
                                   </div>
                                 </div>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => handleEditAccommodation(index)}
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
+                              ) : (
+                                <>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <span>Accommodation: {day.accommodation?.name || 'Not specified'}</span>
+                                      {day.accommodation?.url && (
+                                        <a
+                                          href={day.accommodation.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-primary hover:text-primary/80"
+                                        >
+                                          <ExternalLink className="h-4 w-4" />
+                                        </a>
+                                      )}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                      ${day.accommodation?.cost} per person
+                                      {numberOfPeople > 1 && ` (Total: $${(day.accommodation?.cost || 0) * numberOfPeople})`}
+                                    </div>
+                                  </div>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => handleEditAccommodation(index)}
+                                  >
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+
+                            <div className="p-2 border rounded">
+                              <div className="flex items-center justify-between">
+                                <span>Daily Meal Budget</span>
+                                <div className="text-sm text-muted-foreground">
+                                  ${day.meals?.budget} per person
+                                  {numberOfPeople > 1 && ` (Total: $${(day.meals?.budget || 0) * numberOfPeople})`}
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}

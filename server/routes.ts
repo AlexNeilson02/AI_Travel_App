@@ -78,7 +78,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/suggest-trip", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
-    const { destination, preferences, budget, startDate, endDate, chatHistory } = req.body;
+    const { destination, preferences, budget, startDate, endDate, numberOfPeople, chatHistory } = req.body;
     console.log('Received suggestions request:', { destination, preferences, budget, startDate, endDate });
 
     try {
@@ -101,6 +101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         budget,
         dayCount,
         startDate,
+        numberOfPeople,
         chatHistory
       );
 
@@ -111,8 +112,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const formattedDays = await Promise.all(suggestions.days.map(async (day: any, index: number) => {
-        const date = addDays(new Date(startDate), index);
-        const weatherData = await getWeatherForecast(destination, date);
+        // Use UTC date to prevent timezone issues
+        const tripDate = new Date(startDate);
+        tripDate.setUTCDate(tripDate.getUTCDate() + index);
+        const weatherData = await getWeatherForecast(destination, tripDate);
 
         let alternativeActivities: string[] = [];
 
@@ -128,6 +131,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               activity: activity,
               location: "",
               duration: "2 hours",
+              cost: 0,
+              totalCost: 0,
               notes: "",
               isEdited: false,
               isOutdoor: activity.toLowerCase().includes('outdoor')
@@ -138,6 +143,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             activity: activity.activity || activity.name || "",
             location: activity.location || "",
             duration: activity.duration || "2 hours",
+            cost: activity.cost || 0,
+            totalCost: (activity.cost || 0) * numberOfPeople,
             notes: activity.notes || "",
             isEdited: false,
             url: activity.url,
@@ -161,15 +168,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         return {
-          date: format(date, 'yyyy-MM-dd'),
-          dayOfWeek: format(date, 'EEEE'),
+          date: format(tripDate, 'yyyy-MM-dd'),
+          dayOfWeek: format(tripDate, 'EEEE'),
           activities: {
             timeSlots: formattedActivities
           },
-          accommodation: day.accommodation || {
-            name: "TBD",
-            cost: 0,
-            url: null
+          accommodation: {
+            name: day.accommodation?.name || "TBD",
+            cost: day.accommodation?.cost || 0,
+            totalCost: (day.accommodation?.cost || 0) * numberOfPeople,
+            url: day.accommodation?.url || null,
+            location: day.accommodation?.location || ""
+          },
+          meals: {
+            budget: day.meals?.budget || 0,
+            totalBudget: (day.meals?.budget || 0) * numberOfPeople
           },
           aiSuggestions: {
             reasoning: day.reasoning || "",
@@ -192,6 +205,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: new Date(endDate),
         budget,
         preferences,
+        totalCost: suggestions.totalCost || 0,
+        perPersonCost: suggestions.perPersonCost || (suggestions.totalCost / numberOfPeople) || 0,
         days: formattedDays,
         suggestions: {
           days: formattedDays,
