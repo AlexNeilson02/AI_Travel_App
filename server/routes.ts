@@ -4,8 +4,9 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertTripSchema } from "@shared/schema";
 import { generateTripSuggestions } from "./openai";
-import { format } from "date-fns";
+import { format, parseISO, addDays } from "date-fns";
 import { getWeatherForecast, suggestAlternativeActivities } from "./weather";
+import openai from './openai'; // Assuming openai is imported elsewhere
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -83,8 +84,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       // Calculate the exact number of days including both start and end date
-      const start = new Date(startDate);
-      const end = new Date(endDate);
+      const start = parseISO(startDate.split('T')[0]); // Remove time component
+      const end = parseISO(endDate.split('T')[0]); // Remove time component
       const dayCount = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
       console.log('Trip duration:', { dayCount, startDate, endDate });
@@ -105,8 +106,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         formattedPreferences,
         budget,
         dayCount,
-        startDate,
-        endDate,
+        startDate.split('T')[0],
+        endDate.split('T')[0],
         numberOfPeople,
         chatHistory
       );
@@ -117,14 +118,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error('Failed to generate trip suggestions');
       }
 
-      // Validate that the itinerary includes all days from startDate to endDate
-      console.log('Validating itinerary dates...');
-      const parsedStartDate = new Date(startDate);
-      const parsedEndDate = new Date(endDate);
-      const expectedDays = [];
+      // Validate and fix dates
+      console.log('First day from AI:', suggestions.days[0].date);
+      console.log('User start date:', startDate.split('T')[0]);
 
-      for (let d = new Date(parsedStartDate); d <= parsedEndDate; d.setDate(d.getDate() + 1)) {
-        expectedDays.push(d.toISOString().split("T")[0]); // Store dates in YYYY-MM-DD format
+      const firstDay = parseISO(suggestions.days[0].date);
+      const userStartDate = parseISO(startDate.split('T')[0]);
+      const dateOffset = firstDay.getTime() < userStartDate.getTime() ? 1 : 0;
+
+      if (dateOffset > 0) {
+        console.log('Detected one day offset, correcting dates');
+        suggestions.days = suggestions.days.map(day => {
+          const correctedDate = format(addDays(parseISO(day.date), 1), 'yyyy-MM-dd');
+          const correctedDayOfWeek = format(addDays(parseISO(day.date), 1), 'EEEE');
+          console.log(`Correcting date from ${day.date} to ${correctedDate}`);
+          return {
+            ...day,
+            date: correctedDate,
+            dayOfWeek: correctedDayOfWeek
+          };
+        });
+      }
+
+      // Ensure all dates are present
+      const expectedDays = [];
+      for (let d = new Date(userStartDate); d <= end; d.setDate(d.getDate() + 1)) {
+        expectedDays.push(format(d, 'yyyy-MM-dd'));
       }
 
       const aiGeneratedDates = suggestions.days.map((day: any) => day.date);
@@ -133,30 +152,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (missingDates.length > 0) {
         console.warn(`Missing itinerary dates: ${missingDates.join(", ")}`);
 
-        // Add missing dates with placeholders
         for (const date of missingDates) {
           suggestions.days.push({
             day: suggestions.days.length + 1,
-            date: date,
-            dayOfWeek: new Date(date).toLocaleDateString("en-US", { weekday: "long" }),
+            date,
+            dayOfWeek: format(parseISO(date), 'EEEE'),
             activities: [],
             accommodation: null,
             meals: { budget: 0, totalBudget: 0 },
           });
         }
 
-        // Sort itinerary by date
-        suggestions.days.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        suggestions.days.sort((a: any, b: any) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
       }
 
       // Format each day with weather data and proper structure
       const formattedDays = await Promise.all(suggestions.days.map(async (day: any) => {
-        const dayDate = new Date(day.date);
+        const dayDate = parseISO(day.date);
         const weatherData = await getWeatherForecast(destination, dayDate);
 
         // Ensure activities is always an array
         const rawActivities = Array.isArray(day.activities) ? day.activities :
-                            day.activities?.timeSlots ? day.activities.timeSlots : [];
+                              day.activities?.timeSlots ? day.activities.timeSlots : [];
 
         // Format activities into the expected structure
         const formattedActivities = rawActivities.map((activity: any) => {
@@ -234,8 +251,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const response = {
         title: destination,
         destination,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: userStartDate,
+        endDate: end,
         budget,
         preferences,
         totalCost: suggestions.totalCost || 0,
@@ -258,6 +275,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/trip-questions", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const { preferences } = req.body;
+    try {
+      const question = await generateTripRefinementQuestion(preferences);
+      res.json({ question });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
+}
+
+async function generateTripRefinementQuestion(preferences: any): Promise<string> {
+  const flatPreferences = [
+    ...preferences.accommodationType.map((type: string) => `Accommodation: ${type}`),
+    ...preferences.activityTypes.map((type: string) => `Activity: ${type}`),
+    `Activity Frequency: ${preferences.activityFrequency}`,
+    ...preferences.mustSeeAttractions.map((attraction: string) => `Must See: ${attraction}`),
+    ...preferences.dietaryRestrictions.map((restriction: string) => `Dietary: ${restriction}`),
+    ...preferences.transportationPreferences.map((pref: string) => `Transportation: ${pref}`)
+  ];
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: "You are a travel advisor helping to refine travel preferences. Ask one specific question that would help improve the trip planning based on the current preferences."
+        },
+        {
+          role: "user",
+          content: `Current preferences: ${flatPreferences.join(", ")}. Ask a question to better understand the traveler's preferences.`
+        }
+      ],
+      temperature: 0.7
+    });
+
+    return response.choices[0].message.content || "What else would you like to know about your destination?";
+  } catch (error: any) {
+    console.error('Error generating trip question:', error);
+    return "What else would you like to know about your destination?";
+  }
 }

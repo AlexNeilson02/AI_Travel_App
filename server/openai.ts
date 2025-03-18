@@ -24,7 +24,9 @@ Important planning criteria:
 3. Consider logical flow between locations.
 4. Account for opening hours and peak times.
 5. Space activities appropriately throughout the day.
-6. The budget should cover activities and accommodations for ${numberOfPeople} person(s).
+6. Distribute the total budget across all days based on activity costs - expensive activities should have higher budget allocation.
+7. The total budget should cover all activities, accommodations, and meals for the entire trip (not per day).
+8. The budget should cover activities and accommodations for ${numberOfPeople} person(s).
 
 Please provide a daily itinerary including activities, estimated costs (per person), accommodations, and meals. Each day should be correctly sequenced from ${startDate} to ${endDate}.
 
@@ -66,11 +68,11 @@ Format response as JSON:
   try {
     const messages = [
       { 
-        role: "system", 
+        role: "system" as const, 
         content: "You are an expert travel planner with extensive knowledge of destinations worldwide. Focus on creating geographically optimized itineraries that minimize travel time between activities. Always respond with valid JSON." 
       },
       ...chatHistory.map(msg => ({ role: msg.role as "user" | "assistant", content: msg.content })),
-      { role: "user", content: systemPrompt },
+      { role: "user" as const, content: systemPrompt },
     ];
 
     console.log('Generating trip suggestions with OpenAI...');
@@ -93,38 +95,6 @@ Format response as JSON:
     } catch (parseError) {
       console.error('Failed to parse OpenAI response:', parseError, 'Raw response:', content);
       return null;
-    }
-
-    // Validate that the itinerary includes all days from startDate to endDate
-    console.log('Validating itinerary dates...');
-    const parsedStartDate = new Date(startDate);
-    const parsedEndDate = new Date(endDate);
-    const expectedDays = [];
-
-    for (let d = new Date(parsedStartDate); d <= parsedEndDate; d.setDate(d.getDate() + 1)) {
-      expectedDays.push(d.toISOString().split("T")[0]); // Store dates in YYYY-MM-DD format
-    }
-
-    const aiGeneratedDates = itinerary.days.map((day: any) => day.date);
-    const missingDates = expectedDays.filter(date => !aiGeneratedDates.includes(date));
-
-    if (missingDates.length > 0) {
-      console.warn(`Missing itinerary dates: ${missingDates.join(", ")}`);
-
-      // Add missing dates with placeholders
-      for (const date of missingDates) {
-        itinerary.days.push({
-          day: itinerary.days.length + 1,
-          date: date,
-          dayOfWeek: new Date(date).toLocaleDateString("en-US", { weekday: "long" }),
-          activities: [],
-          accommodation: null,
-          meals: { budget: 0, totalBudget: 0 },
-        });
-      }
-
-      // Sort itinerary by date
-      itinerary.days.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
     }
 
     // Add weather data for each day
