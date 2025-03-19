@@ -57,7 +57,7 @@ export default function Nav() {
             ))}
           </div>
         </nav>
-      </>
+      </header>
     );
   }
 
