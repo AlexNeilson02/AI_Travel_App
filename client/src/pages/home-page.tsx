@@ -110,9 +110,9 @@ export default function HomePage() {
         <section className="mb-12 bg-neutral-100 p-6 rounded-lg">
           <h2 className="text-2xl font-bold mb-6">Popular Destinations</h2>
           <div className="flex overflow-x-auto pb-4 gap-4 snap-x">
-            {popularDestinations.map((destination) => (
+            {popularDestinations.map((destination, index) => (
               <div 
-                key={destination.name} 
+                key={destination.name + index} 
                 className="flex-none w-64 snap-start"
               >
                 <div className="aspect-[4/3] relative bg-neutral-200 rounded-md overflow-hidden mb-2">
@@ -120,6 +120,9 @@ export default function HomePage() {
                     src={destination.image}
                     alt={destination.name}
                     className="object-cover w-full h-full"
+                    onError={(e) => {
+                      e.currentTarget.src = "/a340adbb-a64e-42f7-aa3a-6ce1afa0c057.png"
+                    }}
                   />
                 </div>
                 <h3 className="text-center font-medium">{destination.name}</h3>
