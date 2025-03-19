@@ -353,8 +353,8 @@ export default function MyTrips() {
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
                       <Calendar className="h-4 w-4 mr-2" />
-                      {format(parseISO(trip.startDate), "MMM d")} -{" "}
-                      {format(parseISO(trip.endDate), "MMM d, yyyy")}
+                      {format(new Date(trip.startDate), "MMM d")} -{" "}
+                      {format(new Date(trip.endDate), "MMM d, yyyy")}
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
                       <DollarSign className="h-4 w-4 mr-2" />
@@ -368,7 +368,7 @@ export default function MyTrips() {
                           <div key={dayIndex} className="border rounded-lg p-4">
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="font-medium">
-                                {format(parseISO(day.date), "EEEE, MMMM d")}
+                                {format(new Date(day.date), "EEEE, MMMM d")}
                               </h4>
                               <Button
                                 variant="ghost"
