@@ -20,10 +20,23 @@ export default function Nav() {
     return (
       <>
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-14 items-center justify-center">
-            <Link href="/" className="flex items-center space-x-2">
-              <span className="font-bold">AI Travel Planner</span>
-            </Link>
+          <div className="container flex h-14 items-center justify-between">
+            <div className="w-14"></div>
+            <div className="flex items-center space-x-2">
+              <span className="font-bold">Juno: AI Travel Planner</span>
+            </div>
+            {user && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => logoutMutation.mutate()}
+                disabled={logoutMutation.isPending}
+                className="w-14"
+              >
+                <LogOut className="h-5 w-5" />
+                <span className="sr-only">Logout</span>
+              </Button>
+            )}
           </div>
         </header>
 
@@ -51,9 +64,10 @@ export default function Nav() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
-        <Link href="/" className="mr-4 flex items-center space-x-2">
-          <span className="font-bold">AI Travel Planner</span>
+        <Link href="/" className="mr-6 flex items-center space-x-2">
+          <img src="/a340adbb-a64e-42f7-aa3a-6ce1afa0c057.png" alt="Juno" className="h-8 w-auto" />
         </Link>
+        <div className="ml-4">
         <div className="flex">
           {navItems.map((item) => (
             <Button
