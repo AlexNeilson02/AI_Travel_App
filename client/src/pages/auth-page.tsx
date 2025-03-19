@@ -9,6 +9,18 @@ import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
+import { z } from "zod";
+
+// Define specific schemas for login and registration
+const loginSchema = insertUserSchema.pick({ 
+  username: true, 
+  password: true 
+});
+
+const registerSchema = insertUserSchema;
+
+type LoginData = z.infer<typeof loginSchema>;
+type RegisterData = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
@@ -20,12 +32,12 @@ export default function AuthPage() {
     }
   }, [user, setLocation]);
 
-  const loginForm = useForm({
-    resolver: zodResolver(insertUserSchema.pick({ username: true, password: true })),
+  const loginForm = useForm<LoginData>({
+    resolver: zodResolver(loginSchema),
   });
 
-  const registerForm = useForm({
-    resolver: zodResolver(insertUserSchema),
+  const registerForm = useForm<RegisterData>({
+    resolver: zodResolver(registerSchema),
   });
 
   return (

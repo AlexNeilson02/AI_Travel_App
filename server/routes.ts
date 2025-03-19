@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertTripSchema } from "@shared/schema";
-import { generateTripSuggestions } from "./openai";
+import { generateTripSuggestions, generateFollowUpQuestion } from "./openai";
 import { format } from "date-fns";
 import { getWeatherForecast, suggestAlternativeActivities } from "./weather";
 
@@ -108,147 +108,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('Received suggestions request:', { destination, preferences, budget, startDate, endDate });
 
     try {
-      // Calculate the exact number of days including both start and end date
-      const start = new Date(startDate);
-      start.setUTCHours(0, 0, 0, 0);  // Ensure consistent UTC midnight
-      const end = new Date(endDate);
-      end.setUTCHours(0, 0, 0, 0);  // Ensure consistent UTC midnight
-
-      const dayCount = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-
-      console.log('Trip duration:', { dayCount, startDate, endDate });
-
-      const formattedPreferences = [
-        ...preferences.accommodationType.map((type: string) => `Accommodation: ${type}`),
-        ...preferences.activityTypes.map((type: string) => `Activity: ${type}`),
-        `Activity Frequency: ${preferences.activityFrequency}`,
-        ...preferences.mustSeeAttractions.map((attraction: string) => `Must See: ${attraction}`),
-        ...preferences.dietaryRestrictions.map((restriction: string) => `Dietary: ${restriction}`),
-        ...preferences.transportationPreferences.map((pref: string) => `Transportation: ${pref}`)
-      ];
-
-      console.log('Formatted preferences:', formattedPreferences);
-
-      const suggestions = await generateTripSuggestions(
+      const response = await generateTripSuggestions(
         destination,
-        formattedPreferences,
+        preferences,
         budget,
-        dayCount,
+        Math.floor((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1,
         startDate,
         endDate,
         numberOfPeople,
         chatHistory
       );
 
-      console.log('Received suggestions from OpenAI with weather:', suggestions);
-
-      if (!suggestions || !suggestions.days) {
-        throw new Error('Failed to generate trip suggestions');
-      }
-
-      // Format each day with weather data and proper structure
-      const formattedDays = await Promise.all(suggestions.days.map(async (day: any) => {
-        const dayDate = new Date(day.date);
-        dayDate.setUTCHours(0, 0, 0, 0);  // Ensure consistent UTC midnight
-        const weatherData = await getWeatherForecast(destination, dayDate);
-        console.log('Weather data for day:', day.date, weatherData);
-
-        // Ensure activities is always an array
-        const rawActivities = Array.isArray(day.activities) ? day.activities :
-                           day.activities?.timeSlots ? day.activities.timeSlots : [];
-
-        // Format activities into the expected structure
-        const formattedActivities = rawActivities.map((activity: any) => {
-          if (typeof activity === 'string') {
-            return {
-              time: "TBD",
-              activity: activity,
-              location: "",
-              duration: "2 hours",
-              cost: 0,
-              totalCost: 0,
-              notes: "",
-              isEdited: false,
-              isOutdoor: activity.toLowerCase().includes('outdoor')
-            };
-          }
-          return {
-            time: activity.time || "TBD",
-            activity: activity.activity || activity.name || "",
-            location: activity.location || "",
-            duration: activity.duration || "2 hours",
-            cost: activity.cost || 0,
-            totalCost: (activity.cost || 0) * numberOfPeople,
-            notes: activity.notes || "",
-            isEdited: false,
-            url: activity.url,
-            originalSuggestion: activity.activity || activity.name,
-            isOutdoor: activity.isOutdoor || false
-          };
-        });
-
-        // Check for weather impact on outdoor activities
-        let alternativeActivities: string[] = [];
-        if (weatherData && !weatherData.is_suitable_for_outdoor) {
-          const outdoorActivities = formattedActivities.filter((activity: any) =>
-            activity.isOutdoor || activity.activity.toLowerCase().includes('outdoor')
-          );
-          for (const activity of outdoorActivities) {
-            const alternatives = suggestAlternativeActivities(weatherData, activity.activity);
-            alternativeActivities.push(...alternatives);
-          }
-        }
-
-        return {
-          date: format(dayDate, 'yyyy-MM-dd'),
-          dayOfWeek: format(dayDate, 'EEEE'),
-          activities: {
-            timeSlots: formattedActivities
-          },
-          accommodation: {
-            name: day.accommodation?.name || "TBD",
-            cost: day.accommodation?.cost || 0,
-            totalCost: (day.accommodation?.cost || 0) * numberOfPeople,
-            url: day.accommodation?.url || null,
-            location: day.accommodation?.location || ""
-          },
-          meals: {
-            budget: day.meals?.budget || 0,
-            totalBudget: (day.meals?.budget || 0) * numberOfPeople
-          },
-          weatherContext: weatherData ? {
-            description: weatherData.description,
-            temperature: weatherData.temperature,
-            precipitation_probability: weatherData.precipitation_probability,
-            is_suitable_for_outdoor: weatherData.is_suitable_for_outdoor
-          } : undefined,
-          alternativeActivities: alternativeActivities
-        };
-      }));
-
-      console.log('Sending formatted response with weather:', formattedDays[0]?.weatherContext);
-
-      const response = {
-        title: destination,
-        destination,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        budget,
-        preferences,
-        totalCost: suggestions.totalCost || 0,
-        perPersonCost: suggestions.perPersonCost || (suggestions.totalCost / numberOfPeople) || 0,
-        days: formattedDays,
-        suggestions: {
-          days: formattedDays,
-          tips: suggestions.tips || []
-        }
-      };
-
       res.json(response);
     } catch (error: any) {
       console.error('Error generating suggestions:', error);
       res.status(500).json({
         message: error.message || 'Failed to generate trip suggestions',
+        error: error.toString()
+      });
+    }
+  });
+
+  app.post("/api/trip-questions", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const { preferences, destination, chatHistory } = req.body;
+
+    try {
+      const question = await generateFollowUpQuestion(
+        destination,
+        preferences,
+        chatHistory
+      );
+
+      res.json({ question });
+    } catch (error: any) {
+      console.error('Error generating question:', error);
+      res.status(500).json({
+        message: error.message || 'Failed to generate follow-up question',
         error: error.toString()
       });
     }

@@ -550,16 +550,51 @@ export default function PlanTrip() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {currentQuestion && (
+                      {/* Display chat history */}
+                      <div className="space-y-4 max-h-[300px] overflow-y-auto">
+                        {chatHistory.map((msg, index) => (
+                          <div
+                            key={index}
+                            className={`p-4 rounded-lg ${
+                              msg.role === "user"
+                                ? "bg-primary/10 ml-8"
+                                : "bg-muted mr-8"
+                            }`}
+                          >
+                            <p className="text-sm">{msg.content}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Display current question */}
+                      {suggestions.nextQuestion && (
                         <div className="bg-muted p-4 rounded-lg">
-                          <p className="text-sm">{currentQuestion}</p>
+                          <p className="text-sm font-medium">
+                            {suggestions.nextQuestion}
+                          </p>
                         </div>
                       )}
+
+                      {/* Display personalized suggestions */}
+                      {suggestions.personalizedSuggestions?.length > 0 && (
+                        <div className="bg-primary/5 p-4 rounded-lg space-y-2">
+                          <h4 className="font-medium">Personalized Suggestions:</h4>
+                          <ul className="list-disc list-inside space-y-1">
+                            {suggestions.personalizedSuggestions.map((suggestion: string, index: number) => (
+                              <li key={index} className="text-sm text-muted-foreground">
+                                {suggestion}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Chat input */}
                       <div className="flex gap-2">
                         <Textarea
                           value={userResponse}
                           onChange={(e) => setUserResponse(e.target.value)}
-                          placeholder="Type your response..."
+                          placeholder="Type your response or ask a question..."
                           className="flex-1"
                         />
                         <Button

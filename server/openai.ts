@@ -4,6 +4,37 @@ import { format } from 'date-fns';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Function to generate a follow-up question based on the current context
+async function generateFollowUpQuestion(
+  destination: string,
+  preferences: string[],
+  chatHistory: Array<{ role: "user" | "assistant" | "system"; content: string }> = []
+): Promise<string> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
+      messages: [
+        {
+          role: "system",
+          content: `You are a travel advisor helping to plan a trip to ${destination}. 
+          Ask a relevant follow-up question based on the conversation history and preferences.
+          Focus on understanding the traveler's interests, must-see attractions, dining preferences, 
+          or specific experiences they're looking for. Keep questions concise and focused.
+          If they've mentioned specific interests, ask for more details about those.
+          Known preferences: ${preferences.join(", ")}`
+        },
+        ...chatHistory,
+      ],
+      temperature: 0.7,
+    });
+
+    return response.choices[0].message.content || "What specific activities interest you the most?";
+  } catch (error) {
+    console.error("Error generating follow-up question:", error);
+    return "What would you like to know more about for your trip?";
+  }
+}
+
 export async function generateTripSuggestions(
   destination: string,
   preferences: string[],
@@ -16,7 +47,18 @@ export async function generateTripSuggestions(
 ): Promise<any> {
   const totalBudget = budget * numberOfPeople;
 
-  const systemPrompt = `You are an expert travel planner. Create a detailed travel itinerary for ${numberOfPeople} person(s) to ${destination} from ${startDate} to ${endDate}. Budget: $${totalBudget} ($${budget} per person). Preferences: ${preferences.join(", ")}.
+  // Extract key interests and preferences from chat history
+  const userInterests = chatHistory
+    .filter(msg => msg.role === "user")
+    .map(msg => msg.content)
+    .join("\n");
+
+  const systemPrompt = `You are an expert travel planner creating a personalized itinerary for ${numberOfPeople} person(s) to ${destination} from ${startDate} to ${endDate}. 
+Budget: $${totalBudget} ($${budget} per person).
+Known preferences: ${preferences.join(", ")}
+
+Additional context from conversation:
+${userInterests}
 
 Your response must be a valid JSON object with this exact structure:
 {
@@ -33,7 +75,8 @@ Your response must be a valid JSON object with this exact structure:
             "duration": "Duration in hours",
             "cost": number,
             "notes": "Additional details",
-            "url": "Optional website URL"
+            "url": "Optional website URL",
+            "isOutdoor": boolean
           }
         ]
       },
@@ -50,7 +93,8 @@ Your response must be a valid JSON object with this exact structure:
   ],
   "totalCost": number,
   "perPersonCost": number,
-  "tips": ["Tip 1", "Tip 2"]
+  "tips": ["Tip 1", "Tip 2"],
+  "personalizedSuggestions": ["Suggestion based on preferences 1", "Suggestion based on preferences 2"]
 }
 
 Important:
@@ -59,18 +103,21 @@ Important:
 3. Each day must have a proper date format (YYYY-MM-DD)
 4. Activities should be geographically logical to minimize travel time
 5. Consider the weather and time of day for outdoor activities
-6. Stay within the total budget for the group`;
+6. Stay within the total budget for the group
+7. Incorporate specific interests and preferences mentioned in the chat
+8. Add specific suggestions based on user's mentioned interests`;
 
   try {
     console.log('Generating trip suggestions with OpenAI...');
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
       messages: [
         { role: "system", content: "You are an expert travel planner focused on creating detailed, realistic itineraries." },
         ...chatHistory,
         { role: "user", content: systemPrompt }
       ],
-      temperature: 0.7
+      temperature: 0.7,
+      response_format: { type: "json_object" }
     });
 
     const content = response.choices[0].message.content;
@@ -88,13 +135,11 @@ Important:
       throw new Error('Failed to parse trip suggestions');
     }
 
-    // Format dates correctly
     const parsedStartDate = new Date(startDate);
     parsedStartDate.setUTCHours(0, 0, 0, 0);
     const parsedEndDate = new Date(endDate);
     parsedEndDate.setUTCHours(0, 0, 0, 0);
 
-    // Generate all expected dates
     const expectedDays = [];
     const currentDate = new Date(parsedStartDate);
     while (currentDate <= parsedEndDate) {
@@ -102,15 +147,12 @@ Important:
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    // Process each day with weather data
     const formattedDays = await Promise.all(expectedDays.map(async (date) => {
       const existingDay = itinerary.days?.find((d: any) => d.date === date);
 
-      // Get weather data for this day
       const weatherData = await getWeatherForecast(destination, new Date(date));
       console.log('Weather data for', date, ':', weatherData);
 
-      // Format each day's data including weather
       const dayData = {
         date: format(new Date(date), 'yyyy-MM-dd'),
         dayOfWeek: format(new Date(date), 'EEEE'),
@@ -153,14 +195,22 @@ Important:
     }));
 
     console.log('Formatted days with weather:', formattedDays[0]);
+
+    // Generate a follow-up question
+    const nextQuestion = await generateFollowUpQuestion(destination, preferences, chatHistory);
+
     return {
       days: formattedDays,
       totalCost: itinerary.totalCost || 0,
       perPersonCost: itinerary.perPersonCost || 0,
-      tips: itinerary.tips || []
+      tips: itinerary.tips || [],
+      personalizedSuggestions: itinerary.personalizedSuggestions || [],
+      nextQuestion
     };
   } catch (error: any) {
     console.error("Failed to generate trip suggestions:", error);
     throw new Error(`Failed to generate trip suggestions: ${error.message}`);
   }
 }
+
+export { generateFollowUpQuestion };
