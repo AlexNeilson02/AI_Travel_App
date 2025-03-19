@@ -104,5 +104,4 @@ export default function Nav() {
       </div>
     </header>
   );
-};
 }
