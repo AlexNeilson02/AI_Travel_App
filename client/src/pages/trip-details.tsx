@@ -1,32 +1,38 @@
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Trip, TripDay } from "@shared/schema";
+import { Trip } from "@shared/schema";
 import Nav from "@/components/Nav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, DollarSign, MapPin, ArrowLeft, ExternalLink, CloudRain, ThermometerSun, AlertTriangle } from "lucide-react";
+import {
+  Calendar,
+  DollarSign,
+  MapPin,
+  ArrowLeft,
+  ExternalLink,
+  CloudRain,
+  ThermometerSun,
+  AlertTriangle,
+  Loader2
+} from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
-import { useState } from 'react';
-import { Dialog, DialogHeader, DialogFooter, DialogTitle, DialogContent } from "@/components/ui/dialog";
 
 interface ExtendedTrip extends Trip {
-  tripDays?: TripDay[];
+  tripDays?: any[];
 }
 
 export default function TripDetails() {
   const params = useParams();
   const tripId = params?.id;
-  const [showWeatherDialog, setShowWeatherDialog] = useState(false);
-  const [selectedDay, setSelectedDay] = useState<TripDay | null>(null);
-  const [weatherImpact, setWeatherImpact] = useState<string>("");
 
   const { data: trip, isLoading } = useQuery<ExtendedTrip>({
     queryKey: ["/api/trips", tripId],
     queryFn: async () => {
       const response = await apiRequest("GET", `/api/trips/${tripId}`);
       const data = await response.json();
+      console.log('Trip data:', data); // Debug log
       return data;
     },
     enabled: !!tripId,
@@ -64,33 +70,6 @@ export default function TripDetails() {
       </div>
     );
   }
-
-  const showWeatherImpact = async (day: TripDay) => {
-    setSelectedDay(day);
-
-    if (day.aiSuggestions.weatherContext) {
-      const weatherContext = day.aiSuggestions.weatherContext;
-      const activities = day.activities.timeSlots.map(slot => slot.activity).join(", ");
-
-      let impact = "";
-
-      if (weatherContext.is_suitable_for_outdoor) {
-        impact = `The forecast for ${format(new Date(day.date), "MMMM d")} looks favorable with ${weatherContext.description} and a temperature of ${Math.round(weatherContext.temperature)}°F. This weather is suitable for your planned activities: ${activities}.`;
-      } else {
-        impact = `The weather forecast for ${format(new Date(day.date), "MMMM d")} shows ${weatherContext.description} with a temperature of ${Math.round(weatherContext.temperature)}°F and ${Math.round(weatherContext.precipitation_probability)}% chance of precipitation. This might affect your outdoor plans.`;
-
-        if (day.aiSuggestions.alternativeActivities && day.aiSuggestions.alternativeActivities.length > 0) {
-          impact += ` Consider these indoor alternatives: ${day.aiSuggestions.alternativeActivities.join(", ")}.`;
-        }
-      }
-
-      setWeatherImpact(impact);
-    } else {
-      setWeatherImpact("Weather data isn't available yet for this date. Check back closer to your trip date for a weather impact analysis.");
-    }
-
-    setShowWeatherDialog(true);
-  };
 
   const preferencesList = [
     { label: "Accommodation Types", value: trip.preferences.accommodationType },
@@ -165,7 +144,7 @@ export default function TripDetails() {
                 <div>
                   <h3 className="font-medium mb-2">Daily Itinerary</h3>
                   <div className="space-y-4">
-                    {trip.tripDays.map((day) => (
+                    {trip.tripDays.map((day: any) => (
                       <Card key={day.id}>
                         <CardContent className="p-4">
                           <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
@@ -173,15 +152,20 @@ export default function TripDetails() {
                               <h4 className="font-medium">
                                 {format(new Date(day.date), "EEEE, MMMM d, yyyy")}
                               </h4>
-                              {day.aiSuggestions.weatherContext && (
+                              {/* Weather Display */}
+                              {day.aiSuggestions?.weatherContext && (
                                 <div className="flex items-center gap-4 text-base bg-muted p-3 rounded-lg w-full">
                                   <div className="flex items-center gap-2">
                                     <ThermometerSun className="h-5 w-5 text-orange-500" />
-                                    <span className="font-medium">{Math.round(day.aiSuggestions.weatherContext.temperature)}°F</span>
+                                    <span className="font-medium">
+                                      {Math.round(day.aiSuggestions.weatherContext.temperature)}°F
+                                    </span>
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <CloudRain className="h-5 w-5 text-blue-500" />
-                                    <span className="font-medium">{Math.round(day.aiSuggestions.weatherContext.precipitation_probability)}%</span>
+                                    <span className="font-medium">
+                                      {Math.round(day.aiSuggestions.weatherContext.precipitation_probability)}%
+                                    </span>
                                   </div>
                                   <span className="text-muted-foreground">
                                     {day.aiSuggestions.weatherContext.description}
@@ -189,18 +173,10 @@ export default function TripDetails() {
                                 </div>
                               )}
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => showWeatherImpact(day)}
-                              className="whitespace-nowrap"
-                            >
-                              See how this affects my trip
-                            </Button>
                           </div>
 
                           {/* Weather Warning */}
-                          {day.aiSuggestions.weatherContext && !day.aiSuggestions.weatherContext.is_suitable_for_outdoor && (
+                          {day.aiSuggestions?.weatherContext && !day.aiSuggestions.weatherContext.is_suitable_for_outdoor && (
                             <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-900/50">
                               <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
                                 <AlertTriangle className="h-4 w-4" />
@@ -219,7 +195,7 @@ export default function TripDetails() {
                           )}
 
                           <div className="space-y-2">
-                            {day.activities.timeSlots.map((slot, index) => (
+                            {day.activities.timeSlots.map((slot: any, index: number) => (
                               <div key={index} className="flex justify-between items-start border-b border-border pb-2 last:border-0 last:pb-0">
                                 <div>
                                   <div className="font-medium flex items-center gap-2">
@@ -264,23 +240,6 @@ export default function TripDetails() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Weather Impact Dialog */}
-        <Dialog open={showWeatherDialog} onOpenChange={setShowWeatherDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                Weather Impact on {selectedDay?.date ? format(new Date(selectedDay.date), "MMMM d") : ""}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="py-4">
-              <p className="text-sm text-muted-foreground">{weatherImpact}</p>
-            </div>
-            <DialogFooter>
-              <Button onClick={() => setShowWeatherDialog(false)}>Close</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </main>
     </div>
   );
