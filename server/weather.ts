@@ -24,7 +24,7 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
     // Get coordinates from Open-Meteo Geocoding API
     const geoResponse = await axios.get('https://geocoding-api.open-meteo.com/v1/search', {
       params: {
-        name: location.split(',')[0].trim(), // Remove country and spaces
+        name: location.split(',')[0].trim(),
         count: 1,
         language: 'en',
         format: 'json'
@@ -40,17 +40,30 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
     }
 
     const { latitude, longitude } = geoData.results[0];
-    console.log(`Found coordinates for ${location}:`, { latitude, longitude });
 
-    // Get weather from Open-Meteo API
+    // Format the date to get the start of the day
+    date.setUTCHours(0, 0, 0, 0);
+    const endDate = new Date(date);
+    endDate.setUTCHours(23, 59, 59, 999);
+
+    // Get weather from Open-Meteo API using the proper parameters as shown in the screenshot
     const forecastResponse = await axios.get('https://api.open-meteo.com/v1/forecast', {
       params: {
         latitude,
         longitude,
-        hourly: ['temperature_2m', 'relative_humidity_2m', 'precipitation_probability', 'weather_code', 'apparent_temperature', 'wind_speed_10m'],
+        hourly: [
+          'temperature_2m',
+          'relative_humidity_2m',
+          'precipitation_probability',
+          'weather_code',
+          'apparent_temperature',
+          'wind_speed_10m'
+        ],
         temperature_unit: 'fahrenheit',
         wind_speed_unit: 'mph',
-        timezone: 'auto'
+        timezone: 'auto',
+        start_date: date.toISOString().split('T')[0],
+        end_date: endDate.toISOString().split('T')[0]
       }
     });
 
@@ -62,30 +75,22 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
       return null;
     }
 
-    // Find matching time for the target date
-    const timeIndex = hourlyData.time.findIndex((time: string) => 
-      new Date(time).getTime() >= date.getTime()
-    );
+    // Get the noon time index (middle of the day) for the weather
+    const noonIndex = 12; // Since we're starting from 00:00, index 12 is noon
 
-    if (timeIndex === -1) {
-      console.error('No forecast data available for the target date');
-      return null;
-    }
-
-    const weatherCode = hourlyData.weather_code[timeIndex];
-    const description = getWeatherDescription(weatherCode);
-    const temperature = hourlyData.temperature_2m[timeIndex];
-    const windSpeed = hourlyData.wind_speed_10m[timeIndex];
-    const precipProb = hourlyData.precipitation_probability[timeIndex];
+    const weatherCode = hourlyData.weather_code[noonIndex];
+    const temperature = hourlyData.temperature_2m[noonIndex];
+    const windSpeed = hourlyData.wind_speed_10m[noonIndex];
+    const precipProb = hourlyData.precipitation_probability[noonIndex];
 
     const weatherData: WeatherData = {
-      description,
+      description: getWeatherDescription(weatherCode),
       temperature,
-      feels_like: hourlyData.apparent_temperature[timeIndex],
-      humidity: hourlyData.relative_humidity_2m[timeIndex],
+      feels_like: hourlyData.apparent_temperature[noonIndex],
+      humidity: hourlyData.relative_humidity_2m[noonIndex],
       wind_speed: windSpeed,
       precipitation_probability: precipProb,
-      is_suitable_for_outdoor: isSuitableForOutdoor(temperature, windSpeed, precipProb, description)
+      is_suitable_for_outdoor: isSuitableForOutdoor(temperature, windSpeed, precipProb, getWeatherDescription(weatherCode))
     };
 
     console.log('Processed weather data:', weatherData);
