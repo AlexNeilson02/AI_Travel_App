@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, Home, Map, Calendar, Globe, Sparkles } from "lucide-react";
+import { LogOut, Home, Map, Calendar, Globe } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Nav() {
@@ -12,7 +12,6 @@ export default function Nav() {
   const navItems = [
     { href: "/", label: "Home", icon: Home },
     { href: "/plan", label: "Plan Trip", icon: Map },
-    { href: "/ai-suggestions", label: "AI Suggestions", icon: Sparkles, className: "text-primary" },
     { href: "/my-trips", label: "My Trips", icon: Calendar },
     { href: "/maps", label: "Maps", icon: Globe },
   ];
@@ -42,15 +41,15 @@ export default function Nav() {
         </header>
 
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t">
-          <div className="grid grid-cols-5 h-16">
+          <div className="grid grid-cols-4 h-16">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 className="flex flex-col items-center justify-center gap-1"
               >
-                <item.icon className={`h-5 w-5 ${location === item.href ? 'text-primary' : item.className || 'text-muted-foreground'}`} />
-                <span className={`text-xs ${location === item.href ? 'text-primary font-medium' : item.className || 'text-muted-foreground'}`}>
+                <item.icon className={`h-5 w-5 ${location === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className={`text-xs ${location === item.href ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
                   {item.label}
                 </span>
               </Link>
@@ -74,7 +73,7 @@ export default function Nav() {
                 key={item.href}
                 variant={location === item.href ? "secondary" : "ghost"}
                 asChild
-                className={`ml-2 ${item.className || ''}`}
+                className="ml-2"
               >
                 <Link href={item.href}>
                   <item.icon className="mr-2 h-4 w-4" />
