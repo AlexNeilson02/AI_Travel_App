@@ -15,19 +15,34 @@ type Destination = {
 // Default destinations as fallback
 const defaultDestinations = [
   {
-    name: "Greece",
-    image: "https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=1000",
-    description: "Ancient ruins and stunning islands"
+    name: "Kyoto, Japan",
+    image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1000",
+    description: "Ancient temples and traditional gardens"
   },
   {
-    name: "Italy",
-    image: "https://images.unsplash.com/photo-1534445867742-43195f401b6c?q=80&w=1000",
-    description: "Historic cities and delicious cuisine"
+    name: "Santorini, Greece",
+    image: "https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?q=80&w=1000",
+    description: "Stunning sunsets and white-washed architecture"
   },
   {
-    name: "Japan",
-    image: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?q=80&w=1000",
-    description: "Blend of tradition and technology"
+    name: "Maui, Hawaii",
+    image: "https://images.unsplash.com/photo-1542259009477-d625272157b7?q=80&w=1000",
+    description: "Tropical paradise with pristine beaches"
+  },
+  {
+    name: "Swiss Alps",
+    image: "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?q=80&w=1000",
+    description: "Breathtaking mountain landscapes"
+  },
+  {
+    name: "Marrakech, Morocco",
+    image: "https://images.unsplash.com/photo-1597211684565-dca64d72c52f?q=80&w=1000",
+    description: "Vibrant markets and rich culture"
+  },
+  {
+    name: "Bali, Indonesia",
+    image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=1000",
+    description: "Tropical temples and rice terraces"
   }
 ];
 
