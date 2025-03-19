@@ -127,7 +127,7 @@ export default function PlanTrip() {
                 duration: activity.duration || "2 hours",
                 notes: activity.notes || "",
                 isEdited: false,
-                url: activity.url,
+                url: activity.url || null,
               })),
             },
             aiSuggestions: {
@@ -135,9 +135,9 @@ export default function PlanTrip() {
               weatherContext: day.weatherContext ? {
                 description: day.weatherContext.description,
                 temperature: day.weatherContext.temperature,
-                feels_like: day.weatherContext.feels_like,
-                humidity: day.weatherContext.humidity,
-                wind_speed: day.weatherContext.wind_speed,
+                feels_like: day.weatherContext.feels_like || day.weatherContext.temperature, 
+                humidity: day.weatherContext.humidity || 50, 
+                wind_speed: day.weatherContext.wind_speed || 0, 
                 precipitation_probability: day.weatherContext.precipitation_probability,
                 is_suitable_for_outdoor: day.weatherContext.is_suitable_for_outdoor
               } : undefined,
