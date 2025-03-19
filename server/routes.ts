@@ -132,23 +132,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
                            day.activities?.timeSlots ? day.activities.timeSlots : [];
 
         // Format activities into the expected structure
-        const formattedActivities = rawActivities.map((activity: any) => ({
-          time: activity.time || "TBD",
-          activity: activity.activity || activity.name || "Free time",
-          location: activity.location || "TBD",
-          duration: activity.duration || "2 hours",
-          cost: activity.cost || 0,
-          notes: activity.notes || "",
-          isEdited: false,
-          url: activity.url || null,
-          originalSuggestion: activity.activity || activity.name,
-          isOutdoor: activity.isOutdoor || false
-        }));
+        const formattedActivities = rawActivities.map((activity: any) => {
+          if (typeof activity === 'string') {
+            return {
+              time: "TBD",
+              activity: activity,
+              location: "",
+              duration: "2 hours",
+              cost: 0,
+              totalCost: 0,
+              notes: "",
+              isEdited: false,
+              isOutdoor: activity.toLowerCase().includes('outdoor')
+            };
+          }
+          return {
+            time: activity.time || "TBD",
+            activity: activity.activity || activity.name || "",
+            location: activity.location || "",
+            duration: activity.duration || "2 hours",
+            cost: activity.cost || 0,
+            totalCost: (activity.cost || 0) * numberOfPeople,
+            notes: activity.notes || "",
+            isEdited: false,
+            url: activity.url,
+            originalSuggestion: activity.activity || activity.name,
+            isOutdoor: activity.isOutdoor || false
+          };
+        });
 
         // Check for weather impact on outdoor activities
         let alternativeActivities: string[] = [];
         if (weatherData && !weatherData.is_suitable_for_outdoor) {
-          const outdoorActivities = formattedActivities.filter(activity =>
+          const outdoorActivities = formattedActivities.filter((activity: any) =>
             activity.isOutdoor || activity.activity.toLowerCase().includes('outdoor')
           );
           for (const activity of outdoorActivities) {
@@ -166,28 +182,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           accommodation: {
             name: day.accommodation?.name || "TBD",
             cost: day.accommodation?.cost || 0,
-            location: day.accommodation?.location || "",
-            url: day.accommodation?.url || null
+            totalCost: (day.accommodation?.cost || 0) * numberOfPeople,
+            url: day.accommodation?.url || null,
+            location: day.accommodation?.location || ""
           },
           meals: {
             budget: day.meals?.budget || 0,
             totalBudget: (day.meals?.budget || 0) * numberOfPeople
           },
-          aiSuggestions: {
-            reasoning: "AI-generated suggestion",
-            weatherContext: weatherData ? {
-              description: weatherData.description,
-              temperature: weatherData.temperature,
-              feels_like: weatherData.feels_like || weatherData.temperature, // Fallback to temperature if feels_like is missing
-              humidity: weatherData.humidity || 50, // Default humidity if missing
-              wind_speed: weatherData.wind_speed || 0, // Default wind speed if missing
-              precipitation_probability: weatherData.precipitation_probability,
-              is_suitable_for_outdoor: weatherData.is_suitable_for_outdoor
-            } : undefined,
-            alternativeActivities: alternativeActivities
-          },
-          userFeedback: "",
-          isFinalized: false
+          weatherContext: weatherData ? {
+            description: weatherData.description,
+            temperature: weatherData.temperature,
+            precipitation_probability: weatherData.precipitation_probability,
+            is_suitable_for_outdoor: weatherData.is_suitable_for_outdoor
+          } : undefined,
+          alternativeActivities: alternativeActivities
         };
       }));
 
