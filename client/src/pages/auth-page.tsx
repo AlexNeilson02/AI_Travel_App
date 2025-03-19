@@ -139,6 +139,13 @@ export default function AuthPage() {
         </div>
 
         <div className="flex flex-col justify-center md:mt-0 mt-8">
+          <div className="hidden md:block mb-8">
+            <h1 className="text-4xl font-bold mb-4">AI Travel Planner</h1>
+            <p className="text-muted-foreground">
+              Plan your perfect trip with AI-powered suggestions, manage your
+              itinerary, and track your budget - all in one place.
+            </p>
+          </div>
           <div className="relative h-[300px] rounded-lg overflow-hidden hidden md:block">
             <img
               src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1"
