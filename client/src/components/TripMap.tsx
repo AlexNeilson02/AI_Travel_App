@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
-import { GoogleMap, useLoadScript, MarkerF } from '@react-google-maps/api';
+import { GoogleMap, useLoadScript, MarkerF, InfoWindowF } from '@react-google-maps/api';
+import { Button } from '@/components/ui/button';
+import { Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface Location {
   title: string;
   lat: number;
   lng: number;
   type: 'activity' | 'accommodation';
+  address?: string;
 }
 
 interface TripMapProps {
@@ -28,6 +32,8 @@ const mapContainerStyle = {
 export default function TripMap({ activities, accommodation }: TripMapProps) {
   const [locations, setLocations] = useState<Location[]>([]);
   const [center, setCenter] = useState({ lat: 0, lng: 0 });
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const { toast } = useToast();
 
   // Make sure we have a valid API key
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
@@ -39,6 +45,14 @@ export default function TripMap({ activities, accommodation }: TripMapProps) {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: apiKey,
   });
+
+  const handleCopyAddress = (address: string) => {
+    navigator.clipboard.writeText(address);
+    toast({
+      title: "Address copied",
+      description: "The location address has been copied to your clipboard.",
+    });
+  };
 
   useEffect(() => {
     const geocodeLocation = async (address: string, title: string, type: 'activity' | 'accommodation') => {
@@ -59,7 +73,8 @@ export default function TripMap({ activities, accommodation }: TripMapProps) {
           return {
             title,
             ...data.results[0].geometry.location,
-            type
+            type,
+            address: data.results[0].formatted_address
           };
         } else {
           console.warn(`No location found for address: ${address}`);
@@ -125,12 +140,14 @@ export default function TripMap({ activities, accommodation }: TripMapProps) {
             }
           ]
         }}
+        onClick={() => setSelectedLocation(null)}
       >
         {locations.map((location, index) => (
           <MarkerF
             key={index}
             position={{ lat: location.lat, lng: location.lng }}
             title={location.title}
+            onClick={() => setSelectedLocation(location)}
             icon={{
               url: location.type === 'accommodation' 
                 ? 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
@@ -138,6 +155,40 @@ export default function TripMap({ activities, accommodation }: TripMapProps) {
             }}
           />
         ))}
+
+        {selectedLocation && (
+          <InfoWindowF
+            position={{ lat: selectedLocation.lat, lng: selectedLocation.lng }}
+            onCloseClick={() => setSelectedLocation(null)}
+          >
+            <div className="p-2 max-w-sm">
+              <h3 className="font-medium text-lg mb-1">{selectedLocation.title}</h3>
+              {selectedLocation.address && (
+                <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="flex-1">{selectedLocation.address}</p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyAddress(selectedLocation.address!);
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <div className="mt-2">
+                <div className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary inline-block">
+                  {selectedLocation.type === 'accommodation' ? 'Accommodation' : 'Activity'}
+                </div>
+              </div>
+            </div>
+          </InfoWindowF>
+        )}
       </GoogleMap>
       {locations.length === 0 && 
         <div className="absolute top-0 left-0 right-0 bg-yellow-100 p-2 text-sm text-yellow-800">
