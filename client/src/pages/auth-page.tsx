@@ -30,6 +30,9 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="absolute top-4 right-4">
+        <img src="/images/juno-logo.png" alt="Juno" className="h-12 w-auto" />
+      </div>
       <div className="w-full max-w-[1200px] grid md:grid-cols-2 gap-8">
         <div className="flex flex-col justify-center">
           <Card className="p-6">
