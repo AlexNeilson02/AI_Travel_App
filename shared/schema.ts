@@ -2,7 +2,7 @@ import { pgTable, text, serial, integer, jsonb, timestamp, boolean, decimal } fr
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const APP_NAME = "Juno"; // Added app title constant
+export const APP_NAME = "Juno";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -50,6 +50,9 @@ export const trips = pgTable("trips", {
         weatherContext?: {
           description: string;
           temperature: number;
+          feels_like: number;
+          humidity: number;
+          wind_speed: number;
           precipitation_probability: number;
           is_suitable_for_outdoor: boolean;
         };
@@ -182,6 +185,9 @@ export const insertTripSchema = createInsertSchema(trips)
           weatherContext: z.object({
             description: z.string(),
             temperature: z.number(),
+            feels_like: z.number(),
+            humidity: z.number(),
+            wind_speed: z.number(),
             precipitation_probability: z.number(),
             is_suitable_for_outdoor: z.boolean(),
           }).optional(),

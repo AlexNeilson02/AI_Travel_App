@@ -122,7 +122,7 @@ export default function PlanTrip() {
             activities: {
               timeSlots: day.activities.timeSlots.map((activity: any) => ({
                 time: activity.time || "00:00",
-                activity: activity.name || activity.activity,
+                activity: activity.activity || activity.name,
                 location: activity.location || "TBD",
                 duration: activity.duration || "2 hours",
                 notes: activity.notes || "",
@@ -131,9 +131,17 @@ export default function PlanTrip() {
               })),
             },
             aiSuggestions: {
-              reasoning: day.aiSuggestions?.reasoning || "Initial AI suggestion",
-              weatherContext: day.weatherContext,
-              alternativeActivities: day.alternativeActivities || [],
+              reasoning: "AI-generated suggestion",
+              weatherContext: day.weatherContext ? {
+                description: day.weatherContext.description,
+                temperature: day.weatherContext.temperature,
+                feels_like: day.weatherContext.feels_like,
+                humidity: day.weatherContext.humidity,
+                wind_speed: day.weatherContext.wind_speed,
+                precipitation_probability: day.weatherContext.precipitation_probability,
+                is_suitable_for_outdoor: day.weatherContext.is_suitable_for_outdoor
+              } : undefined,
+              alternativeActivities: day.alternativeActivities || []
             },
             userFeedback: "",
             isFinalized: false,
@@ -159,6 +167,7 @@ export default function PlanTrip() {
       setSuggestions(null);
       setChatHistory([]);
       setCurrentQuestion("");
+      queryClient.invalidateQueries({ queryKey: ['/api/trips'] });
     },
     onError: (error: Error) => {
       toast({
