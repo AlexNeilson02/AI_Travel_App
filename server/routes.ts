@@ -14,11 +14,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     console.log('Received trip creation request:', req.body);
-    const tripData = insertTripSchema.parse(req.body);
-    console.log('Parsed trip data:', tripData);
-    const trip = await storage.createTrip(req.user.id, tripData);
-    console.log('Created trip:', trip);
-    res.status(201).json(trip);
+
+    // Ensure the request body has proper defaults for accommodation and meals
+    const requestBody = {
+      ...req.body,
+      itinerary: req.body.itinerary ? {
+        days: req.body.itinerary.days.map((day: any) => ({
+          ...day,
+          accommodation: day.accommodation || {
+            name: "TBD",
+            cost: 0,
+            totalCost: 0,
+            location: ""
+          },
+          meals: day.meals || {
+            budget: 0,
+            totalBudget: 0
+          }
+        }))
+      } : undefined
+    };
+
+    try {
+      const tripData = insertTripSchema.parse(requestBody);
+      console.log('Parsed trip data:', tripData);
+      const trip = await storage.createTrip(req.user.id, tripData);
+      console.log('Created trip:', trip);
+      res.status(201).json(trip);
+    } catch (error) {
+      console.error('Validation error:', error);
+      res.status(400).json({ error: 'Invalid trip data' });
+    }
   });
 
   app.get("/api/trips", async (req, res) => {

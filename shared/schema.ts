@@ -193,18 +193,18 @@ export const insertTripSchema = createInsertSchema(trips)
             cost: z.number().optional(),
             totalCost: z.number().optional(),
           })),
-        }),
+        }).optional(),
         accommodation: z.object({
           name: z.string(),
           cost: z.number(),
           totalCost: z.number(),
           url: z.string().optional().nullable(),
           location: z.string(),
-        }),
+        }).optional(),
         meals: z.object({
           budget: z.number(),
           totalBudget: z.number(),
-        }),
+        }).optional(),
         weatherContext: z.object({
           description: z.string(),
           temperature: z.number(),
@@ -216,7 +216,7 @@ export const insertTripSchema = createInsertSchema(trips)
           alternativeActivities: z.array(z.string()),
         }).optional(),
         userFeedback: z.string().optional(),
-        isFinalized: z.boolean(),
+        isFinalized: z.boolean().optional().default(false),
       })),
     }).optional(),
   });
