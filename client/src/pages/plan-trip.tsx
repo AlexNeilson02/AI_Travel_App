@@ -522,7 +522,7 @@ export default function PlanTrip() {
 
                     <Button
                       type="submit"
-                      className="w-full"
+                      className="w-full text-white"
                       disabled={suggestMutation.isPending}
                     >
                       {suggestMutation.isPending ? (
