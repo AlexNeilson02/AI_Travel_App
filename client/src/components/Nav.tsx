@@ -40,7 +40,6 @@ export default function Nav() {
           </div>
         </header>
 
-        {/* Mobile Bottom Navigation */}
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t">
           <div className="grid grid-cols-4 h-16">
             {navItems.map((item) => (
@@ -57,8 +56,7 @@ export default function Nav() {
             ))}
           </div>
         </nav>
-      </header>
-    </>
+      </>
     );
   }
 
@@ -68,39 +66,40 @@ export default function Nav() {
         <Link href="/" className="mr-6 flex items-center space-x-2">
           <img src="/a340adbb-a64e-42f7-aa3a-6ce1afa0c057.png" alt="Juno" className="h-8 w-auto" />
         </Link>
-        <div className="ml-4">
-        <div className="flex">
-          {navItems.map((item) => (
-            <Button
-              key={item.href}
-              variant={location === item.href ? "secondary" : "ghost"}
-              asChild
-              className="ml-2"
-            >
-              <Link href={item.href}>
-                <item.icon className="mr-2 h-4 w-4" />
-                {item.label}
-              </Link>
-            </Button>
-          ))}
-        </div>
-        <div className="flex flex-1 items-center justify-end space-x-2">
-          {user && (
-            <div className="flex items-center">
-              <span className="text-sm mr-2 text-muted-foreground">
-                {user.username}
-              </span>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => logoutMutation.mutate()}
-                disabled={logoutMutation.isPending}
+        <div className="flex flex-1 items-center">
+          <div className="flex">
+            {navItems.map((item) => (
+              <Button
+                key={item.href}
+                variant={location === item.href ? "secondary" : "ghost"}
+                asChild
+                className="ml-2"
               >
-                <LogOut className="h-5 w-5" />
-                <span className="sr-only">Logout</span>
+                <Link href={item.href}>
+                  <item.icon className="mr-2 h-4 w-4" />
+                  {item.label}
+                </Link>
               </Button>
-            </div>
-          )}
+            ))}
+          </div>
+          <div className="flex flex-1 items-center justify-end space-x-2">
+            {user && (
+              <div className="flex items-center">
+                <span className="text-sm mr-2 text-muted-foreground">
+                  {user.username}
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => logoutMutation.mutate()}
+                  disabled={logoutMutation.isPending}
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span className="sr-only">Logout</span>
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>
