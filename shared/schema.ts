@@ -32,6 +32,7 @@ export const trips = pgTable("trips", {
   itinerary: jsonb("itinerary").$type<{
     days: {
       date: string;
+      dayOfWeek?: string;
       activities: {
         timeSlots: {
           time: string;
@@ -43,19 +44,29 @@ export const trips = pgTable("trips", {
           url?: string;
           originalSuggestion?: string;
           isOutdoor?: boolean;
+          cost?: number;
+          totalCost?: number;
         }[];
       };
-      aiSuggestions: {
+      accommodation: {
+        name: string;
+        cost: number;
+        totalCost: number;
+        url?: string | null;
+        location: string;
+      };
+      meals: {
+        budget: number;
+        totalBudget: number;
+      };
+      weatherContext?: {
+        description: string;
+        temperature: number;
+        precipitation_probability: number;
+        is_suitable_for_outdoor: boolean;
+      };
+      aiSuggestions?: {
         reasoning: string;
-        weatherContext?: {
-          description: string;
-          temperature: number;
-          feels_like: number;
-          humidity: number;
-          wind_speed: number;
-          precipitation_probability: number;
-          is_suitable_for_outdoor: boolean;
-        };
         alternativeActivities: string[];
       };
       userFeedback?: string;
@@ -167,6 +178,7 @@ export const insertTripSchema = createInsertSchema(trips)
     itinerary: z.object({
       days: z.array(z.object({
         date: z.string(),
+        dayOfWeek: z.string().optional(),
         activities: z.object({
           timeSlots: z.array(z.object({
             time: z.string(),
@@ -178,21 +190,31 @@ export const insertTripSchema = createInsertSchema(trips)
             url: z.string().optional(),
             originalSuggestion: z.string().optional(),
             isOutdoor: z.boolean().optional(),
+            cost: z.number().optional(),
+            totalCost: z.number().optional(),
           })),
         }),
+        accommodation: z.object({
+          name: z.string(),
+          cost: z.number(),
+          totalCost: z.number(),
+          url: z.string().optional().nullable(),
+          location: z.string(),
+        }),
+        meals: z.object({
+          budget: z.number(),
+          totalBudget: z.number(),
+        }),
+        weatherContext: z.object({
+          description: z.string(),
+          temperature: z.number(),
+          precipitation_probability: z.number(),
+          is_suitable_for_outdoor: z.boolean(),
+        }).optional(),
         aiSuggestions: z.object({
           reasoning: z.string(),
-          weatherContext: z.object({
-            description: z.string(),
-            temperature: z.number(),
-            feels_like: z.number().optional(),
-            humidity: z.number().optional(),
-            wind_speed: z.number().optional(),
-            precipitation_probability: z.number(),
-            is_suitable_for_outdoor: z.boolean(),
-          }).optional(),
           alternativeActivities: z.array(z.string()),
-        }),
+        }).optional(),
         userFeedback: z.string().optional(),
         isFinalized: z.boolean(),
       })),
