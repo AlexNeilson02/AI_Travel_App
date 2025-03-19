@@ -16,7 +16,7 @@ if (!process.env.DATABASE_URL) {
 // Configure the connection pool with proper settings
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  maxConnections: 10,
+  max: 10, // max number of clients in the pool
   connectionTimeoutMillis: 0,
   idleTimeoutMillis: 0,
   keepAlive: true
@@ -28,5 +28,6 @@ export const db = drizzle(pool, { schema });
 // Add connection error handling
 pool.on('error', (err) => {
   console.error('Unexpected error on idle database client', err);
-  process.exit(-1);
+  // Don't exit the process, just log the error
+  // This allows the application to continue running and retry connections
 });
