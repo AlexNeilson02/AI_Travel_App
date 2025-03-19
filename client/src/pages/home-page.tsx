@@ -8,41 +8,25 @@ import { useEffect, useState } from "react";
 type Destination = {
   name: string;
   image: string;
-  description?: string;
-  count?: number;
 };
 
-// Default destinations as fallback
+// Default destinations
 const defaultDestinations = [
   {
-    name: "Kyoto, Japan",
-    image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1000",
-    description: "Ancient temples and traditional gardens"
+    name: "Paris, France",
+    image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=1000",
   },
   {
-    name: "Santorini, Greece",
-    image: "https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?q=80&w=1000",
-    description: "Stunning sunsets and white-washed architecture"
+    name: "Maldives",
+    image: "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?q=80&w=1000",
   },
   {
-    name: "Maui, Hawaii",
-    image: "https://images.unsplash.com/photo-1542259009477-d625272157b7?q=80&w=1000",
-    description: "Tropical paradise with pristine beaches"
+    name: "New York City, USA",
+    image: "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?q=80&w=1000",
   },
   {
-    name: "Swiss Alps",
-    image: "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?q=80&w=1000",
-    description: "Breathtaking mountain landscapes"
-  },
-  {
-    name: "Marrakech, Morocco",
-    image: "https://images.unsplash.com/photo-1597211684565-dca64d72c52f?q=80&w=1000",
-    description: "Vibrant markets and rich culture"
-  },
-  {
-    name: "Bali, Indonesia",
-    image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=1000",
-    description: "Tropical temples and rice terraces"
+    name: "Tokyo, Japan",
+    image: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=1000",
   }
 ];
 
@@ -125,10 +109,7 @@ export default function HomePage() {
                     }}
                   />
                 </div>
-                <h3 className="text-center font-medium">{destination.name}</h3>
-                {destination.description && (
-                  <p className="text-sm text-center text-gray-600">{destination.description}</p>
-                )}
+                <h3 className="text-center font-medium text-lg">{destination.name}</h3>
               </div>
             ))}
           </div>
