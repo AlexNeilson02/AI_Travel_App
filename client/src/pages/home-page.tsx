@@ -68,27 +68,54 @@ export default function HomePage() {
         {/* Popular Destinations */}
         <section className="mb-12 bg-neutral-100 p-6 rounded-lg">
           <h2 className="text-2xl font-bold mb-6">Popular Destinations</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {destinations.map((destination) => (
-              <div 
-                key={destination.title} 
-                className="group cursor-pointer"
-              >
-                <div className="aspect-[4/3] relative bg-neutral-200 rounded-lg overflow-hidden mb-2">
-                  <img
-                    src={destination.image}
-                    alt={destination.title}
-                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-black/30 flex items-end p-4">
-                    <div className="text-white">
-                      <h3 className="font-semibold text-lg">{destination.title}</h3>
-                      <p className="text-sm text-white/90">{destination.description}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-4">
+            {/* Mobile Slider */}
+            <div className="flex overflow-x-auto snap-x snap-mandatory lg:hidden -mx-6 px-6 pb-6 -mb-6 gap-4">
+              {destinations.map((destination) => (
+                <div 
+                  key={destination.title}
+                  className="flex-none w-[280px] snap-center"
+                >
+                  <div className="aspect-[4/3] relative bg-neutral-200 rounded-lg overflow-hidden">
+                    <img
+                      src={destination.image}
+                      alt={destination.title}
+                      className="object-cover w-full h-full"
+                    />
+                    <div className="absolute inset-0 bg-black/30 flex items-end p-4">
+                      <div className="text-white">
+                        <h3 className="font-semibold text-lg">{destination.title}</h3>
+                        <p className="text-sm text-white/90">{destination.description}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            {/* Desktop Grid */}
+            <div className="hidden lg:grid lg:grid-cols-4 gap-4">
+              {destinations.map((destination) => (
+                <div 
+                  key={destination.title}
+                  className="group cursor-pointer"
+                >
+                  <div className="aspect-[4/3] relative bg-neutral-200 rounded-lg overflow-hidden">
+                    <img
+                      src={destination.image}
+                      alt={destination.title}
+                      className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black/30 flex items-end p-4">
+                      <div className="text-white">
+                        <h3 className="font-semibold text-lg">{destination.title}</h3>
+                        <p className="text-sm text-white/90">{destination.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
