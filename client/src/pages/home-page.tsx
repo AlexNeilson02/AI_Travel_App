@@ -58,7 +58,7 @@ export default function HomePage() {
           />
           <div className="absolute bottom-6 right-6">
             <Link href="/plan">
-              <Button size="lg" className="rounded-full">
+              <Button size="lg" className="rounded-full text-white">
                 Start Planning
               </Button>
             </Link>
