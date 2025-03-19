@@ -32,6 +32,11 @@ export default function AuthPage() {
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="w-full max-w-[1200px] grid md:grid-cols-2 gap-4">
         <div className="flex flex-col justify-center">
+          <h1 className="text-4xl font-bold mb-4">AI Travel Planner</h1>
+          <p className="text-muted-foreground mb-8">
+            Plan your perfect trip with AI-powered suggestions, manage your
+            itinerary, and track your budget - all in one place.
+          </p>
           <div className="mb-0 flex justify-center">
             <img src="/a340adbb-a64e-42f7-aa3a-6ce1afa0c057.png" alt="Juno" className="h-48 w-auto" />
           </div>
@@ -134,11 +139,6 @@ export default function AuthPage() {
         </div>
 
         <div className="flex flex-col justify-center md:mt-0 mt-8">
-          <h1 className="text-4xl font-bold mb-4">AI Travel Planner</h1>
-          <p className="text-muted-foreground mb-8">
-            Plan your perfect trip with AI-powered suggestions, manage your
-            itinerary, and track your budget - all in one place.
-          </p>
           <div className="relative h-[300px] rounded-lg overflow-hidden hidden md:block">
             <img
               src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1"
