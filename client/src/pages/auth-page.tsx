@@ -35,11 +35,13 @@ export default function AuthPage() {
           <div className="mb-8 flex justify-center">
             <img src="/a340adbb-a64e-42f7-aa3a-6ce1afa0c057.png" alt="Juno" className="h-48 w-auto" />
           </div>
-          <h1 className="text-4xl font-bold mb-4 text-center">AI Travel Planner</h1>
-          <p className="text-muted-foreground mb-8 text-center">
-            Plan your perfect trip with AI-powered suggestions, manage your
-            itinerary, and track your budget - all in one place.
-          </p>
+          <div className="md:hidden">
+            <h1 className="text-4xl font-bold mb-4 text-center">AI Travel Planner</h1>
+            <p className="text-muted-foreground mb-8 text-center">
+              Plan your perfect trip with AI-powered suggestions, manage your
+              itinerary, and track your budget - all in one place.
+            </p>
+          </div>
           <Card className="p-4">
             <Tabs defaultValue="login">
               <TabsList className="grid w-full grid-cols-2">
