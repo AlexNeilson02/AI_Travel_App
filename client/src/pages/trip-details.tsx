@@ -18,6 +18,7 @@ import {
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import TripMap from "@/components/TripMap";
 
 interface ExtendedTrip extends Trip {
   tripDays?: any[];
@@ -90,7 +91,7 @@ export default function TripDetails() {
           </Link>
         </Button>
 
-        <Card>
+        <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-2xl">{trip.title}</CardTitle>
             <div className="flex items-center text-muted-foreground">
@@ -99,6 +100,21 @@ export default function TripDetails() {
             </div>
           </CardHeader>
           <CardContent>
+            {trip.itinerary?.days && trip.itinerary.days.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-medium mb-2">Trip Map</h3>
+                <TripMap
+                  activities={trip.itinerary.days.flatMap(day =>
+                    day.activities.timeSlots.map(slot => ({
+                      activity: slot.activity,
+                      location: slot.location
+                    }))
+                  )}
+                  accommodation={trip.itinerary.days[0].accommodation}
+                />
+              </div>
+            )}
+
             <div className="space-y-6">
               <div>
                 <h3 className="font-medium mb-2">Trip Details</h3>
@@ -152,7 +168,6 @@ export default function TripDetails() {
                               <h4 className="font-medium">
                                 {format(new Date(day.date), "EEEE, MMMM d, yyyy")}
                               </h4>
-                              {/* Weather Display */}
                               {day.aiSuggestions?.weatherContext && (
                                 <div className="flex items-center gap-4 text-base bg-muted p-3 rounded-lg w-full">
                                   <div className="flex items-center gap-2">
@@ -175,7 +190,6 @@ export default function TripDetails() {
                             </div>
                           </div>
 
-                          {/* Weather Warning */}
                           {day.aiSuggestions?.weatherContext && !day.aiSuggestions.weatherContext.is_suitable_for_outdoor && (
                             <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-900/50">
                               <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
