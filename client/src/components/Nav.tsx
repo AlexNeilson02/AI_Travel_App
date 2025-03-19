@@ -51,6 +51,7 @@ export default function Nav() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
+        <h1 className="text-4xl font-bold mr-4">TripPlanner</h1> {/* Added large heading */}
         <Link href="/" className="mr-4 flex items-center space-x-2">
           <span className="font-bold">AI Travel Planner</span>
         </Link>

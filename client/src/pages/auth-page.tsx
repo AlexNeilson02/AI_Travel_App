@@ -43,6 +43,9 @@ export default function AuthPage() {
               </TabsList>
 
               <TabsContent value="login">
+  <div className="mb-6">
+    <h1 className="text-3xl font-bold text-center">Welcome to TripPlanner</h1>
+  </div>
                 <form
                   onSubmit={loginForm.handleSubmit((data) =>
                     loginMutation.mutate(data)
