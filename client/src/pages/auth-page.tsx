@@ -33,7 +33,7 @@ export default function AuthPage() {
       <div className="w-full max-w-[1200px] grid md:grid-cols-2 gap-4">
         <div className="flex flex-col justify-center">
           <div className="mb-0 flex justify-center">
-            <img src="/j2.jpg" alt="Juno" className="h-96 w-auto" />
+            <img src="/a340adbb-a64e-42f7-aa3a-6ce1afa0c057.png" alt="Juno" className="h-96 w-auto" />
           </div>
           <Card className="p-4">
             <Tabs defaultValue="login">
