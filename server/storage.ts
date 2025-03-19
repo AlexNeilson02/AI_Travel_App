@@ -87,7 +87,7 @@ export class DatabaseStorage implements IStorage {
 
     const [newTrip] = await db
       .insert(trips)
-      .values(tripData)
+      .values([tripData])
       .returning();
 
     return newTrip;
