@@ -29,13 +29,13 @@ export default function AuthPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-[1200px] grid md:grid-cols-2 gap-8">
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="w-full max-w-[1200px] grid md:grid-cols-2 gap-4">
         <div className="flex flex-col justify-center">
-          <div className="mb-[10px] flex justify-center">
-            <img src="/j2.webp" alt="Juno" className="h-120 w-auto" />
+          <div className="mb-0 flex justify-center">
+            <img src="/j2.webp" alt="Juno" className="h-96 w-auto" />
           </div>
-          <Card className="p-6">
+          <Card className="p-4">
             <Tabs defaultValue="login">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Login</TabsTrigger>
