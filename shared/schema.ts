@@ -185,9 +185,9 @@ export const insertTripSchema = createInsertSchema(trips)
           weatherContext: z.object({
             description: z.string(),
             temperature: z.number(),
-            feels_like: z.number(),
-            humidity: z.number(),
-            wind_speed: z.number(),
+            feels_like: z.number().optional(),
+            humidity: z.number().optional(),
+            wind_speed: z.number().optional(),
             precipitation_probability: z.number(),
             is_suitable_for_outdoor: z.boolean(),
           }).optional(),

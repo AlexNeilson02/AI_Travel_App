@@ -111,7 +111,7 @@ Important:
       console.log('Weather data for', date, ':', weatherData);
 
       // Format each day's data including weather
-      return {
+      const dayData = {
         date: format(new Date(date), 'yyyy-MM-dd'),
         dayOfWeek: format(new Date(date), 'EEEE'),
         activities: {
@@ -123,7 +123,8 @@ Important:
             cost: activity.cost || 0,
             notes: activity.notes || "",
             url: activity.url || null,
-            isEdited: false
+            isEdited: false,
+            isOutdoor: activity.isOutdoor || false
           }))
         },
         accommodation: {
@@ -135,12 +136,23 @@ Important:
         meals: {
           budget: existingDay?.meals?.budget || 50
         },
-        // Include weather data in the response
-        weatherContext: weatherData || undefined
+        aiSuggestions: {
+          reasoning: existingDay?.aiSuggestions?.reasoning || "Based on your preferences",
+          weatherContext: weatherData ? {
+            description: weatherData.description || "Weather data unavailable",
+            temperature: weatherData.temperature || 0,
+            precipitation_probability: weatherData.precipitation_probability || 0,
+            is_suitable_for_outdoor: weatherData.is_suitable_for_outdoor || true
+          } : undefined,
+          alternativeActivities: existingDay?.aiSuggestions?.alternativeActivities || []
+        },
+        isFinalized: existingDay?.isFinalized || false
       };
+
+      return dayData;
     }));
 
-    console.log('Formatted days with weather:', formattedDays);
+    console.log('Formatted days with weather:', formattedDays[0]);
     return {
       days: formattedDays,
       totalCost: itinerary.totalCost || 0,
