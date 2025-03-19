@@ -32,7 +32,7 @@ export default function AuthPage() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-[1200px] grid md:grid-cols-2 gap-8">
         <div className="flex flex-col justify-center">
-          <div className="mb-6 flex justify-center">
+          <div className="mb-2 flex justify-center">
             <img src="/j2.webp" alt="Juno" className="h-120 w-auto" />
           </div>
           <Card className="p-6">
