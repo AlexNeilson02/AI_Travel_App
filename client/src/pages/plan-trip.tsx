@@ -794,7 +794,7 @@ export default function PlanTrip() {
                       )}
 
                       <Button
-                        className="w-full mt-4"
+                        className="w-full mt-4 text-white"
                         onClick={() => createTripMutation.mutate(form.getValues())}
                         disabled={createTripMutation.isPending}
                       >
