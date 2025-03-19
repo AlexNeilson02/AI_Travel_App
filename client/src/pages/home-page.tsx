@@ -3,72 +3,47 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import Nav from "@/components/Nav";
 import { Star } from "lucide-react";
-import { useEffect, useState } from "react";
 
-type Destination = {
-  name: string;
-  image: string;
-};
-
-// Default destinations
-const defaultDestinations = [
+// Fixed destinations with high-quality images
+const destinations = [
   {
-    name: "Paris, France",
-    image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=1000",
+    title: "Paris, France",
+    description: "City of Lights & Romance",
+    image: "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?q=80&w=2940",
   },
   {
-    name: "Maldives",
-    image: "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?q=80&w=1000",
+    title: "Kyoto, Japan",
+    description: "Ancient Cultural Capital",
+    image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=2940",
   },
   {
-    name: "New York City, USA",
-    image: "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?q=80&w=1000",
+    title: "Santorini, Greece",
+    description: "Mediterranean Paradise",
+    image: "https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?q=80&w=2940",
   },
   {
-    name: "Tokyo, Japan",
-    image: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=1000",
-  }
+    title: "Machu Picchu, Peru",
+    description: "Lost City of the Incas",
+    image: "https://images.unsplash.com/photo-1587595431973-160d0d94add1?q=80&w=2940",
+  },
 ];
 
 const testimonials = [
   {
-    name: "Franccess Wool",
-    text: "Don't just take our word for it—see what fellow travelers are saying!"
+    name: "Sarah Thompson",
+    text: "This AI travel planner made organizing my dream vacation so effortless. Highly recommended!"
   },
   {
-    name: "Franccess Wool",
-    text: "Don't just take our word for it—see what fellow travelers are saying!"
+    name: "James Wilson",
+    text: "The personalized recommendations were spot-on. Saved me hours of research!"
   },
   {
-    name: "Franccess Wool",
-    text: "Don't just take our word for it—see what fellow travelers are saying!"
+    name: "Emma Davis",
+    text: "From itinerary planning to local insights, this platform has everything you need!"
   }
 ];
 
 export default function HomePage() {
-  const [popularDestinations, setPopularDestinations] = useState<Destination[]>(defaultDestinations);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchPopularDestinations() {
-      try {
-        const response = await fetch('/api/popular-destinations');
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.length > 0) {
-            setPopularDestinations(data);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching popular destinations:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchPopularDestinations();
-  }, []);
-
   return (
     <div className="min-h-screen bg-background">
       <Nav />
@@ -93,23 +68,25 @@ export default function HomePage() {
         {/* Popular Destinations */}
         <section className="mb-12 bg-neutral-100 p-6 rounded-lg">
           <h2 className="text-2xl font-bold mb-6">Popular Destinations</h2>
-          <div className="flex overflow-x-auto pb-4 gap-4 snap-x">
-            {popularDestinations.map((destination, index) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {destinations.map((destination) => (
               <div 
-                key={destination.name + index} 
-                className="flex-none w-64 snap-start"
+                key={destination.title} 
+                className="group cursor-pointer"
               >
-                <div className="aspect-[4/3] relative bg-neutral-200 rounded-md overflow-hidden mb-2">
+                <div className="aspect-[4/3] relative bg-neutral-200 rounded-lg overflow-hidden mb-2">
                   <img
                     src={destination.image}
-                    alt={destination.name}
-                    className="object-cover w-full h-full"
-                    onError={(e) => {
-                      e.currentTarget.src = "/a340adbb-a64e-42f7-aa3a-6ce1afa0c057.png"
-                    }}
+                    alt={destination.title}
+                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                   />
+                  <div className="absolute inset-0 bg-black/30 flex items-end p-4">
+                    <div className="text-white">
+                      <h3 className="font-semibold text-lg">{destination.title}</h3>
+                      <p className="text-sm text-white/90">{destination.description}</p>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-center font-medium text-lg">{destination.name}</h3>
               </div>
             ))}
           </div>
@@ -117,10 +94,8 @@ export default function HomePage() {
 
         {/* Testimonials Section */}
         <section className="mb-12">
-          <h2 className="text-xl font-medium mb-4">
-            Don't just take our word for it—see what fellow travelers are saying!
-          </h2>
-          <div className="space-y-4">
+          <h2 className="text-xl font-medium mb-4">What Our Travelers Say</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {testimonials.map((testimonial, index) => (
               <Card key={index} className="shadow-sm">
                 <CardContent className="p-4">
