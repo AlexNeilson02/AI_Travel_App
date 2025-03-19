@@ -68,7 +68,7 @@ export default function HomePage() {
         {/* Popular Destinations */}
         <section className="mb-12 bg-neutral-100 p-6 rounded-lg">
           <h2 className="text-2xl font-bold mb-6">Popular Destinations</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-4">
+          <div className="space-y-4 lg:space-y-0">
             {/* Mobile Slider */}
             <div className="flex overflow-x-auto snap-x snap-mandatory lg:hidden -mx-6 px-6 pb-6 -mb-6 gap-4">
               {destinations.map((destination) => (
@@ -94,7 +94,7 @@ export default function HomePage() {
             </div>
 
             {/* Desktop Grid */}
-            <div className="hidden lg:grid lg:grid-cols-4 gap-4">
+            <div className="hidden lg:grid grid-cols-4 gap-4">
               {destinations.map((destination) => (
                 <div 
                   key={destination.title}
