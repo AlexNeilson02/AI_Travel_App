@@ -980,9 +980,9 @@ export default function PlanTrip() {
                                 <div className="flex items-center justify-between">
                                   <span>Daily Meal Budget</span>
                                   <div className="text-sm text-muted-foreground">
-                                    ${day.meals?.budget} per person
+                                    {formatCurrency(day.meals?.budget || 0, day.currency || 'USD')} per person
                                     {numberOfPeople > 1 &&
-                                      ` (Total: $${(day.meals?.budget || 0) * numberOfPeople})`}
+                                      ` (Total: ${formatCurrency((day.meals?.budget || 0) * numberOfPeople, day.currency || 'USD')})`}
                                   </div>
                                 </div>
                               </div>

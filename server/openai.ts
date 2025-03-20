@@ -96,8 +96,8 @@ Your response must be structured as a JSON object. Return only the JSON object w
     const response = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
-        { role: "system", content: "You are an expert travel planner. Respond only with valid JSON objects." },
-        { role: "user", content: systemPrompt }
+        { role: "system", content: "You are an expert travel planner. Include both local currency and USD. Respond only with valid JSON objects." },
+        { role: "user", content: `${systemPrompt}\nPlease provide costs in both local currency and USD.` }
       ],
       temperature: 0.7,
     });
