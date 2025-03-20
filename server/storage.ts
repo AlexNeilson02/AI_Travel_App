@@ -46,19 +46,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTrip(userId: number, trip: InsertTrip): Promise<Trip> {
-    // Create Date objects and set to UTC midnight
-    const startDate = new Date(trip.startDate);
-    startDate.setUTCHours(0, 0, 0, 0);
-
-    const endDate = new Date(trip.endDate);
-    endDate.setUTCHours(0, 0, 0, 0);
-
     const tripData = {
       ...trip,
       userId,
       isActive: true,
-      startDate,
-      endDate,
       itinerary: trip.itinerary || {
         days: []
       }
@@ -117,19 +108,6 @@ export class DatabaseStorage implements IStorage {
     const currentTrip = await this.getTrip(id);
     if (!currentTrip) {
       throw new Error("Trip not found");
-    }
-
-    // Create proper Date objects for the dates if they're being updated
-    if (tripUpdate.startDate) {
-      const startDate = new Date(tripUpdate.startDate);
-      //startDate.setUTCHours(0, 0, 0, 0);
-      tripUpdate.startDate = startDate;
-    }
-
-    if (tripUpdate.endDate) {
-      const endDate = new Date(tripUpdate.endDate);
-      //endDate.setUTCHours(0, 0, 0, 0);
-      tripUpdate.endDate = endDate;
     }
 
     // Ensure we're properly merging itinerary data

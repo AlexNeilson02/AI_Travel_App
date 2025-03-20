@@ -35,6 +35,7 @@ async function generateFollowUpQuestion(
   }
 }
 
+// Function to generate trip suggestions
 export async function generateTripSuggestions(
   destination: string,
   preferences: string[],
@@ -62,8 +63,8 @@ Your response must be structured as a JSON object. Return only the JSON object w
 {
   "days": [
     {
-      "date": "YYYY-MM-DD",
-      "dayOfWeek": "Day name",
+      "date": "MMM d, yyyy format",
+      "dayOfWeek": "Full day name",
       "activities": {
         "timeSlots": [
           {
@@ -73,7 +74,7 @@ Your response must be structured as a JSON object. Return only the JSON object w
             "duration": "Duration in hours",
             "cost": number,
             "notes": "Additional details",
-            "url": "Optional website URL or empty string",
+            "url": "Optional website URL",
             "isOutdoor": boolean
           }
         ]
@@ -81,18 +82,13 @@ Your response must be structured as a JSON object. Return only the JSON object w
       "accommodation": {
         "name": "Hotel/Place name",
         "cost": number,
-        "location": "Address",
-        "url": "Booking URL or empty string"
+        "location": "Address"
       },
       "meals": {
         "budget": number
       }
     }
-  ],
-  "totalCost": number,
-  "perPersonCost": number,
-  "tips": ["Tip 1", "Tip 2"],
-  "personalizedSuggestions": ["Suggestion based on preferences 1", "Suggestion based on preferences 2"]
+  ]
 }`;
 
   try {
@@ -111,7 +107,6 @@ Your response must be structured as a JSON object. Return only the JSON object w
       throw new Error('No content received from OpenAI');
     }
 
-    console.log('Parsing OpenAI response...');
     let itinerary;
     try {
       itinerary = JSON.parse(content);
@@ -121,34 +116,16 @@ Your response must be structured as a JSON object. Return only the JSON object w
       throw new Error('Failed to parse trip suggestions');
     }
 
-    // Ensure dates are properly set in UTC
-    const parsedStartDate = new Date(startDate);
-    parsedStartDate.setUTCHours(0, 0, 0, 0);
-    const parsedEndDate = new Date(endDate);
-    parsedEndDate.setUTCHours(23, 59, 59, 999); // Set to end of day to include the last day
+    // Format days without any timezone manipulation
+    const formattedDays = await Promise.all(itinerary.days.map(async (day: any) => {
+      const weatherData = await getWeatherForecast(destination, new Date(day.date));
+      console.log('Weather data for', day.date, ':', weatherData);
 
-    const expectedDays = [];
-    let currentDate = new Date(parsedStartDate);
-    // Use <= to include the end date
-    while (currentDate <= parsedEndDate) {
-      expectedDays.push(format(currentDate, 'yyyy-MM-dd'));
-      currentDate = addDays(currentDate, 1);
-    }
-
-    const formattedDays = await Promise.all(expectedDays.map(async (date) => {
-      const existingDay = itinerary.days?.find((d: any) => d.date === date);
-
-      // Create a date object that preserves the local date
-      const localDate = new Date(date + 'T12:00:00'); // Use noon to avoid timezone issues
-
-      const weatherData = await getWeatherForecast(destination, localDate);
-      console.log('Weather data for', date, ':', weatherData);
-
-      const dayData = {
-        date: format(parseISO(date), 'MMM d, yyyy'),
-        dayOfWeek: format(localDate, 'EEEE'),
+      return {
+        date: day.date,
+        dayOfWeek: day.dayOfWeek,
         activities: {
-          timeSlots: (existingDay?.activities?.timeSlots || []).map((activity: any) => ({
+          timeSlots: (day.activities?.timeSlots || []).map((activity: any) => ({
             time: activity.time || "09:00",
             activity: activity.activity || "Free time",
             location: activity.location || "TBD",
@@ -161,34 +138,30 @@ Your response must be structured as a JSON object. Return only the JSON object w
           }))
         },
         accommodation: {
-          name: existingDay?.accommodation?.name || "TBD",
-          cost: existingDay?.accommodation?.cost || 0,
-          totalCost: existingDay?.accommodation?.cost || 0,
-          location: existingDay?.accommodation?.location || ""
+          name: day.accommodation?.name || "TBD",
+          cost: day.accommodation?.cost || 0,
+          totalCost: day.accommodation?.cost || 0,
+          location: day.accommodation?.location || ""
         },
         meals: {
-          budget: existingDay?.meals?.budget || 50,
-          totalBudget: existingDay?.meals?.budget || 50
+          budget: day.meals?.budget || 50,
+          totalBudget: day.meals?.budget || 50
         },
         aiSuggestions: {
-          reasoning: existingDay?.aiSuggestions?.reasoning || "Based on your preferences",
+          reasoning: "Based on your preferences",
           weatherContext: weatherData ? {
             description: weatherData.description || "Weather data unavailable",
             temperature: weatherData.temperature || 0,
             precipitation_probability: weatherData.precipitation_probability || 0,
             is_suitable_for_outdoor: weatherData.is_suitable_for_outdoor || true
           } : undefined,
-          alternativeActivities: existingDay?.aiSuggestions?.alternativeActivities || []
+          alternativeActivities: []
         },
-        isFinalized: existingDay?.isFinalized || false
+        isFinalized: false
       };
-
-      return dayData;
     }));
 
     console.log('Formatted days with weather:', formattedDays[0]);
-
-    const nextQuestion = await generateFollowUpQuestion(destination, preferences, chatHistory);
 
     return {
       days: formattedDays,
@@ -196,7 +169,6 @@ Your response must be structured as a JSON object. Return only the JSON object w
       perPersonCost: itinerary.perPersonCost || 0,
       tips: itinerary.tips || [],
       personalizedSuggestions: itinerary.personalizedSuggestions || [],
-      nextQuestion
     };
   } catch (error: any) {
     console.error("Failed to generate trip suggestions:", error);
