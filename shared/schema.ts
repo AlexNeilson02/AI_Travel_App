@@ -21,6 +21,7 @@ export const trips = pgTable("trips", {
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
   budget: integer("budget").notNull(),
+  currency: text("currency").notNull().default('USD'),
   preferences: jsonb("preferences").notNull().$type<{
     accommodationType: string[];
     activityTypes: string[];
