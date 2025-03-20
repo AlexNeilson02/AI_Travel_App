@@ -12,7 +12,7 @@ async function generateFollowUpQuestion(
 ): Promise<string> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
+      model: "gpt-4",
       messages: [
         {
           role: "system",
@@ -59,7 +59,7 @@ Known preferences: ${preferences.join(", ")}
 Additional context from conversation:
 ${userInterests}
 
-Your response must be a valid JSON object with this exact structure:
+Your response must be structured as a JSON object. Return only the JSON object with this structure, no additional text:
 {
   "days": [
     {
@@ -101,12 +101,10 @@ Your response must be a valid JSON object with this exact structure:
     const response = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
-        { role: "system", content: "You are an expert travel planner focused on creating detailed, realistic itineraries." },
-        ...chatHistory,
+        { role: "system", content: "You are an expert travel planner. Respond only with valid JSON objects." },
         { role: "user", content: systemPrompt }
       ],
       temperature: 0.7,
-      response_format: { type: "json_object" }
     });
 
     const content = response.choices[0].message.content;
@@ -153,7 +151,7 @@ Your response must be a valid JSON object with this exact structure:
         activities: {
           timeSlots: (existingDay?.activities?.timeSlots || []).map((activity: any) => ({
             time: activity.time || "09:00",
-            activity: activity.activity || activity.name || "Free time",
+            activity: activity.activity || "Free time",
             location: activity.location || "TBD",
             duration: activity.duration || "2 hours",
             cost: activity.cost || 0,
@@ -178,9 +176,6 @@ Your response must be a valid JSON object with this exact structure:
           weatherContext: weatherData ? {
             description: weatherData.description || "Weather data unavailable",
             temperature: weatherData.temperature || 0,
-            feels_like: weatherData.feels_like || 0,
-            humidity: weatherData.humidity || 0,
-            wind_speed: weatherData.wind_speed || 0,
             precipitation_probability: weatherData.precipitation_probability || 0,
             is_suitable_for_outdoor: weatherData.is_suitable_for_outdoor || true
           } : undefined,
