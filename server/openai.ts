@@ -94,23 +94,12 @@ Your response must be a valid JSON object with this exact structure:
   "perPersonCost": number,
   "tips": ["Tip 1", "Tip 2"],
   "personalizedSuggestions": ["Suggestion based on preferences 1", "Suggestion based on preferences 2"]
-}
-
-Important:
-1. Each activity should have a specific time, location, and realistic cost
-2. Include accommodation suggestions with real costs
-3. Each day must have a proper date format (YYYY-MM-DD)
-4. Activities should be geographically logical to minimize travel time
-5. Consider the weather and time of day for outdoor activities
-6. Stay within the total budget for the group
-7. Incorporate specific interests and preferences mentioned in the chat
-8. Add specific suggestions based on user's mentioned interests
-9. Always provide empty strings for optional URL fields, never null`;
+}`;
 
   try {
     console.log('Generating trip suggestions with OpenAI...');
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
+      model: "gpt-4",
       messages: [
         { role: "system", content: "You are an expert travel planner focused on creating detailed, realistic itineraries." },
         ...chatHistory,
@@ -135,6 +124,7 @@ Important:
       throw new Error('Failed to parse trip suggestions');
     }
 
+    // Ensure dates are properly set in UTC
     const parsedStartDate = new Date(startDate);
     parsedStartDate.setUTCHours(0, 0, 0, 0);
     const parsedEndDate = new Date(endDate);
@@ -143,23 +133,23 @@ Important:
     const expectedDays = [];
     const currentDate = new Date(parsedStartDate);
     while (currentDate <= parsedEndDate) {
-      expectedDays.push(currentDate.toISOString().split('T')[0]);
+      expectedDays.push(format(currentDate, 'yyyy-MM-dd'));
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
     const formattedDays = await Promise.all(expectedDays.map(async (date) => {
       const existingDay = itinerary.days?.find((d: any) => d.date === date);
 
-      // Ensure the date is in UTC
-      const currentDate = new Date(date);
-      currentDate.setUTCHours(0, 0, 0, 0);
+      // Create a UTC date for weather forecast
+      const weatherDate = new Date(date);
+      weatherDate.setUTCHours(0, 0, 0, 0);
 
-      const weatherData = await getWeatherForecast(destination, currentDate);
+      const weatherData = await getWeatherForecast(destination, weatherDate);
       console.log('Weather data for', date, ':', weatherData);
 
       const dayData = {
-        date: format(currentDate, 'yyyy-MM-dd'),
-        dayOfWeek: format(currentDate, 'EEEE'),
+        date,
+        dayOfWeek: format(weatherDate, 'EEEE'),
         activities: {
           timeSlots: (existingDay?.activities?.timeSlots || []).map((activity: any) => ({
             time: activity.time || "09:00",
@@ -176,11 +166,12 @@ Important:
         accommodation: {
           name: existingDay?.accommodation?.name || "TBD",
           cost: existingDay?.accommodation?.cost || 0,
-          location: existingDay?.accommodation?.location || "",
-          url: existingDay?.accommodation?.url || ""
+          totalCost: existingDay?.accommodation?.cost || 0,
+          location: existingDay?.accommodation?.location || ""
         },
         meals: {
-          budget: existingDay?.meals?.budget || 50
+          budget: existingDay?.meals?.budget || 50,
+          totalBudget: existingDay?.meals?.budget || 50
         },
         aiSuggestions: {
           reasoning: existingDay?.aiSuggestions?.reasoning || "Based on your preferences",
@@ -203,7 +194,6 @@ Important:
 
     console.log('Formatted days with weather:', formattedDays[0]);
 
-    // Generate a follow-up question
     const nextQuestion = await generateFollowUpQuestion(destination, preferences, chatHistory);
 
     return {

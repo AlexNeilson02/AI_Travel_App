@@ -46,13 +46,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTrip(userId: number, trip: InsertTrip): Promise<Trip> {
-    // Ensure dates are in UTC
+    // Create Date objects and set to UTC midnight
+    const startDate = new Date(trip.startDate);
+    startDate.setUTCHours(0, 0, 0, 0);
+
+    const endDate = new Date(trip.endDate);
+    endDate.setUTCHours(0, 0, 0, 0);
+
     const tripData = {
       ...trip,
       userId,
       isActive: true,
-      startDate: new Date(trip.startDate).toISOString(),
-      endDate: new Date(trip.endDate).toISOString(),
+      startDate,
+      endDate,
       itinerary: trip.itinerary || {
         days: []
       }
@@ -62,19 +68,16 @@ export class DatabaseStorage implements IStorage {
     if (tripData.itinerary?.days) {
       tripData.itinerary.days = tripData.itinerary.days.map(day => ({
         ...day,
-        // Ensure accommodation data exists
         accommodation: day.accommodation || {
           name: "TBD",
           cost: 0,
           totalCost: 0,
           location: ""
         },
-        // Ensure meals data exists
         meals: day.meals || {
           budget: 0,
           totalBudget: 0
         },
-        // Keep weather data if it exists
         weatherContext: day.weatherContext,
         activities: {
           timeSlots: (day.activities?.timeSlots || []).map(slot => ({
@@ -89,7 +92,7 @@ export class DatabaseStorage implements IStorage {
 
     const [newTrip] = await db
       .insert(trips)
-      .values([tripData])
+      .values(tripData)
       .returning();
 
     return newTrip;
@@ -111,10 +114,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateTrip(id: number, tripUpdate: Partial<Trip>): Promise<Trip> {
-    // Get the current trip to preserve existing data
     const currentTrip = await this.getTrip(id);
     if (!currentTrip) {
       throw new Error("Trip not found");
+    }
+
+    // Create proper Date objects for the dates if they're being updated
+    if (tripUpdate.startDate) {
+      const startDate = new Date(tripUpdate.startDate);
+      startDate.setUTCHours(0, 0, 0, 0);
+      tripUpdate.startDate = startDate;
+    }
+
+    if (tripUpdate.endDate) {
+      const endDate = new Date(tripUpdate.endDate);
+      endDate.setUTCHours(0, 0, 0, 0);
+      tripUpdate.endDate = endDate;
     }
 
     // Ensure we're properly merging itinerary data
@@ -135,11 +150,8 @@ export class DatabaseStorage implements IStorage {
       }))
     } : currentTrip.itinerary;
 
-    // Ensure we're properly handling dates in UTC
     const updatedTrip = {
       ...tripUpdate,
-      startDate: tripUpdate.startDate ? new Date(tripUpdate.startDate).toISOString() : undefined,
-      endDate: tripUpdate.endDate ? new Date(tripUpdate.endDate).toISOString() : undefined,
       itinerary: updatedItinerary
     };
 
@@ -161,7 +173,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPopularDestinations(): Promise<string[]> {
-    // Get unique destinations ordered by frequency
     const destinations = await db
       .select({
         destination: trips.destination,
