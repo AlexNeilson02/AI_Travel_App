@@ -25,7 +25,8 @@ interface TripMapProps {
 
 const mapContainerStyle = {
   width: '100%',
-  height: '100%', 
+  height: '100%',
+  minHeight: '600px',
   borderRadius: '0.5rem'
 };
 
@@ -126,7 +127,7 @@ export default function TripMap({ activities, accommodation }: TripMapProps) {
   }
 
   return (
-    <div className="relative">
+    <div className="relative h-full w-full">
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         zoom={12}
