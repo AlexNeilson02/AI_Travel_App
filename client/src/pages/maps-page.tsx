@@ -38,49 +38,53 @@ export default function MapsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Nav />
-      <div className="container mx-auto p-4 pb-20">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">Trip Maps Explorer</h1>
-          {trips && trips.length > 0 && (
-            <Select
-              value={selectedTripId}
-              onValueChange={setSelectedTripId}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select a trip" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Trips</SelectItem>
-                {trips.map(trip => (
-                  <SelectItem key={trip.id} value={trip.id.toString()}>
-                    {trip.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-
-        <Card className="mb-4">
-          <CardHeader>
-            <CardTitle>Interactive Trip Map</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="h-[500px] w-full bg-muted flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin" />
-              </div>
-            ) : !trips || trips.length === 0 ? (
-              <div className="h-[500px] w-full bg-muted flex items-center justify-center">
-                No trips found. Create a trip to see it on the map!
-              </div>
-            ) : (
-              <TripMap {...getMapData()} />
+      <div className="flex-1 p-4">
+        <div className="max-w-[90%] mx-auto">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-bold">Trip Maps Explorer</h1>
+            {trips && trips.length > 0 && (
+              <Select
+                value={selectedTripId}
+                onValueChange={setSelectedTripId}
+              >
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select a trip" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Trips</SelectItem>
+                  {trips.map(trip => (
+                    <SelectItem key={trip.id} value={trip.id.toString()}>
+                      {trip.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
-          </CardContent>
-        </Card>
+          </div>
+
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle>Interactive Trip Map</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {isLoading ? (
+                <div className="h-[80vh] w-full bg-muted flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : !trips || trips.length === 0 ? (
+                <div className="h-[80vh] w-full bg-muted flex items-center justify-center">
+                  No trips found. Create a trip to see it on the map!
+                </div>
+              ) : (
+                <div className="h-[80vh]">
+                  <TripMap {...getMapData()} />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

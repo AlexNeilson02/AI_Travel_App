@@ -25,7 +25,7 @@ interface TripMapProps {
 
 const mapContainerStyle = {
   width: '100%',
-  height: '400px',
+  height: '100%', 
   borderRadius: '0.5rem'
 };
 
@@ -149,7 +149,7 @@ export default function TripMap({ activities, accommodation }: TripMapProps) {
             title={location.title}
             onClick={() => setSelectedLocation(location)}
             icon={{
-              url: location.type === 'accommodation' 
+              url: location.type === 'accommodation'
                 ? 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
                 : 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
             }}
@@ -190,7 +190,7 @@ export default function TripMap({ activities, accommodation }: TripMapProps) {
           </InfoWindowF>
         )}
       </GoogleMap>
-      {locations.length === 0 && 
+      {locations.length === 0 &&
         <div className="absolute top-0 left-0 right-0 bg-yellow-100 p-2 text-sm text-yellow-800">
           No valid locations found to display on map
         </div>
