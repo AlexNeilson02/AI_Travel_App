@@ -41,7 +41,7 @@ export default function MapsPage() {
       <div className="flex-1 p-2 flex flex-col">
         <div className="max-w-[98%] mx-auto flex-1 flex flex-col">
           <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold">Trip Maps Explorer</h1>
+            <h1 className="text-2xl font-bold mr-4">Trip Maps Explorer</h1>
             {trips && trips.length > 0 && (
               <Select
                 value={selectedTripId}
