@@ -46,12 +46,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTrip(userId: number, trip: InsertTrip): Promise<Trip> {
-    // Ensure the itinerary data is properly formatted before saving
+    // Ensure dates are in UTC
     const tripData = {
       ...trip,
       userId,
       isActive: true,
-      // Make sure itinerary is properly structured with accommodations and weather
+      startDate: new Date(trip.startDate).toISOString(),
+      endDate: new Date(trip.endDate).toISOString(),
       itinerary: trip.itinerary || {
         days: []
       }
@@ -134,20 +135,25 @@ export class DatabaseStorage implements IStorage {
       }))
     } : currentTrip.itinerary;
 
-    const [updatedTrip] = await db
+    // Ensure we're properly handling dates in UTC
+    const updatedTrip = {
+      ...tripUpdate,
+      startDate: tripUpdate.startDate ? new Date(tripUpdate.startDate).toISOString() : undefined,
+      endDate: tripUpdate.endDate ? new Date(tripUpdate.endDate).toISOString() : undefined,
+      itinerary: updatedItinerary
+    };
+
+    const [result] = await db
       .update(trips)
-      .set({
-        ...tripUpdate,
-        itinerary: updatedItinerary
-      })
+      .set(updatedTrip)
       .where(eq(trips.id, id))
       .returning();
 
-    if (!updatedTrip) {
+    if (!result) {
       throw new Error("Trip not found");
     }
 
-    return updatedTrip;
+    return result;
   }
 
   async deleteTrip(id: number): Promise<void> {

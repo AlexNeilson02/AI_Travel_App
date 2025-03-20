@@ -274,6 +274,14 @@ export default function MyTrips() {
     });
   };
 
+  const formatDate = (dateString: string) => {
+    return format(parseISO(dateString), "MMM d");
+  };
+
+  const formatFullDate = (dateString: string) => {
+    return format(parseISO(dateString), "EEEE, MMMM d, yyyy");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Nav />
@@ -353,8 +361,7 @@ export default function MyTrips() {
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
                       <Calendar className="h-4 w-4 mr-2" />
-                      {format(new Date(trip.startDate), "MMM d")} -{" "}
-                      {format(new Date(trip.endDate), "MMM d, yyyy")}
+                      {formatDate(trip.startDate)} - {format(parseISO(trip.endDate), "MMM d, yyyy")}
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
                       <DollarSign className="h-4 w-4 mr-2" />
@@ -368,7 +375,7 @@ export default function MyTrips() {
                           <div key={dayIndex} className="border rounded-lg p-4">
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="font-medium">
-                                {format(new Date(day.date), "EEEE, MMMM d")}
+                                {formatFullDate(day.date)}
                               </h4>
                               <Button
                                 variant="ghost"

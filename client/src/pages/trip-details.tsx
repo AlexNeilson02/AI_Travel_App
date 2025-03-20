@@ -15,7 +15,7 @@ import {
   AlertTriangle,
   Loader2
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import TripMap from "@/components/TripMap";
@@ -81,6 +81,10 @@ export default function TripDetails() {
     { label: "Transportation", value: trip.preferences.transportationPreferences },
   ];
 
+  const formatDate = (dateString: string) => {
+    return format(parseISO(dateString), "PPP");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Nav />
@@ -122,8 +126,8 @@ export default function TripDetails() {
                   <div className="flex items-center text-sm">
                     <Calendar className="h-4 w-4 mr-2" />
                     <div>
-                      <div>Start: {format(new Date(trip.startDate), "PPP")}</div>
-                      <div>End: {format(new Date(trip.endDate), "PPP")}</div>
+                      <div>Start: {formatDate(trip.startDate)}</div>
+                      <div>End: {formatDate(trip.endDate)}</div>
                     </div>
                   </div>
                   <div className="flex items-center text-sm">
@@ -166,7 +170,7 @@ export default function TripDetails() {
                           <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                             <div className="flex flex-col gap-2 w-full">
                               <h4 className="font-medium">
-                                {format(new Date(day.date), "EEEE, MMMM d, yyyy")}
+                                {format(parseISO(day.date), "EEEE, MMMM d, yyyy")}
                               </h4>
                               {day.aiSuggestions?.weatherContext && (
                                 <div className="flex items-center gap-4 text-base bg-muted p-3 rounded-lg w-full">

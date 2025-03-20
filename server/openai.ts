@@ -56,7 +56,6 @@ export async function generateTripSuggestions(
   const systemPrompt = `You are an expert travel planner creating a personalized itinerary for ${numberOfPeople} person(s) to ${destination} from ${startDate} to ${endDate}. 
 Budget: $${totalBudget} ($${budget} per person).
 Known preferences: ${preferences.join(", ")}
-
 Additional context from conversation:
 ${userInterests}
 
@@ -151,12 +150,16 @@ Important:
     const formattedDays = await Promise.all(expectedDays.map(async (date) => {
       const existingDay = itinerary.days?.find((d: any) => d.date === date);
 
-      const weatherData = await getWeatherForecast(destination, new Date(date));
+      // Ensure the date is in UTC
+      const currentDate = new Date(date);
+      currentDate.setUTCHours(0, 0, 0, 0);
+
+      const weatherData = await getWeatherForecast(destination, currentDate);
       console.log('Weather data for', date, ':', weatherData);
 
       const dayData = {
-        date: format(new Date(date), 'yyyy-MM-dd'),
-        dayOfWeek: format(new Date(date), 'EEEE'),
+        date: format(currentDate, 'yyyy-MM-dd'),
+        dayOfWeek: format(currentDate, 'EEEE'),
         activities: {
           timeSlots: (existingDay?.activities?.timeSlots || []).map((activity: any) => ({
             time: activity.time || "09:00",
