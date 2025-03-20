@@ -108,9 +108,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('Received suggestions request:', { destination, preferences, budget, startDate, endDate });
 
     try {
+      // Format preferences into array of strings
+      const formattedPreferences = [
+        ...(preferences.accommodationType || []).map((type: string) => `Accommodation: ${type}`),
+        ...(preferences.activityTypes || []).map((type: string) => `Activity: ${type}`),
+        `Activity Frequency: ${preferences.activityFrequency || 'moderate'}`,
+        ...(preferences.mustSeeAttractions || []).map((attraction: string) => `Must See: ${attraction}`),
+        ...(preferences.dietaryRestrictions || []).map((restriction: string) => `Dietary: ${restriction}`),
+        ...(preferences.transportationPreferences || []).map((pref: string) => `Transportation: ${pref}`)
+      ];
+
       const response = await generateTripSuggestions(
         destination,
-        preferences,
+        formattedPreferences,
         budget,
         Math.floor((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1,
         startDate,
@@ -135,9 +145,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { preferences, destination, chatHistory } = req.body;
 
     try {
+      // Format preferences into array for question generation
+      const formattedPreferences = [
+        ...(preferences.accommodationType || []).map((type: string) => `Accommodation: ${type}`),
+        ...(preferences.activityTypes || []).map((type: string) => `Activity: ${type}`),
+        `Activity Frequency: ${preferences.activityFrequency || 'moderate'}`,
+        ...(preferences.mustSeeAttractions || []).map((attraction: string) => `Must See: ${attraction}`),
+        ...(preferences.dietaryRestrictions || []).map((restriction: string) => `Dietary: ${restriction}`),
+        ...(preferences.transportationPreferences || []).map((pref: string) => `Transportation: ${pref}`)
+      ];
+
       const question = await generateFollowUpQuestion(
         destination,
-        preferences,
+        formattedPreferences,
         chatHistory
       );
 
