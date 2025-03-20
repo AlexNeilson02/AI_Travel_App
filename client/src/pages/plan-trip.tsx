@@ -21,12 +21,12 @@ import {
   ThermometerSun,
   CloudRain,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -550,7 +550,6 @@ export default function PlanTrip() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {/* Display chat history */}
                       <div className="space-y-4 max-h-[300px] overflow-y-auto">
                         {chatHistory.map((msg, index) => (
                           <div
@@ -566,7 +565,6 @@ export default function PlanTrip() {
                         ))}
                       </div>
 
-                      {/* Display current question */}
                       {suggestions.nextQuestion && (
                         <div className="bg-muted p-4 rounded-lg">
                           <p className="text-sm font-medium">
@@ -575,7 +573,6 @@ export default function PlanTrip() {
                         </div>
                       )}
 
-                      {/* Display personalized suggestions */}
                       {suggestions.personalizedSuggestions?.length > 0 && (
                         <div className="bg-primary/5 p-4 rounded-lg space-y-2">
                           <h4 className="font-medium">Personalized Suggestions:</h4>
@@ -589,7 +586,6 @@ export default function PlanTrip() {
                         </div>
                       )}
 
-                      {/* Chat input */}
                       <div className="flex gap-2">
                         <Textarea
                           value={userResponse}
