@@ -65,7 +65,7 @@ export default function MapsPage() {
           </div>
 
           <Card className="flex-1 flex flex-col">
-            <CardHeader>
+            <CardHeader className="py-3">
               <CardTitle>Interactive Trip Map</CardTitle>
             </CardHeader>
             <CardContent className="p-0 flex-1">

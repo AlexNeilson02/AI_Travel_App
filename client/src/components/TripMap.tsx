@@ -26,7 +26,6 @@ interface TripMapProps {
 const mapContainerStyle = {
   width: '100%',
   height: '100%',
-  minHeight: '600px',
   borderRadius: '0.5rem'
 };
 
