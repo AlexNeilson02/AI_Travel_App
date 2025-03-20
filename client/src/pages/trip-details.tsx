@@ -122,8 +122,8 @@ export default function TripDetails() {
                   <div className="flex items-center text-sm">
                     <Calendar className="h-4 w-4 mr-2" />
                     <div>
-                      <div>Start: {trip.itinerary?.days[0]?.dayOfWeek} - {trip.itinerary?.days[0]?.date}</div>
-                      <div>End: {trip.itinerary?.days[trip.itinerary.days.length - 1]?.dayOfWeek} - {trip.itinerary?.days[trip.itinerary.days.length - 1]?.date}</div>
+                      <div>Start: {trip.itinerary?.days[0]?.dayOfWeek} - {format(parseISO(trip.itinerary?.days[0]?.date), "MMM d, yyyy")}</div>
+                      <div>End: {trip.itinerary?.days[trip.itinerary.days.length - 1]?.dayOfWeek} - {format(parseISO(trip.itinerary?.days[trip.itinerary.days.length - 1]?.date), "MMM d, yyyy")}</div>
                     </div>
                   </div>
                   <div className="flex items-center text-sm">
@@ -166,7 +166,7 @@ export default function TripDetails() {
                           <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                             <div className="flex flex-col gap-2 w-full">
                               <h4 className="font-medium">
-                                {day.dayOfWeek} - {day.date}
+                                {day.dayOfWeek} - {format(parseISO(day.date), "MMM d, yyyy")}
                               </h4>
                               {day.aiSuggestions?.weatherContext && (
                                 <div className="flex items-center gap-4 text-base bg-muted p-3 rounded-lg w-full">

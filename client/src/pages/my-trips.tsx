@@ -228,7 +228,7 @@ export default function MyTrips() {
     // Fix date display in PDF
     const startDate = parseISO(trip.startDate);
     const endDate = parseISO(trip.endDate);
-    pdf.text(`Dates: ${format(startDate, "MMM d")} - ${format(endDate, "MMM d, yyyy")}`, 20, yPos);
+    pdf.text(`Dates: ${format(startDate, "MMM d, yyyy")} - ${format(endDate, "MMM d, yyyy")}`, 20, yPos);
     yPos += lineHeight;
     pdf.text(`Budget: $${trip.budget}`, 20, yPos);
     yPos += lineHeight * 2;
@@ -362,8 +362,8 @@ export default function MyTrips() {
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
                       <Calendar className="h-4 w-4 mr-2" />
-                      {trip.itinerary?.days[0]?.dayOfWeek} - {trip.itinerary?.days[0]?.date} to{" "}
-                      {trip.itinerary?.days[trip.itinerary.days.length - 1]?.dayOfWeek} - {trip.itinerary?.days[trip.itinerary.days.length - 1]?.date}
+                      {format(parseISO(trip.itinerary?.days[0]?.date), "MMM d, yyyy")} to{" "}
+                      {format(parseISO(trip.itinerary?.days[trip.itinerary.days.length - 1]?.date), "MMM d, yyyy")}
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
                       <DollarSign className="h-4 w-4 mr-2" />
@@ -377,7 +377,7 @@ export default function MyTrips() {
                           <div key={dayIndex} className="border rounded-lg p-4">
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="font-medium">
-                                {day.dayOfWeek} - {day.date}
+                                {day.dayOfWeek} - {format(parseISO(day.date), "MMM d, yyyy")}
                               </h4>
                               <Button
                                 variant="ghost"
