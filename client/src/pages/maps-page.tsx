@@ -41,7 +41,7 @@ export default function MapsPage() {
     <div className="min-h-screen bg-background flex flex-col">
       <Nav />
       <div className="flex-1 p-4">
-        <div className="max-w-[90%] mx-auto">
+        <div className="max-w-[95%] mx-auto">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-2xl font-bold">Trip Maps Explorer</h1>
             {trips && trips.length > 0 && (
