@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { getWeatherForecast } from "./weather";
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -47,7 +47,6 @@ export async function generateTripSuggestions(
 ): Promise<any> {
   const totalBudget = budget * numberOfPeople;
 
-  // Extract key interests and preferences from chat history
   const userInterests = chatHistory
     .filter(msg => msg.role === "user")
     .map(msg => msg.content)
@@ -126,28 +125,28 @@ Your response must be structured as a JSON object. Return only the JSON object w
     const parsedStartDate = new Date(startDate);
     parsedStartDate.setUTCHours(0, 0, 0, 0);
     const parsedEndDate = new Date(endDate);
-    parsedEndDate.setUTCHours(0, 0, 0, 0);
+    parsedEndDate.setUTCHours(23, 59, 59, 999); // Set to end of day to include the last day
 
     const expectedDays = [];
-    const currentDate = new Date(parsedStartDate);
+    let currentDate = new Date(parsedStartDate);
+    // Use <= to include the end date
     while (currentDate <= parsedEndDate) {
       expectedDays.push(format(currentDate, 'yyyy-MM-dd'));
-      currentDate.setDate(currentDate.getDate() + 1);
+      currentDate = addDays(currentDate, 1);
     }
 
     const formattedDays = await Promise.all(expectedDays.map(async (date) => {
       const existingDay = itinerary.days?.find((d: any) => d.date === date);
 
-      // Create a UTC date for weather forecast
-      const weatherDate = new Date(date);
-      weatherDate.setUTCHours(0, 0, 0, 0);
+      // Create a date object that preserves the local date
+      const localDate = new Date(date + 'T12:00:00'); // Use noon to avoid timezone issues
 
-      const weatherData = await getWeatherForecast(destination, weatherDate);
+      const weatherData = await getWeatherForecast(destination, localDate);
       console.log('Weather data for', date, ':', weatherData);
 
       const dayData = {
         date,
-        dayOfWeek: format(weatherDate, 'EEEE'),
+        dayOfWeek: format(localDate, 'EEEE'),
         activities: {
           timeSlots: (existingDay?.activities?.timeSlots || []).map((activity: any) => ({
             time: activity.time || "09:00",
