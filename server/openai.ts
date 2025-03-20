@@ -75,7 +75,7 @@ Your response must be a valid JSON object with this exact structure:
             "duration": "Duration in hours",
             "cost": number,
             "notes": "Additional details",
-            "url": "Optional website URL",
+            "url": "Optional website URL or empty string",
             "isOutdoor": boolean
           }
         ]
@@ -84,7 +84,7 @@ Your response must be a valid JSON object with this exact structure:
         "name": "Hotel/Place name",
         "cost": number,
         "location": "Address",
-        "url": "Booking URL"
+        "url": "Booking URL or empty string"
       },
       "meals": {
         "budget": number
@@ -105,7 +105,8 @@ Important:
 5. Consider the weather and time of day for outdoor activities
 6. Stay within the total budget for the group
 7. Incorporate specific interests and preferences mentioned in the chat
-8. Add specific suggestions based on user's mentioned interests`;
+8. Add specific suggestions based on user's mentioned interests
+9. Always provide empty strings for optional URL fields, never null`;
 
   try {
     console.log('Generating trip suggestions with OpenAI...');
@@ -164,7 +165,7 @@ Important:
             duration: activity.duration || "2 hours",
             cost: activity.cost || 0,
             notes: activity.notes || "",
-            url: activity.url || null,
+            url: activity.url || "",
             isEdited: false,
             isOutdoor: activity.isOutdoor || false
           }))
@@ -173,7 +174,7 @@ Important:
           name: existingDay?.accommodation?.name || "TBD",
           cost: existingDay?.accommodation?.cost || 0,
           location: existingDay?.accommodation?.location || "",
-          url: existingDay?.accommodation?.url || null
+          url: existingDay?.accommodation?.url || ""
         },
         meals: {
           budget: existingDay?.meals?.budget || 50
@@ -183,6 +184,9 @@ Important:
           weatherContext: weatherData ? {
             description: weatherData.description || "Weather data unavailable",
             temperature: weatherData.temperature || 0,
+            feels_like: weatherData.feels_like || 0,
+            humidity: weatherData.humidity || 0,
+            wind_speed: weatherData.wind_speed || 0,
             precipitation_probability: weatherData.precipitation_probability || 0,
             is_suitable_for_outdoor: weatherData.is_suitable_for_outdoor || true
           } : undefined,
