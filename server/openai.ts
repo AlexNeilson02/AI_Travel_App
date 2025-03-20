@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { getWeatherForecast } from "./weather";
-import { format, addDays } from 'date-fns';
+import { format, addDays, parseISO } from 'date-fns';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -145,7 +145,7 @@ Your response must be structured as a JSON object. Return only the JSON object w
       console.log('Weather data for', date, ':', weatherData);
 
       const dayData = {
-        date,
+        date: format(parseISO(date), 'MMM d, yyyy'),
         dayOfWeek: format(localDate, 'EEEE'),
         activities: {
           timeSlots: (existingDay?.activities?.timeSlots || []).map((activity: any) => ({
