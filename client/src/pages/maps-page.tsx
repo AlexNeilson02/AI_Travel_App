@@ -14,7 +14,6 @@ export default function MapsPage() {
     queryKey: ["/api/trips"],
   });
 
-  // Combine all activities and accommodations from selected trip(s)
   const getMapData = () => {
     if (!trips) return { activities: [], accommodation: null };
 
@@ -31,7 +30,6 @@ export default function MapsPage() {
       ) || []
     );
 
-    // Use the first accommodation from the selected trip(s)
     const accommodation = relevantTrips[0]?.itinerary?.days[0]?.accommodation || null;
 
     return { activities, accommodation };
@@ -40,8 +38,8 @@ export default function MapsPage() {
   return (
     <div className="min-h-screen h-screen bg-background flex flex-col">
       <Nav />
-      <div className="flex-1 p-4 flex flex-col">
-        <div className="max-w-[95%] mx-auto flex-1 flex flex-col">
+      <div className="flex-1 p-2 flex flex-col">
+        <div className="max-w-[98%] mx-auto flex-1 flex flex-col">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-2xl font-bold">Trip Maps Explorer</h1>
             {trips && trips.length > 0 && (
@@ -65,7 +63,7 @@ export default function MapsPage() {
           </div>
 
           <Card className="flex-1 flex flex-col">
-            <CardHeader className="py-3">
+            <CardHeader className="py-2 px-4">
               <CardTitle>Interactive Trip Map</CardTitle>
             </CardHeader>
             <CardContent className="p-0 flex-1">
