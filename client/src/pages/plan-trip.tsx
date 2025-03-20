@@ -598,7 +598,7 @@ export default function PlanTrip() {
                           onClick={handleChatResponse}
                           disabled={!userResponse.trim()}
                         >
-                          <Send className="h-4 w-4" />
+                          <Send className="h-4 w-4 text-white" />
                         </Button>
                       </div>
                     </div>
