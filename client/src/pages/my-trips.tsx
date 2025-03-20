@@ -39,6 +39,7 @@ interface TimeSlot {
 
 interface TripDay {
   date: string;
+  dayOfWeek: string;
   activities: {
     timeSlots: TimeSlot[];
   };
@@ -361,7 +362,8 @@ export default function MyTrips() {
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
                       <Calendar className="h-4 w-4 mr-2" />
-                      {formatDate(trip.startDate)} - {format(parseISO(trip.endDate), "MMM d, yyyy")}
+                      {trip.itinerary?.days[0]?.dayOfWeek} - {trip.itinerary?.days[0]?.date} to{" "}
+                      {trip.itinerary?.days[trip.itinerary.days.length - 1]?.dayOfWeek} - {trip.itinerary?.days[trip.itinerary.days.length - 1]?.date}
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
                       <DollarSign className="h-4 w-4 mr-2" />
@@ -371,11 +373,11 @@ export default function MyTrips() {
                     {expandedTrip === trip.id && trip.itinerary?.days && (
                       <div className="mt-4 space-y-4">
                         <h3 className="font-medium">Itinerary</h3>
-                        {trip.itinerary.days.map((day: TripDay, dayIndex: number) => (
+                        {trip.itinerary.days.map((day, dayIndex) => (
                           <div key={dayIndex} className="border rounded-lg p-4">
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="font-medium">
-                                {formatFullDate(day.date)}
+                                {day.dayOfWeek} - {day.date}
                               </h4>
                               <Button
                                 variant="ghost"

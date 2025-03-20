@@ -81,10 +81,6 @@ export default function TripDetails() {
     { label: "Transportation", value: trip.preferences.transportationPreferences },
   ];
 
-  const formatDate = (dateString: string) => {
-    return format(parseISO(dateString), "PPP");
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <Nav />
@@ -126,8 +122,8 @@ export default function TripDetails() {
                   <div className="flex items-center text-sm">
                     <Calendar className="h-4 w-4 mr-2" />
                     <div>
-                      <div>Start: {formatDate(trip.startDate)}</div>
-                      <div>End: {formatDate(trip.endDate)}</div>
+                      <div>Start: {trip.itinerary?.days[0]?.dayOfWeek} - {trip.itinerary?.days[0]?.date}</div>
+                      <div>End: {trip.itinerary?.days[trip.itinerary.days.length - 1]?.dayOfWeek} - {trip.itinerary?.days[trip.itinerary.days.length - 1]?.date}</div>
                     </div>
                   </div>
                   <div className="flex items-center text-sm">
@@ -164,13 +160,13 @@ export default function TripDetails() {
                 <div>
                   <h3 className="font-medium mb-2">Daily Itinerary</h3>
                   <div className="space-y-4">
-                    {trip.tripDays.map((day: any) => (
-                      <Card key={day.id}>
+                    {trip.tripDays.map((day: any, dayIndex: number) => (
+                      <Card key={dayIndex}>
                         <CardContent className="p-4">
                           <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                             <div className="flex flex-col gap-2 w-full">
                               <h4 className="font-medium">
-                                {format(parseISO(day.date), "EEEE, MMMM d, yyyy")}
+                                {day.dayOfWeek} - {day.date}
                               </h4>
                               {day.aiSuggestions?.weatherContext && (
                                 <div className="flex items-center gap-4 text-base bg-muted p-3 rounded-lg w-full">

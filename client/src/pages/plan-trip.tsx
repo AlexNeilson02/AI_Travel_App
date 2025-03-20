@@ -24,7 +24,11 @@ import {
   Loader2,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { format } from "date-fns";
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,16 +41,27 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
-
 export default function PlanTrip() {
   const { toast } = useToast();
   const [suggestions, setSuggestions] = useState<any>(null);
-  const [chatHistory, setChatHistory] = useState<Array<{ role: string; content: string }>>([]);
+  const [chatHistory, setChatHistory] = useState<
+    Array<{ role: string; content: string }>
+  >([]);
   const [currentQuestion, setCurrentQuestion] = useState<string>("");
   const [userResponse, setUserResponse] = useState<string>("");
-  const [editingActivity, setEditingActivity] = useState<{ day: number; index: number } | null>(null);
-  const [editedActivity, setEditedActivity] = useState<{ name: string; cost: number; duration: string; url?: string } | null>(null);
-  const [editingAccommodation, setEditingAccommodation] = useState<number | null>(null);
+  const [editingActivity, setEditingActivity] = useState<{
+    day: number;
+    index: number;
+  } | null>(null);
+  const [editedActivity, setEditedActivity] = useState<{
+    name: string;
+    cost: number;
+    duration: string;
+    url?: string;
+  } | null>(null);
+  const [editingAccommodation, setEditingAccommodation] = useState<
+    number | null
+  >(null);
   const [numberOfPeople, setNumberPeople] = useState(1);
 
   const form = useForm({
@@ -90,7 +105,7 @@ export default function PlanTrip() {
       return res.json();
     },
     onSuccess: (data) => {
-      console.log('Received trip suggestions with weather:', data);
+      console.log("Received trip suggestions with weather:", data);
       setSuggestions(data);
       if (!currentQuestion) {
         getQuestionMutation.mutate();
@@ -111,7 +126,7 @@ export default function PlanTrip() {
 
   const createTripMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log('Creating trip with data:', data);
+      console.log("Creating trip with data:", data);
       const formattedItinerary = {
         days: suggestions.days.map((day: any) => {
           const date = new Date(day.date);
@@ -132,16 +147,20 @@ export default function PlanTrip() {
             },
             aiSuggestions: {
               reasoning: "AI-generated suggestion",
-              weatherContext: day.weatherContext ? {
-                description: day.weatherContext.description,
-                temperature: day.weatherContext.temperature,
-                feels_like: day.weatherContext.feels_like,
-                humidity: day.weatherContext.humidity,
-                wind_speed: day.weatherContext.wind_speed,
-                precipitation_probability: day.weatherContext.precipitation_probability,
-                is_suitable_for_outdoor: day.weatherContext.is_suitable_for_outdoor
-              } : undefined,
-              alternativeActivities: day.alternativeActivities || []
+              weatherContext: day.weatherContext
+                ? {
+                    description: day.weatherContext.description,
+                    temperature: day.weatherContext.temperature,
+                    feels_like: day.weatherContext.feels_like,
+                    humidity: day.weatherContext.humidity,
+                    wind_speed: day.weatherContext.wind_speed,
+                    precipitation_probability:
+                      day.weatherContext.precipitation_probability,
+                    is_suitable_for_outdoor:
+                      day.weatherContext.is_suitable_for_outdoor,
+                  }
+                : undefined,
+              alternativeActivities: day.alternativeActivities || [],
             },
             userFeedback: "",
             isFinalized: false,
@@ -167,7 +186,7 @@ export default function PlanTrip() {
       setSuggestions(null);
       setChatHistory([]);
       setCurrentQuestion("");
-      queryClient.invalidateQueries({ queryKey: ['/api/trips'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
     },
     onError: (error: Error) => {
       toast({
@@ -213,7 +232,7 @@ export default function PlanTrip() {
       name: activity.activity,
       cost: activity.cost || 0,
       duration: activity.duration,
-      url: activity.url
+      url: activity.url,
     });
   };
 
@@ -226,9 +245,10 @@ export default function PlanTrip() {
       activity: editedActivity.name,
       cost: editedActivity.cost,
       duration: editedActivity.duration,
-      url: editedActivity.url
+      url: editedActivity.url,
     };
-    updatedSuggestions.days[day - 1].activities.timeSlots[index] = activityUpdate;
+    updatedSuggestions.days[day - 1].activities.timeSlots[index] =
+      activityUpdate;
     setSuggestions(updatedSuggestions);
     setEditingActivity(null);
     setEditedActivity(null);
@@ -238,7 +258,10 @@ export default function PlanTrip() {
     setEditingAccommodation(dayIndex);
   };
 
-  const handleSaveAccommodation = (dayIndex: number, updatedAccommodation: any) => {
+  const handleSaveAccommodation = (
+    dayIndex: number,
+    updatedAccommodation: any,
+  ) => {
     if (!suggestions) return;
 
     const updatedSuggestions = { ...suggestions };
@@ -246,7 +269,6 @@ export default function PlanTrip() {
     setSuggestions(updatedSuggestions);
     setEditingAccommodation(null);
   };
-
 
   const handleAccommodationTypeChange = (value: string) => {
     const current = form.getValues("preferences.accommodationType") as string[];
@@ -263,7 +285,9 @@ export default function PlanTrip() {
   };
 
   const handleAttractionAdd = (value: string) => {
-    const current = form.getValues("preferences.mustSeeAttractions") as string[];
+    const current = form.getValues(
+      "preferences.mustSeeAttractions",
+    ) as string[];
     if (!current.includes(value)) {
       form.setValue("preferences.mustSeeAttractions", [...current, value]);
     }
@@ -281,7 +305,10 @@ export default function PlanTrip() {
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-6"
+                  >
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium mb-2">
@@ -304,11 +331,17 @@ export default function PlanTrip() {
                           </label>
                           <Popover>
                             <PopoverTrigger asChild>
-                              <Button variant="outline" className="w-full justify-start text-left px-3 h-9 sm:h-10">
+                              <Button
+                                variant="outline"
+                                className="w-full justify-start text-left px-3 h-9 sm:h-10"
+                              >
                                 <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
                                 <span className="truncate text-sm">
                                   {form.watch("startDate")
-                                    ? format(form.watch("startDate"), "MM/dd/yy")
+                                    ? format(
+                                        form.watch("startDate"),
+                                        "MM/dd/yy",
+                                      )
                                     : "Pick a date"}
                                 </span>
                               </Button>
@@ -317,7 +350,9 @@ export default function PlanTrip() {
                               <Calendar
                                 mode="single"
                                 selected={form.watch("startDate")}
-                                onSelect={(date) => form.setValue("startDate", date || new Date())}
+                                onSelect={(date) =>
+                                  form.setValue("startDate", date || new Date())
+                                }
                                 initialFocus
                               />
                             </PopoverContent>
@@ -330,7 +365,10 @@ export default function PlanTrip() {
                           </label>
                           <Popover>
                             <PopoverTrigger asChild>
-                              <Button variant="outline" className="w-full justify-start text-left px-3 h-9 sm:h-10">
+                              <Button
+                                variant="outline"
+                                className="w-full justify-start text-left px-3 h-9 sm:h-10"
+                              >
                                 <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
                                 <span className="truncate text-sm">
                                   {form.watch("endDate")
@@ -343,7 +381,9 @@ export default function PlanTrip() {
                               <Calendar
                                 mode="single"
                                 selected={form.watch("endDate")}
-                                onSelect={(date) => form.setValue("endDate", date || new Date())}
+                                onSelect={(date) =>
+                                  form.setValue("endDate", date || new Date())
+                                }
                                 initialFocus
                               />
                             </PopoverContent>
@@ -360,7 +400,9 @@ export default function PlanTrip() {
                             type="number"
                             min="1"
                             value={numberOfPeople}
-                            onChange={(e) => setNumberPeople(parseInt(e.target.value) || 1)}
+                            onChange={(e) =>
+                              setNumberPeople(parseInt(e.target.value) || 1)
+                            }
                             className="w-24"
                           />
                           <span className="text-sm text-muted-foreground">
@@ -378,12 +420,15 @@ export default function PlanTrip() {
                           <Input
                             type="number"
                             className="pl-10"
-                            {...form.register("budget", { valueAsNumber: true })}
+                            {...form.register("budget", {
+                              valueAsNumber: true,
+                            })}
                           />
                         </div>
                         {numberOfPeople > 1 && (
                           <p className="text-sm text-muted-foreground mt-1">
-                            Total budget: ${(form.watch("budget") || 0) * numberOfPeople}
+                            Total budget: $
+                            {(form.watch("budget") || 0) * numberOfPeople}
                           </p>
                         )}
                       </div>
@@ -405,16 +450,22 @@ export default function PlanTrip() {
                           </SelectContent>
                         </Select>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {(form.watch("preferences.accommodationType") as string[]).map((type: string) => (
+                          {(
+                            form.watch(
+                              "preferences.accommodationType",
+                            ) as string[]
+                          ).map((type: string) => (
                             <Badge
                               key={type}
                               variant="secondary"
                               className="cursor-pointer"
                               onClick={() => {
-                                const current = form.getValues("preferences.accommodationType") as string[];
+                                const current = form.getValues(
+                                  "preferences.accommodationType",
+                                ) as string[];
                                 form.setValue(
                                   "preferences.accommodationType",
-                                  current.filter((t: string) => t !== type)
+                                  current.filter((t: string) => t !== type),
                                 );
                               }}
                             >
@@ -437,21 +488,27 @@ export default function PlanTrip() {
                             <SelectItem value="cultural">Cultural</SelectItem>
                             <SelectItem value="food">Food & Dining</SelectItem>
                             <SelectItem value="shopping">Shopping</SelectItem>
-                            <SelectItem value="relaxation">Relaxation</SelectItem>
+                            <SelectItem value="relaxation">
+                              Relaxation
+                            </SelectItem>
                             <SelectItem value="adventure">Adventure</SelectItem>
                           </SelectContent>
                         </Select>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {(form.watch("preferences.activityTypes") as string[]).map((type: string) => (
+                          {(
+                            form.watch("preferences.activityTypes") as string[]
+                          ).map((type: string) => (
                             <Badge
                               key={type}
                               variant="secondary"
                               className="cursor-pointer"
                               onClick={() => {
-                                const current = form.getValues("preferences.activityTypes") as string[];
+                                const current = form.getValues(
+                                  "preferences.activityTypes",
+                                ) as string[];
                                 form.setValue(
                                   "preferences.activityTypes",
-                                  current.filter((t: string) => t !== type)
+                                  current.filter((t: string) => t !== type),
                                 );
                               }}
                             >
@@ -466,8 +523,15 @@ export default function PlanTrip() {
                           Activity Frequency
                         </label>
                         <Select
-                          onValueChange={(value) => form.setValue("preferences.activityFrequency", value)}
-                          defaultValue={form.getValues("preferences.activityFrequency")}
+                          onValueChange={(value) =>
+                            form.setValue(
+                              "preferences.activityFrequency",
+                              value,
+                            )
+                          }
+                          defaultValue={form.getValues(
+                            "preferences.activityFrequency",
+                          )}
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -488,28 +552,36 @@ export default function PlanTrip() {
                           <Input
                             placeholder="Enter an attraction"
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
+                              if (e.key === "Enter") {
                                 e.preventDefault();
                                 const value = e.currentTarget.value.trim();
                                 if (value) {
                                   handleAttractionAdd(value);
-                                  e.currentTarget.value = '';
+                                  e.currentTarget.value = "";
                                 }
                               }
                             }}
                           />
                         </div>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {(form.watch("preferences.mustSeeAttractions") as string[]).map((attraction: string) => (
+                          {(
+                            form.watch(
+                              "preferences.mustSeeAttractions",
+                            ) as string[]
+                          ).map((attraction: string) => (
                             <Badge
                               key={attraction}
                               variant="secondary"
                               className="cursor-pointer"
                               onClick={() => {
-                                const current = form.getValues("preferences.mustSeeAttractions") as string[];
+                                const current = form.getValues(
+                                  "preferences.mustSeeAttractions",
+                                ) as string[];
                                 form.setValue(
                                   "preferences.mustSeeAttractions",
-                                  current.filter((a: string) => a !== attraction)
+                                  current.filter(
+                                    (a: string) => a !== attraction,
+                                  ),
                                 );
                               }}
                             >
@@ -575,13 +647,20 @@ export default function PlanTrip() {
 
                       {suggestions.personalizedSuggestions?.length > 0 && (
                         <div className="bg-primary/5 p-4 rounded-lg space-y-2">
-                          <h4 className="font-medium">Personalized Suggestions:</h4>
+                          <h4 className="font-medium">
+                            Personalized Suggestions:
+                          </h4>
                           <ul className="list-disc list-inside space-y-1">
-                            {suggestions.personalizedSuggestions.map((suggestion: string, index: number) => (
-                              <li key={index} className="text-sm text-muted-foreground">
-                                {suggestion}
-                              </li>
-                            ))}
+                            {suggestions.personalizedSuggestions.map(
+                              (suggestion: string, index: number) => (
+                                <li
+                                  key={index}
+                                  className="text-sm text-muted-foreground"
+                                >
+                                  {suggestion}
+                                </li>
+                              ),
+                            )}
                           </ul>
                         </div>
                       )}
@@ -612,132 +691,205 @@ export default function PlanTrip() {
                   <CardContent>
                     <div className="space-y-6">
                       {suggestions.days?.map((day: any, index: number) => {
-                        console.log('Rendering day with weather:', day.weatherContext);
+                        console.log(
+                          "Rendering day with weather:",
+                          day.weatherContext,
+                        );
                         return (
                           <div key={index}>
                             <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                               <div className="flex flex-col gap-2 w-full">
                                 <h3 className="font-medium">
-                                  {day.dayOfWeek} - {format(new Date(day.date), "MMM d, yyyy")}
+                                  {day.dayOfWeek} - {day.date}
                                 </h3>
                                 {day.aiSuggestions?.weatherContext && (
                                   <div className="flex items-center gap-4 text-base bg-muted p-3 rounded-lg w-full">
                                     <div className="flex items-center gap-2">
                                       <ThermometerSun className="h-5 w-5 text-orange-500" />
                                       <span className="font-medium">
-                                        {Math.round(day.aiSuggestions.weatherContext.temperature)}°F
+                                        {Math.round(
+                                          day.aiSuggestions.weatherContext
+                                            .temperature,
+                                        )}
+                                        °F
                                       </span>
                                       <span className="text-sm text-muted-foreground">
-                                        (Feels like {Math.round(day.aiSuggestions.weatherContext.feels_like)}°F)
+                                        (Feels like{" "}
+                                        {Math.round(
+                                          day.aiSuggestions.weatherContext
+                                            .feels_like,
+                                        )}
+                                        °F)
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <CloudRain className="h-5 w-5 text-blue-500" />
                                       <span className="font-medium">
-                                        {Math.round(day.aiSuggestions.weatherContext.precipitation_probability)}%
+                                        {Math.round(
+                                          day.aiSuggestions.weatherContext
+                                            .precipitation_probability,
+                                        )}
+                                        %
                                       </span>
                                     </div>
                                     <span className="text-muted-foreground">
-                                      {day.aiSuggestions.weatherContext.description}
+                                      {
+                                        day.aiSuggestions.weatherContext
+                                          .description
+                                      }
                                     </span>
                                   </div>
                                 )}
                               </div>
                             </div>
 
-                            {day.aiSuggestions?.weatherContext && !day.aiSuggestions.weatherContext.is_suitable_for_outdoor && (
-                              <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-900/50">
-                                <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
-                                  <AlertTriangle className="h-4 w-4" />
-                                  <span className="font-medium">Weather Advisory</span>
+                            {day.aiSuggestions?.weatherContext &&
+                              !day.aiSuggestions.weatherContext
+                                .is_suitable_for_outdoor && (
+                                <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-900/50">
+                                  <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <span className="font-medium">
+                                      Weather Advisory
+                                    </span>
+                                  </div>
+                                  <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+                                    Weather conditions may not be suitable for
+                                    outdoor activities.
+                                    {day.aiSuggestions.alternativeActivities
+                                      ?.length > 0 && (
+                                      <>
+                                        <br />
+                                        Consider these indoor alternatives:{" "}
+                                        {day.aiSuggestions.alternativeActivities.join(
+                                          ", ",
+                                        )}
+                                        .
+                                      </>
+                                    )}
+                                  </p>
                                 </div>
-                                <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
-                                  Weather conditions may not be suitable for outdoor activities.
-                                  {day.aiSuggestions.alternativeActivities?.length > 0 && (
-                                    <>
-                                      <br />
-                                      Consider these indoor alternatives: {day.aiSuggestions.alternativeActivities.join(", ")}.
-                                    </>
-                                  )}
-                                </p>
-                              </div>
-                            )}
+                              )}
 
                             <div className="space-y-2">
-                              {day.activities?.timeSlots?.map((activity: any, actIndex: number) => (
-                                <div key={actIndex} className="flex items-center justify-between p-2 border rounded">
-                                  {editingActivity?.day === index + 1 && editingActivity?.index === actIndex ? (
-                                    <div className="flex-1 space-y-2">
-                                      <Input
-                                        value={editedActivity?.name}
-                                        onChange={(e) => setEditedActivity({ ...editedActivity!, name: e.target.value })}
-                                        placeholder="Activity name"
-                                      />
-                                      <div className="flex gap-2">
+                              {day.activities?.timeSlots?.map(
+                                (activity: any, actIndex: number) => (
+                                  <div
+                                    key={actIndex}
+                                    className="flex items-center justify-between p-2 border rounded"
+                                  >
+                                    {editingActivity?.day === index + 1 &&
+                                    editingActivity?.index === actIndex ? (
+                                      <div className="flex-1 space-y-2">
                                         <Input
-                                          type="number"
-                                          value={editedActivity?.cost}
-                                          onChange={(e) => setEditedActivity({ ...editedActivity!, cost: parseFloat(e.target.value) })}
-                                          placeholder="Cost per person"
-                                          className="w-32"
+                                          value={editedActivity?.name}
+                                          onChange={(e) =>
+                                            setEditedActivity({
+                                              ...editedActivity!,
+                                              name: e.target.value,
+                                            })
+                                          }
+                                          placeholder="Activity name"
                                         />
-                                        <Input
-                                          value={editedActivity?.duration}
-                                          onChange={(e) => setEditedActivity({ ...editedActivity!, duration: e.target.value })}
-                                          placeholder="Duration"
-                                        />
-                                      </div>
-                                      <div className="text-sm text-muted-foreground">
-                                        Total for {numberOfPeople} {numberOfPeople === 1 ? 'person' : 'people'}: ${(editedActivity?.cost || 0) * numberOfPeople}
-                                      </div>
-                                      <div className="flex justify-end gap-2">
-                                        <Button
-                                          size="sm"
-                                          onClick={() => handleSaveActivity(index + 1, actIndex)}
-                                        >
-                                          <Check className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => setEditingActivity(null)}
-                                        >
-                                          <X className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                          <span>{activity.activity}</span>
-                                          {activity.url && (
-                                            <a
-                                              href={activity.url}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="text-primary hover:text-primary/80"
-                                            >
-                                              <ExternalLink className="h-4 w-4" />
-                                            </a>
-                                          )}
+                                        <div className="flex gap-2">
+                                          <Input
+                                            type="number"
+                                            value={editedActivity?.cost}
+                                            onChange={(e) =>
+                                              setEditedActivity({
+                                                ...editedActivity!,
+                                                cost: parseFloat(
+                                                  e.target.value,
+                                                ),
+                                              })
+                                            }
+                                            placeholder="Cost per person"
+                                            className="w-32"
+                                          />
+                                          <Input
+                                            value={editedActivity?.duration}
+                                            onChange={(e) =>
+                                              setEditedActivity({
+                                                ...editedActivity!,
+                                                duration: e.target.value,
+                                              })
+                                            }
+                                            placeholder="Duration"
+                                          />
                                         </div>
                                         <div className="text-sm text-muted-foreground">
-                                          {activity.duration} • ${activity.cost} per person
-                                          {numberOfPeople > 1 && ` (Total: $${(activity.cost || 0) * numberOfPeople})`}
+                                          Total for {numberOfPeople}{" "}
+                                          {numberOfPeople === 1
+                                            ? "person"
+                                            : "people"}
+                                          : $
+                                          {(editedActivity?.cost || 0) *
+                                            numberOfPeople}
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                          <Button
+                                            size="sm"
+                                            onClick={() =>
+                                              handleSaveActivity(
+                                                index + 1,
+                                                actIndex,
+                                              )
+                                            }
+                                          >
+                                            <Check className="h-4 w-4" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() =>
+                                              setEditingActivity(null)
+                                            }
+                                          >
+                                            <X className="h-4 w-4" />
+                                          </Button>
                                         </div>
                                       </div>
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        onClick={() => handleEditActivity(index + 1, actIndex, activity)}
-                                      >
-                                        <Edit2 className="h-4 w-4" />
-                                      </Button>
-                                    </>
-                                  )}
-                                </div>
-                              ))}
+                                    ) : (
+                                      <>
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2">
+                                            <span>{activity.activity}</span>
+                                            {activity.url && (
+                                              <a
+                                                href={activity.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-primary hover:text-primary/80"
+                                              >
+                                                <ExternalLink className="h-4 w-4" />
+                                              </a>
+                                            )}
+                                          </div>
+                                          <div className="text-sm text-muted-foreground">
+                                            {activity.duration} • $
+                                            {activity.cost} per person
+                                            {numberOfPeople > 1 &&
+                                              ` (Total: $${(activity.cost || 0) * numberOfPeople})`}
+                                          </div>
+                                        </div>
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          onClick={() =>
+                                            handleEditActivity(
+                                              index + 1,
+                                              actIndex,
+                                              activity,
+                                            )
+                                          }
+                                        >
+                                          <Edit2 className="h-4 w-4" />
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
+                                ),
+                              )}
                             </div>
 
                             <Separator className="my-2" />
@@ -749,7 +901,10 @@ export default function PlanTrip() {
                                     <Input
                                       value={day.accommodation?.name}
                                       onChange={(e) => {
-                                        const updated = { ...day.accommodation, name: e.target.value };
+                                        const updated = {
+                                          ...day.accommodation,
+                                          name: e.target.value,
+                                        };
                                         handleSaveAccommodation(index, updated);
                                       }}
                                       placeholder="Accommodation name"
@@ -759,22 +914,38 @@ export default function PlanTrip() {
                                         type="number"
                                         value={day.accommodation?.cost}
                                         onChange={(e) => {
-                                          const updated = { ...day.accommodation, cost: parseFloat(e.target.value) };
-                                          handleSaveAccommodation(index, updated);
+                                          const updated = {
+                                            ...day.accommodation,
+                                            cost: parseFloat(e.target.value),
+                                          };
+                                          handleSaveAccommodation(
+                                            index,
+                                            updated,
+                                          );
                                         }}
                                         placeholder="Cost per person"
                                         className="w-32"
                                       />
                                     </div>
                                     <div className="text-sm text-muted-foreground">
-                                      Total for {numberOfPeople} {numberOfPeople === 1 ? 'person' : 'people'}: ${(day.accommodation?.cost || 0) * numberOfPeople}
+                                      Total for {numberOfPeople}{" "}
+                                      {numberOfPeople === 1
+                                        ? "person"
+                                        : "people"}
+                                      : $
+                                      {(day.accommodation?.cost || 0) *
+                                        numberOfPeople}
                                     </div>
                                   </div>
                                 ) : (
                                   <>
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2">
-                                        <span>Accommodation: {day.accommodation?.name || 'Not specified'}</span>
+                                        <span>
+                                          Accommodation:{" "}
+                                          {day.accommodation?.name ||
+                                            "Not specified"}
+                                        </span>
                                         {day.accommodation?.url && (
                                           <a
                                             href={day.accommodation.url}
@@ -788,13 +959,16 @@ export default function PlanTrip() {
                                       </div>
                                       <div className="text-sm text-muted-foreground">
                                         ${day.accommodation?.cost} per person
-                                        {numberOfPeople > 1 && ` (Total: $${(day.accommodation?.cost || 0) * numberOfPeople})`}
+                                        {numberOfPeople > 1 &&
+                                          ` (Total: $${(day.accommodation?.cost || 0) * numberOfPeople})`}
                                       </div>
                                     </div>
                                     <Button
                                       size="icon"
                                       variant="ghost"
-                                      onClick={() => handleEditAccommodation(index)}
+                                      onClick={() =>
+                                        handleEditAccommodation(index)
+                                      }
                                     >
                                       <Edit2 className="h-4 w-4" />
                                     </Button>
@@ -807,7 +981,8 @@ export default function PlanTrip() {
                                   <span>Daily Meal Budget</span>
                                   <div className="text-sm text-muted-foreground">
                                     ${day.meals?.budget} per person
-                                    {numberOfPeople > 1 && ` (Total: $${(day.meals?.budget || 0) * numberOfPeople})`}
+                                    {numberOfPeople > 1 &&
+                                      ` (Total: $${(day.meals?.budget || 0) * numberOfPeople})`}
                                   </div>
                                 </div>
                               </div>
@@ -820,16 +995,20 @@ export default function PlanTrip() {
                         <div className="mt-6">
                           <h3 className="font-medium mb-2">Tips</h3>
                           <ul className="list-disc list-inside space-y-1 text-sm">
-                            {suggestions.tips.map((tip: string, index: number) => (
-                              <li key={index}>{tip}</li>
-                            ))}
+                            {suggestions.tips.map(
+                              (tip: string, index: number) => (
+                                <li key={index}>{tip}</li>
+                              ),
+                            )}
                           </ul>
                         </div>
                       )}
 
                       <Button
                         className="w-full mt-4 text-white"
-                        onClick={() => createTripMutation.mutate(form.getValues())}
+                        onClick={() =>
+                          createTripMutation.mutate(form.getValues())
+                        }
                         disabled={createTripMutation.isPending}
                       >
                         {createTripMutation.isPending ? (

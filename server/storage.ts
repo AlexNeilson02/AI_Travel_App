@@ -122,13 +122,13 @@ export class DatabaseStorage implements IStorage {
     // Create proper Date objects for the dates if they're being updated
     if (tripUpdate.startDate) {
       const startDate = new Date(tripUpdate.startDate);
-      startDate.setUTCHours(0, 0, 0, 0);
+      //startDate.setUTCHours(0, 0, 0, 0);
       tripUpdate.startDate = startDate;
     }
 
     if (tripUpdate.endDate) {
       const endDate = new Date(tripUpdate.endDate);
-      endDate.setUTCHours(0, 0, 0, 0);
+      //endDate.setUTCHours(0, 0, 0, 0);
       tripUpdate.endDate = endDate;
     }
 
