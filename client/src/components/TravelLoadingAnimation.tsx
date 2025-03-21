@@ -9,22 +9,25 @@ export function TravelLoadingAnimation({ size = "medium" }: TravelLoadingAnimati
   // Size mapping
   const sizeMap = {
     small: {
-      container: "w-8 h-8",
-      plane: "w-4 h-4",
-      cloud: "w-2 h-2",
+      container: "w-10 h-10",
+      plane: "w-6 h-6",
+      cloud: "w-3 h-3",
       dots: "w-1 h-1",
+      trail: "w-4 h-0.5",
     },
     medium: {
-      container: "w-16 h-16",
-      plane: "w-8 h-8",
-      cloud: "w-4 h-4",
+      container: "w-20 h-20",
+      plane: "w-10 h-10",
+      cloud: "w-5 h-5",
       dots: "w-1.5 h-1.5",
+      trail: "w-8 h-1",
     },
     large: {
-      container: "w-24 h-24",
-      plane: "w-12 h-12",
-      cloud: "w-6 h-6",
+      container: "w-28 h-28",
+      plane: "w-14 h-14",
+      cloud: "w-7 h-7",
       dots: "w-2 h-2",
+      trail: "w-12 h-1.5",
     },
   };
 
@@ -35,7 +38,7 @@ export function TravelLoadingAnimation({ size = "medium" }: TravelLoadingAnimati
       {/* Circular path for the plane to follow */}
       <div className="absolute inset-0 rounded-full border-2 border-dashed border-primary/30 animate-pulse" />
       
-      {/* Airplane */}
+      {/* Airplane with trail effect */}
       <motion.div
         className="absolute"
         animate={{
@@ -55,6 +58,14 @@ export function TravelLoadingAnimation({ size = "medium" }: TravelLoadingAnimati
           transform: "translate(-50%, -50%)",
         }}
       >
+        {/* Airplane trail */}
+        <motion.div 
+          className={`absolute ${currentSize.trail} bg-gradient-to-r from-transparent to-primary/30 rounded-full`}
+          initial={{ x: -40, y: 0 }}
+          animate={{ opacity: [0, 0.7, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          style={{ right: "80%" }}
+        />
         <svg 
           className={`${currentSize.plane} text-primary`} 
           viewBox="0 0 24 24" 
