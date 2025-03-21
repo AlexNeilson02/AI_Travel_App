@@ -913,18 +913,21 @@ export default function PlanTrip() {
                                     <div className="flex gap-2">
                                       <Input
                                         type="number"
-                                        value={day.accommodation?.cost}
+                                        value={day.accommodation?.cost?.USD || 0}
                                         onChange={(e) => {
                                           const updated = {
                                             ...day.accommodation,
-                                            cost: parseFloat(e.target.value),
+                                            cost: {
+                                              USD: parseFloat(e.target.value),
+                                              MXN: parseFloat(e.target.value) * 20 // Assuming 20 MXN per USD for simplicity
+                                            }
                                           };
                                           handleSaveAccommodation(
                                             index,
                                             updated,
                                           );
                                         }}
-                                        placeholder="Cost per person"
+                                        placeholder="Cost per person (USD)"
                                         className="w-32"
                                       />
                                     </div>
@@ -933,9 +936,7 @@ export default function PlanTrip() {
                                       {numberOfPeople === 1
                                         ? "person"
                                         : "people"}
-                                      : $
-                                      {(day.accommodation?.cost || 0) *
-                                        numberOfPeople}
+                                      : {formatCurrency((day.accommodation?.cost?.USD || 0) * numberOfPeople, 'USD')}
                                     </div>
                                   </div>
                                 ) : (
@@ -959,9 +960,9 @@ export default function PlanTrip() {
                                         )}
                                       </div>
                                       <div className="text-sm text-muted-foreground">
-                                        ${day.accommodation?.cost} per person
+                                        {formatCurrency(day.accommodation?.cost?.USD || 0, 'USD')} per person
                                         {numberOfPeople > 1 &&
-                                          ` (Total: $${(day.accommodation?.cost || 0) * numberOfPeople})`}
+                                          ` (Total: ${formatCurrency((day.accommodation?.cost?.USD || 0) * numberOfPeople, 'USD')})`}
                                       </div>
                                     </div>
                                     <Button
@@ -981,9 +982,9 @@ export default function PlanTrip() {
                                 <div className="flex items-center justify-between">
                                   <span>Daily Meal Budget</span>
                                   <div className="text-sm text-muted-foreground">
-                                    {formatCurrency(day.meals?.budget || 0, day.currency || 'USD')} per person
+                                    {formatCurrency(day.meals?.budget?.USD || 0, 'USD')} per person
                                     {numberOfPeople > 1 &&
-                                      ` (Total: ${formatCurrency((day.meals?.budget || 0) * numberOfPeople, day.currency || 'USD')})`}
+                                      ` (Total: ${formatCurrency((day.meals?.budget?.USD || 0) * numberOfPeople, 'USD')})`}
                                   </div>
                                 </div>
                               </div>
