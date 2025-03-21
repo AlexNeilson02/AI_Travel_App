@@ -300,14 +300,7 @@ export default function PlanTrip() {
     }
   };
 
-  const handleAttractionAdd = (value: string) => {
-    const current = form.getValues(
-      "preferences.mustSeeAttractions",
-    ) as string[];
-    if (!current.includes(value)) {
-      form.setValue("preferences.mustSeeAttractions", [...current, value]);
-    }
-  };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -560,52 +553,7 @@ export default function PlanTrip() {
                         </Select>
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Must-See Attractions
-                        </label>
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="Enter an attraction"
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                const value = e.currentTarget.value.trim();
-                                if (value) {
-                                  handleAttractionAdd(value);
-                                  e.currentTarget.value = "";
-                                }
-                              }
-                            }}
-                          />
-                        </div>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {(
-                            form.watch(
-                              "preferences.mustSeeAttractions",
-                            ) as string[]
-                          ).map((attraction: string) => (
-                            <Badge
-                              key={attraction}
-                              variant="secondary"
-                              className="cursor-pointer"
-                              onClick={() => {
-                                const current = form.getValues(
-                                  "preferences.mustSeeAttractions",
-                                ) as string[];
-                                form.setValue(
-                                  "preferences.mustSeeAttractions",
-                                  current.filter(
-                                    (a: string) => a !== attraction,
-                                  ),
-                                );
-                              }}
-                            >
-                              {attraction} <X className="h-3 w-3 ml-1" />
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
+
                     </div>
 
                     <Button
