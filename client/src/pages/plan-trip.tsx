@@ -2,6 +2,7 @@ import Nav from "@/components/Nav";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertTripSchema } from "@shared/schema";
+import { formatCurrency } from "@shared/currency";
 import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
