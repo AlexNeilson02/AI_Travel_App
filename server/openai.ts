@@ -93,7 +93,7 @@ Your response must be structured as a JSON object. Return only the JSON object w
 
   try {
     console.log('Generating trip suggestions with OpenAI...');
-    const response = await openai.chat.completions.create({
+    const aiResponse = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
         { role: "system", content: "You are an expert travel planner. Include both local currency and USD. Respond only with valid JSON objects." },
@@ -102,7 +102,7 @@ Your response must be structured as a JSON object. Return only the JSON object w
       temperature: 0.7,
     });
 
-    const content = response.choices[0].message.content;
+    const content = aiResponse.choices[0].message.content;
     if (!content) {
       throw new Error('No content received from OpenAI');
     }
@@ -162,14 +162,19 @@ Your response must be structured as a JSON object. Return only the JSON object w
     }));
 
     console.log('Formatted days with weather:', formattedDays[0]);
-
-    return {
+    console.log('Number of days in itinerary:', formattedDays.length);
+    
+    // Create the result object with all days
+    const result = {
       days: formattedDays,
       totalCost: itinerary.totalCost || 0,
       perPersonCost: itinerary.perPersonCost || 0,
       tips: itinerary.tips || [],
       personalizedSuggestions: itinerary.personalizedSuggestions || [],
     };
+    
+    console.log('Full itinerary days count:', result.days.length);
+    return result;
   } catch (error: any) {
     console.error("Failed to generate trip suggestions:", error);
     throw new Error(`Failed to generate trip suggestions: ${error.message}`);

@@ -107,6 +107,8 @@ export default function PlanTrip() {
     },
     onSuccess: (data) => {
       console.log("Received trip suggestions with weather:", data);
+      console.log("Number of days received:", data.days?.length || 0);
+      console.log("Received days:", data.days?.map((d: any) => d.date).join(", "));
       setSuggestions(data);
       if (!currentQuestion) {
         getQuestionMutation.mutate();
