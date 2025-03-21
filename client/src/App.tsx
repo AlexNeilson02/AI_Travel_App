@@ -20,8 +20,8 @@ function Router() {
     <div className={`min-h-screen bg-background ${isMobile ? 'pb-16' : ''}`}>
       <main>
         <Switch>
-          <ProtectedRoute path="/" component={HomePage} />
-          <ProtectedRoute path="/plan" component={PlanTrip} />
+          <Route path="/" component={HomePage} />
+          <Route path="/plan" component={PlanTrip} />
           <ProtectedRoute path="/my-trips" component={MyTrips} />
           <ProtectedRoute path="/trip/:id" component={TripDetails} />
           <ProtectedRoute path="/maps" component={MapsPage} />

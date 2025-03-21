@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, Home, Map, Calendar, Globe } from "lucide-react";
+import { LogOut, Home, Map, Calendar, Globe, LogIn } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Nav() {
@@ -9,12 +9,20 @@ export default function Nav() {
   const { user, logoutMutation } = useAuth();
   const isMobile = useIsMobile();
 
-  const navItems = [
+  // Define nav items based on authentication status
+  const commonNavItems = [
     { href: "/", label: "Home", icon: Home },
     { href: "/plan", label: "Plan Trip", icon: Map },
+  ];
+  
+  const authenticatedNavItems = [
     { href: "/my-trips", label: "My Trips", icon: Calendar },
     { href: "/maps", label: "Maps", icon: Globe },
   ];
+  
+  const navItems = user 
+    ? [...commonNavItems, ...authenticatedNavItems]
+    : commonNavItems;
 
   if (isMobile) {
     return (
@@ -25,7 +33,7 @@ export default function Nav() {
             <div className="flex items-center space-x-2">
               <span className="font-bold">Juno: AI Travel Planner</span>
             </div>
-            {user && (
+            {user ? (
               <Button 
                 variant="ghost" 
                 size="icon" 
@@ -35,6 +43,18 @@ export default function Nav() {
               >
                 <LogOut className="h-5 w-5" />
                 <span className="sr-only">Logout</span>
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild
+                className="w-14"
+              >
+                <Link href="/auth">
+                  <LogIn className="h-5 w-5" />
+                  <span className="sr-only">Login</span>
+                </Link>
               </Button>
             )}
           </div>
@@ -83,7 +103,7 @@ export default function Nav() {
             ))}
           </div>
           <div className="flex flex-1 items-center justify-end space-x-2">
-            {user && (
+            {user ? (
               <div className="flex items-center">
                 <span className="text-sm mr-2 text-muted-foreground">
                   {user.username}
@@ -96,6 +116,15 @@ export default function Nav() {
                 >
                   <LogOut className="h-5 w-5" />
                   <span className="sr-only">Logout</span>
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Button variant="outline" asChild>
+                  <Link href="/auth">
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Login / Register
+                  </Link>
                 </Button>
               </div>
             )}

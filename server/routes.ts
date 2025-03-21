@@ -102,8 +102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/suggest-trip", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
+    // Allow non-authenticated users to get trip suggestions
     const { destination, preferences, budget, startDate, endDate, numberOfPeople, chatHistory } = req.body;
     console.log('Received suggestions request:', { destination, preferences, budget, startDate, endDate });
 
