@@ -13,6 +13,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { TravelLoadingAnimation } from "@/components/TravelLoadingAnimation";
 import {
   CalendarIcon,
   DollarSign,
@@ -642,7 +643,9 @@ export default function PlanTrip() {
                       disabled={suggestMutation.isPending}
                     >
                       {suggestMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <div className="flex items-center justify-center">
+                          <TravelLoadingAnimation size="small" />
+                        </div>
                       ) : (
                         "Get AI Suggestions"
                       )}
@@ -655,8 +658,11 @@ export default function PlanTrip() {
 
           <div>
             {suggestMutation.isPending ? (
-              <div className="flex items-center justify-center h-full">
-                <Loader2 className="h-8 w-8 animate-spin" />
+              <div className="flex items-center justify-center h-full min-h-[200px]">
+                <div className="text-center">
+                  <TravelLoadingAnimation size="large" />
+                  <p className="mt-4 text-sm text-muted-foreground">Planning your perfect trip...</p>
+                </div>
               </div>
             ) : suggestions ? (
               <>
