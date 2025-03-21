@@ -165,7 +165,6 @@ export default function PlanTrip() {
                 ? {
                     description: day.aiSuggestions.weatherContext.description,
                     temperature: day.aiSuggestions.weatherContext.temperature,
-                    feels_like: day.aiSuggestions.weatherContext.feels_like || 0,
                     humidity: day.aiSuggestions.weatherContext.humidity || 0,
                     wind_speed: day.aiSuggestions.weatherContext.wind_speed || 0,
                     precipitation_probability:
@@ -729,14 +728,6 @@ export default function PlanTrip() {
                                             .temperature,
                                         )}
                                         °F
-                                      </span>
-                                      <span className="text-sm text-muted-foreground">
-                                        (Feels like{" "}
-                                        {Math.round(
-                                          day.aiSuggestions.weatherContext
-                                            .feels_like,
-                                        )}
-                                        °F)
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-2">
