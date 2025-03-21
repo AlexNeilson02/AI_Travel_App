@@ -33,7 +33,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -68,8 +68,59 @@ export default function PlanTrip() {
   const [numberOfPeople, setNumberPeople] = useState(1);
   
   // For restoring saved trip data after login
-  const [, params] = useLocation();
+  const [location, params] = useLocation();
   const { user } = useAuth();
+  
+  // Check for saved trip data on component mount
+  useEffect(() => {
+    // Only attempt to restore data if the URL has a restore parameter and user is logged in
+    if (location.includes('restore=true') && user) {
+      const pendingTripData = localStorage.getItem("pendingTripData");
+      if (pendingTripData) {
+        try {
+          const tripData = JSON.parse(pendingTripData);
+          
+          // Restore form data
+          if (tripData.formData) {
+            // Parse date strings back to Date objects
+            const formData = {
+              ...tripData.formData,
+              startDate: tripData.formData.startDate ? new Date(tripData.formData.startDate) : new Date(),
+              endDate: tripData.formData.endDate ? new Date(tripData.formData.endDate) : new Date()
+            };
+            
+            // Reset form with saved values
+            form.reset(formData);
+            
+            // Restore any other state
+            if (tripData.suggestions) {
+              setSuggestions(tripData.suggestions);
+            }
+            
+            if (tripData.chatHistory) {
+              setChatHistory(tripData.chatHistory);
+            }
+            
+            // Notify user
+            toast({
+              title: "Trip Data Restored",
+              description: "Your trip planning has been restored after login",
+            });
+          }
+        } catch (error) {
+          console.error("Error restoring trip data:", error);
+          toast({
+            title: "Error",
+            description: "Could not restore your trip data",
+            variant: "destructive",
+          });
+        }
+        
+        // Clear saved data
+        localStorage.removeItem("pendingTripData");
+      }
+    }
+  }, [location, user]);
 
   const form = useForm({
     resolver: zodResolver(insertTripSchema),
