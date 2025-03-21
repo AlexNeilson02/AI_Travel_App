@@ -654,10 +654,10 @@ export default function PlanTrip() {
                         ))}
                       </div>
 
-                      {suggestions.nextQuestion && (
+                      {currentQuestion && (
                         <div className="bg-muted p-4 rounded-lg">
                           <p className="text-sm font-medium">
-                            {suggestions.nextQuestion}
+                            {currentQuestion}
                           </p>
                         </div>
                       )}
@@ -710,7 +710,7 @@ export default function PlanTrip() {
                       {suggestions.days?.map((day: any, index: number) => {
                         console.log(
                           "Rendering day with weather:",
-                          day.weatherContext,
+                          day.aiSuggestions?.weatherContext,
                         );
                         return (
                           <div key={index}>
