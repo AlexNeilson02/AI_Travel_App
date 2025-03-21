@@ -131,8 +131,8 @@ export default function PlanTrip() {
       const formattedItinerary = {
         days: suggestions.days.map((day: any) => {
           const date = new Date(day.date);
-          date.setDate(date.getDate() - 1);
-
+          // Removed the line that subtracted a day from the date
+          
           return {
             date: format(date, "yyyy-MM-dd"),
             activities: {
