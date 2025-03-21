@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 import {
   CalendarIcon,
   DollarSign,
@@ -64,6 +66,10 @@ export default function PlanTrip() {
     number | null
   >(null);
   const [numberOfPeople, setNumberPeople] = useState(1);
+  
+  // For restoring saved trip data after login
+  const [, params] = useLocation();
+  const { user } = useAuth();
 
   const form = useForm({
     resolver: zodResolver(insertTripSchema),
@@ -202,6 +208,29 @@ export default function PlanTrip() {
       queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
     },
     onError: (error: Error) => {
+      // Handle 401 Unauthorized error (non-authenticated user) - redirect to login page
+      if (error.message.includes("401") || error.message.includes("Unauthorized")) {
+        toast({
+          title: "Login Required",
+          description: "Please log in or register to save your trip",
+          variant: "default",
+        });
+        
+        // Save trip info to localStorage so it can be retrieved after login
+        const tripData = {
+          formData: form.getValues(),
+          suggestions: suggestions,
+          chatHistory: chatHistory
+        };
+        localStorage.setItem("pendingTripData", JSON.stringify(tripData));
+        
+        // Redirect to auth page after a short delay
+        setTimeout(() => {
+          window.location.href = "/auth";
+        }, 1500);
+        return;
+      }
+      
       toast({
         title: "Error creating trip",
         description: error.message,

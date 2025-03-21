@@ -28,7 +28,19 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (user) {
-      setLocation("/");
+      // Check if there's a pending trip in localStorage
+      const pendingTripData = localStorage.getItem("pendingTripData");
+      
+      if (pendingTripData) {
+        // Clear the pending trip data from localStorage
+        localStorage.removeItem("pendingTripData");
+        
+        // Redirect to the plan trip page
+        setLocation("/plan?restore=true");
+      } else {
+        // No pending trip, redirect to home
+        setLocation("/");
+      }
     }
   }, [user, setLocation]);
 
