@@ -88,12 +88,19 @@ export default function PlanTrip() {
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/trip-questions", {
         preferences: form.getValues().preferences,
+        destination: form.getValues().destination,
+        chatHistory
       });
       return res.json();
     },
     onSuccess: (data) => {
+      console.log("Received follow-up question:", data.question);
       setCurrentQuestion(data.question);
     },
+    onError: (error) => {
+      console.error("Error getting follow-up question:", error);
+      setCurrentQuestion("What else would you like to know about your trip?");
+    }
   });
 
   const suggestMutation = useMutation({
@@ -130,10 +137,14 @@ export default function PlanTrip() {
   const createTripMutation = useMutation({
     mutationFn: async (data: any) => {
       console.log("Creating trip with data:", data);
+      console.log("Using suggestions with days:", suggestions.days.length);
+      
+      // Ensure we're using all days that came from the server
       const formattedItinerary = {
         days: suggestions.days.map((day: any) => {
+          // Parse the date properly without manipulating it
           const date = new Date(day.date);
-          // Removed the line that subtracted a day from the date
+          console.log(`Processing day: ${day.date} (${day.dayOfWeek})`);
           
           return {
             date: format(date, "yyyy-MM-dd"),
@@ -150,20 +161,20 @@ export default function PlanTrip() {
             },
             aiSuggestions: {
               reasoning: "AI-generated suggestion",
-              weatherContext: day.weatherContext
+              weatherContext: day.aiSuggestions?.weatherContext
                 ? {
-                    description: day.weatherContext.description,
-                    temperature: day.weatherContext.temperature,
-                    feels_like: day.weatherContext.feels_like,
-                    humidity: day.weatherContext.humidity,
-                    wind_speed: day.weatherContext.wind_speed,
+                    description: day.aiSuggestions.weatherContext.description,
+                    temperature: day.aiSuggestions.weatherContext.temperature,
+                    feels_like: day.aiSuggestions.weatherContext.feels_like || 0,
+                    humidity: day.aiSuggestions.weatherContext.humidity || 0,
+                    wind_speed: day.aiSuggestions.weatherContext.wind_speed || 0,
                     precipitation_probability:
-                      day.weatherContext.precipitation_probability,
+                      day.aiSuggestions.weatherContext.precipitation_probability || 0,
                     is_suitable_for_outdoor:
-                      day.weatherContext.is_suitable_for_outdoor,
+                      day.aiSuggestions.weatherContext.is_suitable_for_outdoor || true,
                   }
                 : undefined,
-              alternativeActivities: day.alternativeActivities || [],
+              alternativeActivities: day.aiSuggestions?.alternativeActivities || [],
             },
             userFeedback: "",
             isFinalized: false,
