@@ -53,11 +53,14 @@ export async function generateTripSuggestions(
     .map(msg => msg.content)
     .join("\n");
 
+  // Create a more explicit prompt that emphasizes the need for ALL days in the date range
   const systemPrompt = `You are an expert travel planner creating a personalized itinerary for ${numberOfPeople} person(s) to ${destination} from ${startDate} to ${endDate}. 
 Budget: $${totalBudget} ($${budget} per person).
 Known preferences: ${preferences.join(", ")}
 Additional context from conversation:
 ${userInterests}
+
+IMPORTANT: Your itinerary MUST include ALL ${duration} days from ${startDate} to ${endDate}. Create an entry for each day in the specified date range.
 
 Your response must be structured as a JSON object. Return only the JSON object with this structure, no additional text:
 {
@@ -116,10 +119,81 @@ Your response must be structured as a JSON object. Return only the JSON object w
       throw new Error('Failed to parse trip suggestions');
     }
 
+    // Validate we got the expected number of days
+    console.log(`Expected itinerary days: ${duration}, Received: ${itinerary.days?.length || 0}`);
+    
+    if (!itinerary.days || itinerary.days.length < duration) {
+      console.warn(`OpenAI didn't return all ${duration} days. Received only ${itinerary.days?.length || 0} days.`);
+      
+      // If we have a start date but not enough days, let's make sure we have the complete range
+      if (itinerary.days && itinerary.days.length > 0) {
+        const firstDate = new Date(itinerary.days[0].date);
+        const expectedDates = [];
+        
+        // Generate the expected range of dates
+        for (let i = 0; i < duration; i++) {
+          const currentDate = addDays(firstDate, i);
+          expectedDates.push({
+            date: format(currentDate, 'MMM d, yyyy'),
+            dayOfWeek: format(currentDate, 'EEEE')
+          });
+        }
+        
+        // Check which dates are missing and fill in blanks
+        const existingDates = itinerary.days.map((day: any) => day.date);
+        const filledDays = [...itinerary.days];
+        
+        expectedDates.forEach(expectedDay => {
+          if (!existingDates.includes(expectedDay.date)) {
+            console.log(`Adding missing day: ${expectedDay.date}`);
+            // Add a placeholder day
+            filledDays.push({
+              date: expectedDay.date,
+              dayOfWeek: expectedDay.dayOfWeek,
+              activities: {
+                timeSlots: [
+                  {
+                    time: "09:00",
+                    activity: "Free time",
+                    location: destination,
+                    duration: "Full day",
+                    cost: 0,
+                    notes: "This day was automatically added to complete your itinerary.",
+                    isOutdoor: false
+                  }
+                ]
+              },
+              accommodation: filledDays.length > 0 ? filledDays[filledDays.length-1].accommodation : {
+                name: "TBD",
+                cost: 0,
+                location: ""
+              },
+              meals: {
+                budget: 50
+              }
+            });
+          }
+        });
+        
+        // Sort by date to ensure correct order
+        filledDays.sort((a: any, b: any) => {
+          return new Date(a.date).getTime() - new Date(b.date).getTime();
+        });
+        
+        itinerary.days = filledDays;
+      }
+    }
+    
     // Format days without any timezone manipulation
-    const formattedDays = await Promise.all(itinerary.days.map(async (day: any) => {
-      const weatherData = await getWeatherForecast(destination, new Date(day.date));
-      console.log('Weather data for', day.date, ':', weatherData);
+    const formattedDays = await Promise.all(itinerary.days.map(async (day: any, index: number) => {
+      let weatherData = null;
+      try {
+        weatherData = await getWeatherForecast(destination, new Date(day.date));
+        console.log('Weather data for', day.date, ':', weatherData);
+      } catch (weatherError) {
+        console.error(`Error getting weather for ${day.date}:`, weatherError);
+        // Continue without weather data
+      }
 
       return {
         date: day.date,
