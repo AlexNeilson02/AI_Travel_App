@@ -3,7 +3,6 @@ import axios from 'axios';
 interface WeatherData {
   description: string;
   temperature: number;
-  feels_like: number;
   humidity: number;
   wind_speed: number;
   precipitation_probability: number;
@@ -56,7 +55,6 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
           'relative_humidity_2m',
           'precipitation_probability',
           'weather_code',
-          'apparent_temperature',
           'wind_speed_10m'
         ],
         temperature_unit: 'fahrenheit',
@@ -86,7 +84,6 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
     const weatherData: WeatherData = {
       description: getWeatherDescription(weatherCode),
       temperature,
-      feels_like: hourlyData.apparent_temperature[noonIndex],
       humidity: hourlyData.relative_humidity_2m[noonIndex],
       wind_speed: windSpeed,
       precipitation_probability: precipProb,
