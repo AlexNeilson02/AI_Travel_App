@@ -231,7 +231,7 @@ export default function PlanTrip() {
     setEditingActivity({ day, index });
     setEditedActivity({
       name: activity.activity,
-      cost: activity.cost || 0,
+      cost: activity.cost?.USD || 0,
       duration: activity.duration,
       url: activity.url,
     });
@@ -244,7 +244,10 @@ export default function PlanTrip() {
     const activityUpdate = {
       ...updatedSuggestions.days[day - 1].activities.timeSlots[index],
       activity: editedActivity.name,
-      cost: editedActivity.cost,
+      cost: {
+        USD: parseFloat(editedActivity.cost.toString()),
+        MXN: parseFloat(editedActivity.cost.toString()) * 20 // Assuming 20 MXN per USD
+      },
       duration: editedActivity.duration,
       url: editedActivity.url,
     };
@@ -867,10 +870,10 @@ export default function PlanTrip() {
                                             )}
                                           </div>
                                           <div className="text-sm text-muted-foreground">
-                                            {activity.duration} • $
-                                            {activity.cost} per person
+                                            {activity.duration} • 
+                                            {formatCurrency(activity.cost?.USD || 0, 'USD')} per person
                                             {numberOfPeople > 1 &&
-                                              ` (Total: $${(activity.cost || 0) * numberOfPeople})`}
+                                              ` (Total: ${formatCurrency((activity.cost?.USD || 0) * numberOfPeople, 'USD')})`}
                                           </div>
                                         </div>
                                         <Button
