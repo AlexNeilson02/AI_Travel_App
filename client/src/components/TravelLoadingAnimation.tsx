@@ -113,7 +113,17 @@ export function TravelLoadingAnimation({ size = "medium" }: TravelLoadingAnimati
         animate={{ x: [0, 10, 0] }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
       >
-        <div className={`${currentSize.cloud} bg-primary/20 rounded-full`}></div>
+        <svg 
+          className={`${currentSize.cloud} text-primary/20`} 
+          viewBox="0 0 24 24" 
+          fill="currentColor" 
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path 
+            d="M4.5 9.5C4.5 8.12 5.62 7 7 7C8.21 7 9.19 7.77 9.44 8.83C9.54 8.67 9.73 8.5 10 8.5C10.83 8.5 11.5 9.17 11.5 10C11.5 10.14 11.48 10.28 11.43 10.4C11.56 10.35 11.68 10.33 11.8 10.33C12.46 10.33 13 10.87 13 11.53C13 12.19 12.46 12.74 11.8 12.74H5.7C5.03 12.74 4.5 12.2 4.5 11.54C4.5 11.11 4.74 10.74 5.1 10.56C5.03 10.39 5 10.21 5 10C5 9.62 5.17 9.26 5.46 9C5.46 9 5.5 9.5 4.5 9.5Z" 
+            fill="currentColor"
+          />
+        </svg>
       </motion.div>
       
       <motion.div
@@ -121,7 +131,17 @@ export function TravelLoadingAnimation({ size = "medium" }: TravelLoadingAnimati
         animate={{ x: [0, -10, 0] }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
       >
-        <div className={`${currentSize.cloud} bg-primary/20 rounded-full`}></div>
+        <svg 
+          className={`${currentSize.cloud} text-primary/20`} 
+          viewBox="0 0 24 24" 
+          fill="currentColor" 
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path 
+            d="M22 13.35C22 10.96 20.06 9 17.7 9C15.67 9 13.94 10.44 13.5 12.35C13 12.12 12.46 12 11.88 12C9.74 12 8 13.76 8 15.93C8 18.07 9.74 19.86 11.88 19.86H21.5C21.78 19.86 22 19.64 22 19.35V13.35Z" 
+            fill="currentColor"
+          />
+        </svg>
       </motion.div>
 
       {/* Loading dots */}
