@@ -39,26 +39,15 @@ export function TravelLoadingAnimation({ size = "medium" }: TravelLoadingAnimati
       <motion.div
         className="absolute"
         animate={{
-          rotate: 360,
-          x: [0, 10, 0, -10, 0],
-          y: [0, -10, 0, 10, 0]
+          x: [-20, 20, -20],
+          y: [-15, 15, -15],
+          rotate: [-10, 10, -10]
         }}
         transition={{
-          rotate: {
-            duration: 3,
-            repeat: Infinity,
-            ease: "linear"
-          },
-          x: {
-            duration: 3,
-            repeat: Infinity,
-            ease: "easeInOut"
-          },
-          y: {
-            duration: 3,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }
+          duration: 6,
+          repeat: Infinity,
+          ease: "easeInOut",
+          times: [0, 0.5, 1]
         }}
         style={{
           top: "50%",
@@ -72,14 +61,49 @@ export function TravelLoadingAnimation({ size = "medium" }: TravelLoadingAnimati
           fill="none" 
           xmlns="http://www.w3.org/2000/svg"
         >
+          {/* Airplane body */}
           <path
-            d="M21.86 12.76L19.15 14L15.36 15.27L9 18L8.91 18L5.18 13.73L5 13.55L4.82 13.37L5.53 13.15L9 12L12.35 10.89L12.36 10.89L17.85 8.88L19.15 8.5L21.86 11.24C22.04 11.43 22.04 11.57 21.86 12.76Z"
+            d="M12 2C9.5 2 4 3.5 4 12C4 20.5 9.5 22 12 22C14.5 22 20 20.5 20 12C20 3.5 14.5 2 12 2Z"
             fill="currentColor"
+            fillOpacity="0.2"
           />
           <path
-            d="M9 18L5.18 13.73L5 13.55L4.82 13.37L3.58 16.15C3.23 16.95 3.4 17.85 4 18.45L4.71 19.16C5.3 19.75 6.2 19.93 7 19.58L9 18Z"
+            d="M17.5 12H21.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <path
+            d="M3 12H6.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          {/* Main airplane body */}
+          <path
+            d="M12 18.5C15.5899 18.5 18.5 15.5899 18.5 12C18.5 8.41015 15.5899 5.5 12 5.5C8.41015 5.5 5.5 8.41015 5.5 12C5.5 15.5899 8.41015 18.5 12 18.5Z"
             fill="currentColor"
           />
+          {/* Wings */}
+          <path
+            d="M4.5 10L12 12L19.5 10"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <path
+            d="M4.5 14L12 12L19.5 14"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          {/* Windows */}
+          <circle cx="10" cy="10" r="0.75" fill="white" />
+          <circle cx="12" cy="10" r="0.75" fill="white" />
+          <circle cx="14" cy="10" r="0.75" fill="white" />
+          <circle cx="10" cy="14" r="0.75" fill="white" />
+          <circle cx="12" cy="14" r="0.75" fill="white" />
+          <circle cx="14" cy="14" r="0.75" fill="white" />
         </svg>
       </motion.div>
 
