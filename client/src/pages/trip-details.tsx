@@ -198,6 +198,9 @@ export default function TripDetails() {
                               </div>
                               <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
                                 Weather conditions may not be suitable for outdoor activities.
+                                {day.aiSuggestions.weatherContext.warning && (
+                                  <span className="block mt-1 italic">{day.aiSuggestions.weatherContext.warning}</span>
+                                )}
                                 {day.aiSuggestions.alternativeActivities?.length > 0 && (
                                   <>
                                     <br />

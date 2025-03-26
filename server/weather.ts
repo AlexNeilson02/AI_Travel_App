@@ -87,7 +87,8 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
       humidity: hourlyData.relative_humidity_2m[noonIndex],
       wind_speed: windSpeed,
       precipitation_probability: precipProb,
-      is_suitable_for_outdoor: isSuitableForOutdoor(temperature, windSpeed, precipProb, getWeatherDescription(weatherCode))
+      is_suitable_for_outdoor: isSuitableForOutdoor(temperature, windSpeed, precipProb, getWeatherDescription(weatherCode)),
+      warning: date.getTime() - new Date().getTime() > 7 * 24 * 60 * 60 * 1000 ? "Weather forecast may be less accurate for dates more than a week away" : undefined
     };
 
     console.log('Processed weather data:', weatherData);
