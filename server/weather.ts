@@ -7,6 +7,7 @@ interface WeatherData {
   wind_speed: number;
   precipitation_probability: number;
   is_suitable_for_outdoor: boolean;
+  warning?: string; // Optional warning message for forecast uncertainty
 }
 
 interface GeocodingResponse {
@@ -100,12 +101,17 @@ export async function getWeatherForecast(location: string, date: Date): Promise<
 }
 
 function isSuitableForOutdoor(temp: number, windSpeed: number, precipProb: number, description: string): boolean {
-  return (
+  console.log(`Evaluating outdoor suitability: temp=${temp}°F, wind=${windSpeed}mph, precip=${precipProb}%, desc="${description}"`);
+  
+  const suitable = (
     temp >= 40 && temp <= 95 &&
     windSpeed <= 20 &&
     precipProb < 50 &&
     !['thunderstorm', 'heavy rain', 'snow', 'heavy snow'].includes(description.toLowerCase())
   );
+  
+  console.log(`Weather suitability result: ${suitable}`);
+  return suitable;
 }
 
 function getWeatherDescription(code: number): string {
@@ -141,8 +147,17 @@ function getWeatherDescription(code: number): string {
 
 export function suggestAlternativeActivities(weather: WeatherData, activity: string): string[] {
   const alternativeActivities: Set<string> = new Set();
+  
+  console.log(`Suggesting alternatives for activity: "${activity}", weather suitable: ${weather.is_suitable_for_outdoor}`);
 
-  if (!weather.is_suitable_for_outdoor && activity.toLowerCase().includes('outdoor')) {
+  // Check if activity is outdoor and weather is not suitable
+  if (!weather.is_suitable_for_outdoor && (
+      activity.toLowerCase().includes('outdoor') ||
+      activity.toLowerCase().includes('hike') ||
+      activity.toLowerCase().includes('park') ||
+      activity.toLowerCase().includes('walk') ||
+      activity.toLowerCase().includes('beach')
+    )) {
     alternativeActivities.add('Visit a local museum');
     alternativeActivities.add('Explore an indoor market');
     alternativeActivities.add('Take a cooking class');
@@ -150,19 +165,27 @@ export function suggestAlternativeActivities(weather: WeatherData, activity: str
     alternativeActivities.add('Check out local cafes');
   }
 
+  // Temperature specific suggestions
   if (weather.temperature > 95) {
     alternativeActivities.add('Visit an indoor ice rink');
     alternativeActivities.add('Explore air-conditioned shopping centers');
     alternativeActivities.add('Visit an aquarium');
     alternativeActivities.add('Indoor spa day');
+  } else if (weather.temperature < 40) {
+    alternativeActivities.add('Visit local indoor attractions');
+    alternativeActivities.add('Try a hot spring spa if available');
+    alternativeActivities.add('Enjoy a hot drink at a cozy cafe');
+    alternativeActivities.add('Visit an indoor entertainment center');
   }
 
-  if (weather.precipitation_probability > 50) {
+  // Precipitation specific suggestions
+  if (weather.precipitation_probability >= 50) {
     alternativeActivities.add('Watch a local theater performance');
     alternativeActivities.add('Visit indoor attractions');
     alternativeActivities.add('Try local restaurants');
     alternativeActivities.add('Visit indoor entertainment centers');
   }
 
+  console.log(`Suggested ${alternativeActivities.size} alternative activities`);
   return Array.from(alternativeActivities);
 }
