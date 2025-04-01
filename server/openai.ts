@@ -63,9 +63,11 @@ ${userInterests}
 IMPORTANT:
 1. Your itinerary MUST include ALL ${duration} days from ${startDate} to ${endDate}. Create an entry for each day in the specified date range.
 2. Always use REALISTIC pricing for accommodations, activities, and meals. Never use unrealistically low prices.
-3. For hotels, the minimum cost should be $50-70 per night for budget options, $100-150 for mid-range, and $200+ for luxury.
-4. If the user's budget is very low, prioritize budget accommodations, free activities, and affordable meals.
-5. If you cannot stay within budget with realistic prices, get as close as possible and note this in the tips section.
+3. For accommodations (hotels/motels/hostels), the minimum cost should be $50-70 per night for budget options, $100-150 for mid-range, and $200+ for luxury.
+4. ACCOMMODATION MUST BE A PLACE TO STAY (hotel, motel, hostel, inn, Airbnb, etc.) NOT a restaurant, attraction, or activity.
+5. If the user's budget is very low, prioritize budget accommodations, free activities, and affordable meals.
+6. If you cannot stay within budget with realistic prices, get as close as possible and note this in the tips section.
+7. Each day should have a proper accommodation listing where the traveler will stay overnight.
 
 Your response must be structured as a JSON object. Return only the JSON object with this structure, no additional text:
 {
@@ -117,7 +119,10 @@ Your response must be structured as a JSON object. Return only the JSON object w
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
-        { role: "system", content: "You are an expert travel planner. Include both local currency and USD. Respond only with valid JSON objects." },
+        { 
+          role: "system", 
+          content: "You are an expert travel planner. Include both local currency and USD. Respond only with valid JSON objects. Always ensure accommodations are actual places to stay (hotels, motels, hostels, inns, Airbnb) and never restaurants, attractions, or other non-accommodation venues." 
+        },
         { role: "user", content: `${systemPrompt}\nPlease provide costs in both local currency and USD.` }
       ],
       temperature: 0.7,
@@ -211,6 +216,31 @@ Your response must be structured as a JSON object. Return only the JSON object w
       }
     }
     
+    // Helper function to validate that accommodations are appropriate lodging venues
+    const validateAccommodation = (name: string): boolean => {
+      // List of common restaurant/dining words
+      const restaurantKeywords = [
+        'restaurant', 'cafe', 'grill', 'bistro', 'diner', 'eatery', 
+        'bar', 'pub', 'tavern', 'kitchen', 'steakhouse', 'pizzeria',
+        'coffeehouse', 'bakery', 'roadhouse', 'chophouse', 'cantina'
+      ];
+      
+      // Attraction/activity words
+      const attractionKeywords = [
+        'museum', 'park', 'garden', 'tour', 'theater', 'cinema',
+        'gallery', 'attraction', 'zoo', 'aquarium', 'stadium'
+      ];
+      
+      // Check name against these keywords
+      const lowerName = name.toLowerCase();
+      
+      const isRestaurant = restaurantKeywords.some(keyword => lowerName.includes(keyword));
+      const isAttraction = attractionKeywords.some(keyword => lowerName.includes(keyword));
+      
+      // Validate accommodation (return false if it's a restaurant or attraction)
+      return !(isRestaurant || isAttraction);
+    };
+    
     // Format days without any timezone manipulation
     const formattedDays = await Promise.all(itinerary.days.map(async (day: any, index: number) => {
       let weatherData = null;
@@ -220,6 +250,21 @@ Your response must be structured as a JSON object. Return only the JSON object w
       } catch (weatherError) {
         console.error(`Error getting weather for ${day.date}:`, weatherError);
         // Continue without weather data
+      }
+      
+      // Check if the accommodation is valid, if not, replace with a generic hotel
+      const accommodationName = day.accommodation?.name || "TBD";
+      const isValidAccommodation = validateAccommodation(accommodationName);
+      
+      if (!isValidAccommodation) {
+        console.warn(`Invalid accommodation detected: "${accommodationName}". Replacing with generic hotel.`);
+        day.accommodation = {
+          name: "Budget Hotel",
+          cost: typeof day.accommodation?.cost === 'object' 
+            ? day.accommodation?.cost 
+            : { USD: 60, local: 60 },
+          location: day.accommodation?.location || `${destination}`
+        };
       }
 
       return {
