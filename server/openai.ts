@@ -53,14 +53,19 @@ export async function generateTripSuggestions(
     .map(msg => msg.content)
     .join("\n");
 
-  // Create a more explicit prompt that emphasizes the need for ALL days in the date range
+  // Create a more explicit prompt that emphasizes the need for ALL days in the date range and realistic pricing
   const systemPrompt = `You are an expert travel planner creating a personalized itinerary for ${numberOfPeople} person(s) to ${destination} from ${startDate} to ${endDate}. 
 Budget: $${totalBudget} ($${budget} per person).
 Known preferences: ${preferences.join(", ")}
 Additional context from conversation:
 ${userInterests}
 
-IMPORTANT: Your itinerary MUST include ALL ${duration} days from ${startDate} to ${endDate}. Create an entry for each day in the specified date range.
+IMPORTANT:
+1. Your itinerary MUST include ALL ${duration} days from ${startDate} to ${endDate}. Create an entry for each day in the specified date range.
+2. Always use REALISTIC pricing for accommodations, activities, and meals. Never use unrealistically low prices.
+3. For hotels, the minimum cost should be $50-70 per night for budget options, $100-150 for mid-range, and $200+ for luxury.
+4. If the user's budget is very low, prioritize budget accommodations, free activities, and affordable meals.
+5. If you cannot stay within budget with realistic prices, get as close as possible and note this in the tips section.
 
 Your response must be structured as a JSON object. Return only the JSON object with this structure, no additional text:
 {
@@ -75,7 +80,10 @@ Your response must be structured as a JSON object. Return only the JSON object w
             "activity": "Activity name",
             "location": "Location name",
             "duration": "Duration in hours",
-            "cost": number,
+            "cost": {
+              "USD": number,
+              "local": number
+            },
             "notes": "Additional details",
             "url": "Optional website URL",
             "isOutdoor": boolean
@@ -84,14 +92,24 @@ Your response must be structured as a JSON object. Return only the JSON object w
       },
       "accommodation": {
         "name": "Hotel/Place name",
-        "cost": number,
+        "cost": {
+          "USD": number,
+          "local": number
+        },
         "location": "Address"
       },
       "meals": {
-        "budget": number
+        "budget": {
+          "USD": number,
+          "local": number
+        }
       }
     }
-  ]
+  ],
+  "totalCost": number,
+  "perPersonCost": number,
+  "tips": ["Important note 1", "Important note 2"],
+  "personalizedSuggestions": ["Suggestion 1", "Suggestion 2"]
 }`;
 
   try {
@@ -157,7 +175,10 @@ Your response must be structured as a JSON object. Return only the JSON object w
                     activity: "Free time",
                     location: destination,
                     duration: "Full day",
-                    cost: 0,
+                    cost: {
+                      USD: 0,
+                      local: 0
+                    },
                     notes: "This day was automatically added to complete your itinerary.",
                     isOutdoor: false
                   }
@@ -165,11 +186,17 @@ Your response must be structured as a JSON object. Return only the JSON object w
               },
               accommodation: filledDays.length > 0 ? filledDays[filledDays.length-1].accommodation : {
                 name: "TBD",
-                cost: 0,
+                cost: {
+                  USD: 0,
+                  local: 0
+                },
                 location: ""
               },
               meals: {
-                budget: 50
+                budget: {
+                  USD: 30,
+                  local: 30
+                }
               }
             });
           }
@@ -199,27 +226,42 @@ Your response must be structured as a JSON object. Return only the JSON object w
         date: day.date,
         dayOfWeek: day.dayOfWeek,
         activities: {
-          timeSlots: (day.activities?.timeSlots || []).map((activity: any) => ({
-            time: activity.time || "09:00",
-            activity: activity.activity || "Free time",
-            location: activity.location || "TBD",
-            duration: activity.duration || "2 hours",
-            cost: activity.cost || 0,
-            notes: activity.notes || "",
-            url: activity.url || "",
-            isEdited: false,
-            isOutdoor: activity.isOutdoor || false
-          }))
+          timeSlots: (day.activities?.timeSlots || []).map((activity: any) => {
+            // Handle both object-style costs and number-style costs from OpenAI
+            const costObj = typeof activity.cost === 'object' 
+              ? activity.cost 
+              : { USD: typeof activity.cost === 'number' ? activity.cost : 0, local: typeof activity.cost === 'number' ? activity.cost : 0 };
+              
+            return {
+              time: activity.time || "09:00",
+              activity: activity.activity || "Free time",
+              location: activity.location || "TBD",
+              duration: activity.duration || "2 hours",
+              cost: costObj,
+              notes: activity.notes || "",
+              url: activity.url || "",
+              isEdited: false,
+              isOutdoor: activity.isOutdoor || false
+            };
+          })
         },
         accommodation: {
           name: day.accommodation?.name || "TBD",
-          cost: day.accommodation?.cost || 0,
-          totalCost: day.accommodation?.cost || 0,
+          cost: typeof day.accommodation?.cost === 'object' 
+            ? day.accommodation?.cost 
+            : { USD: typeof day.accommodation?.cost === 'number' ? day.accommodation?.cost : 0, local: typeof day.accommodation?.cost === 'number' ? day.accommodation?.cost : 0 },
+          totalCost: typeof day.accommodation?.cost === 'object' 
+            ? day.accommodation?.cost 
+            : { USD: typeof day.accommodation?.cost === 'number' ? day.accommodation?.cost : 0, local: typeof day.accommodation?.cost === 'number' ? day.accommodation?.cost : 0 },
           location: day.accommodation?.location || ""
         },
         meals: {
-          budget: day.meals?.budget || 50,
-          totalBudget: day.meals?.budget || 50
+          budget: typeof day.meals?.budget === 'object' 
+            ? day.meals?.budget 
+            : { USD: typeof day.meals?.budget === 'number' ? day.meals?.budget : 30, local: typeof day.meals?.budget === 'number' ? day.meals?.budget : 30 },
+          totalBudget: typeof day.meals?.budget === 'object' 
+            ? day.meals?.budget 
+            : { USD: typeof day.meals?.budget === 'number' ? day.meals?.budget : 30, local: typeof day.meals?.budget === 'number' ? day.meals?.budget : 30 },
         },
         aiSuggestions: {
           reasoning: "Based on your preferences",
