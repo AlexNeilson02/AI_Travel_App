@@ -73,6 +73,8 @@ import {
 import { jsPDF } from "jspdf";
 import type { Trip } from "@shared/schema";
 import TripMap from "@/components/TripMap";
+import TripCalendar from "@/components/TripCalendar";
+import { EventInput } from "@fullcalendar/core";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface TimeSlot {
@@ -363,6 +365,9 @@ export default function TripDashboard() {
   // State for trip completion
   const [isMarkingComplete, setIsMarkingComplete] = useState(false);
   const [tripCompleted, setTripCompleted] = useState(false);
+  
+  // State for calendar events saving
+  const [isSavingCalendarEvents, setIsSavingCalendarEvents] = useState(false);
 
   // Check if trip date has already passed
   const isTripInPast = useCallback((trip: Trip | undefined): boolean => {
@@ -420,6 +425,148 @@ export default function TripDashboard() {
       });
     } finally {
       setIsMarkingComplete(false);
+    }
+  };
+  
+  // Save calendar events to trip
+  const handleSaveCalendarEvents = async (events: EventInput[]) => {
+    if (!currentTrip) return;
+    
+    setIsSavingCalendarEvents(true);
+    
+    try {
+      // Create a deep copy of the trip
+      const updatedTrip = JSON.parse(JSON.stringify(currentTrip)) as Trip;
+      
+      // Map of dates to day indices in trip itinerary
+      const dateToIndexMap = new Map<string, number>();
+      
+      if (updatedTrip.itinerary && updatedTrip.itinerary.days) {
+        // Build map of dates to indices for quick lookup
+        updatedTrip.itinerary.days.forEach((day, index) => {
+          const dateString = day.date.split('T')[0]; // Get only the date part
+          dateToIndexMap.set(dateString, index);
+        });
+        
+        // Process each calendar event and update the trip itinerary
+        for (const event of events) {
+          // Skip events without start time or title
+          if (!event.start || !event.title) continue;
+          
+          // Get the date part of the event
+          const eventDate = new Date(event.start as string | Date);
+          const dateString = eventDate.toISOString().split('T')[0];
+          
+          // Find corresponding day in itinerary
+          const dayIndex = dateToIndexMap.get(dateString);
+          
+          if (dayIndex !== undefined) {
+            // Format time as HH:MM
+            const hours = eventDate.getHours().toString().padStart(2, '0');
+            const minutes = eventDate.getMinutes().toString().padStart(2, '0');
+            const timeString = `${hours}:${minutes}`;
+            
+            // Calculate duration
+            const endDate = event.end ? new Date(event.end as string | Date) : new Date(eventDate.getTime() + 60 * 60 * 1000);
+            const durationInMinutes = Math.round((endDate.getTime() - eventDate.getTime()) / 60000);
+            
+            let durationString = '';
+            if (durationInMinutes < 60) {
+              durationString = `${durationInMinutes} minutes`;
+            } else if (durationInMinutes % 60 === 0) {
+              durationString = `${durationInMinutes / 60} hours`;
+            } else {
+              const hours = Math.floor(durationInMinutes / 60);
+              const minutes = durationInMinutes % 60;
+              durationString = `${hours} hours and ${minutes} minutes`;
+            }
+            
+            // Create time slot from event
+            const newTimeSlot: TimeSlot = {
+              time: timeString,
+              activity: event.title as string,
+              location: event.extendedProps?.location || '',
+              duration: event.extendedProps?.duration || durationString,
+              notes: event.extendedProps?.notes || '',
+              isEdited: true,
+              url: event.extendedProps?.url || ''
+            };
+            
+            // Check if this event already exists in time slots
+            const existingSlotIndex = updatedTrip.itinerary.days[dayIndex].activities.timeSlots.findIndex(
+              slot => slot.time === timeString && slot.activity === newTimeSlot.activity
+            );
+            
+            // Update or add the time slot
+            if (existingSlotIndex >= 0) {
+              updatedTrip.itinerary.days[dayIndex].activities.timeSlots[existingSlotIndex] = newTimeSlot;
+            } else {
+              updatedTrip.itinerary.days[dayIndex].activities.timeSlots.push(newTimeSlot);
+            }
+            
+            // Sort time slots by time
+            updatedTrip.itinerary.days[dayIndex].activities.timeSlots.sort((a, b) => 
+              a.time.localeCompare(b.time)
+            );
+          }
+        }
+        
+        // Remove any time slots that are no longer in the calendar events
+        updatedTrip.itinerary.days.forEach((day, dayIndex) => {
+          // Get all events for this day
+          const dateString = day.date.split('T')[0];
+          const dayEvents = events.filter(event => {
+            const eventDate = new Date(event.start as string | Date);
+            return eventDate.toISOString().split('T')[0] === dateString;
+          });
+          
+          // Create a set of event time-activity keys
+          const eventKeys = new Set<string>();
+          dayEvents.forEach(event => {
+            if (!event.start || !event.title) return;
+            
+            const eventDate = new Date(event.start as string | Date);
+            const hours = eventDate.getHours().toString().padStart(2, '0');
+            const minutes = eventDate.getMinutes().toString().padStart(2, '0');
+            const timeString = `${hours}:${minutes}`;
+            
+            eventKeys.add(`${timeString}-${event.title}`);
+          });
+          
+          // Filter out time slots that don't have corresponding events
+          updatedTrip.itinerary.days[dayIndex].activities.timeSlots = day.activities.timeSlots.filter(slot => {
+            return eventKeys.has(`${slot.time}-${slot.activity}`);
+          });
+        });
+      }
+      
+      // Update the trip on the server
+      await apiRequest(`/api/trips/${currentTrip.id}`, 
+        JSON.stringify({
+          method: "PATCH",
+          body: JSON.stringify(updatedTrip)
+        })
+      );
+
+      // Invalidate cache to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+      
+      toast({
+        title: "Calendar Saved",
+        description: "Your calendar events have been saved to the trip itinerary."
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Error saving calendar events:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save calendar events. Please try again.",
+        variant: "destructive"
+      });
+      throw error;
+    } finally {
+      setIsSavingCalendarEvents(false);
     }
   };
 
@@ -893,12 +1040,23 @@ export default function TripDashboard() {
                   <Card>
                     <CardHeader>
                       <CardTitle>Calendar</CardTitle>
-                      <CardDescription>View your trip in calendar format</CardDescription>
+                      <CardDescription>
+                        View and edit your trip events in calendar format. Drag & drop to rearrange activities.
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex items-center justify-center p-12">
-                        <p className="text-muted-foreground">Calendar view will be coming soon</p>
-                      </div>
+                      {currentTrip && currentTrip.itinerary?.days ? (
+                        <TripCalendar 
+                          tripDays={currentTrip.itinerary.days}
+                          onSaveEvents={handleSaveCalendarEvents}
+                          tripStartDate={currentTrip.startDate || currentTrip.itinerary.days[0].date}
+                          tripEndDate={currentTrip.endDate || currentTrip.itinerary.days[currentTrip.itinerary.days.length-1].date}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-64">
+                          <p className="text-muted-foreground">No trip details available</p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
