@@ -4,6 +4,8 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { EventInput, DateSelectArg, EventChangeArg, EventClickArg } from '@fullcalendar/core';
+// Import custom CSS for the calendar
+import '../styles/calendar.css';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -49,6 +51,18 @@ export default function TripCalendar({ tripDays, onSaveEvents, tripStartDate, tr
   });
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [viewMode, setViewMode] = useState<'timeGridWeek' | 'timeGridDay'>('timeGridWeek');
+
+  // Apply the initial view class when calendar is mounted
+  useEffect(() => {
+    if (calendarRef.current) {
+      // Access the DOM element directly
+      const calendarApi = calendarRef.current.getApi();
+      const calendarEl = document.querySelector('.fc');
+      if (calendarEl) {
+        calendarEl.classList.add(viewMode === 'timeGridDay' ? 'fc-timeGridDay-view' : 'fc-timeGridWeek-view');
+      }
+    }
+  }, [viewMode]);
 
   // Convert trip days to calendar events
   useEffect(() => {
@@ -293,12 +307,27 @@ export default function TripCalendar({ tripDays, onSaveEvents, tripStartDate, tr
 
   // Toggle between week and day view
   const toggleViewMode = () => {
-    setViewMode(viewMode === 'timeGridWeek' ? 'timeGridDay' : 'timeGridWeek');
+    const newMode = viewMode === 'timeGridWeek' ? 'timeGridDay' : 'timeGridWeek';
+    setViewMode(newMode);
     
     // Update calendar view
     if (calendarRef.current) {
       const calendarApi = calendarRef.current.getApi();
-      calendarApi.changeView(viewMode === 'timeGridWeek' ? 'timeGridDay' : 'timeGridWeek');
+      calendarApi.changeView(newMode);
+      
+      // Add or remove the day view class to control CSS styling
+      setTimeout(() => {
+        const calendarEl = document.querySelector('.fc');
+        if (calendarEl) {
+          if (newMode === 'timeGridDay') {
+            calendarEl.classList.add('fc-timeGridDay-view');
+            calendarEl.classList.remove('fc-timeGridWeek-view');
+          } else {
+            calendarEl.classList.add('fc-timeGridWeek-view');
+            calendarEl.classList.remove('fc-timeGridDay-view');
+          }
+        }
+      }, 0);
     }
   };
 
