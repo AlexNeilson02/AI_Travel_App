@@ -46,7 +46,8 @@ export async function generateTripSuggestions(
   numberOfPeople: number = 1,
   chatHistory: Array<{ role: "user" | "assistant" | "system"; content: string }> = []
 ): Promise<any> {
-  const totalBudget = budget * numberOfPeople;
+  // Budget is now the total for the trip
+  const budgetPerPerson = budget / numberOfPeople;
 
   const userInterests = chatHistory
     .filter(msg => msg.role === "user")
@@ -55,7 +56,7 @@ export async function generateTripSuggestions(
 
   // Create a more explicit prompt that emphasizes the need for ALL days in the date range and realistic pricing
   const systemPrompt = `You are an expert travel planner creating a personalized itinerary for ${numberOfPeople} person(s) to ${destination} from ${startDate} to ${endDate}. 
-Budget: $${totalBudget} ($${budget} per person).
+Budget: $${budget} total ($${budgetPerPerson.toFixed(2)} per person).
 Known preferences: ${preferences.join(", ")}
 Additional context from conversation:
 ${userInterests}

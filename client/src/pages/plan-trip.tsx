@@ -180,7 +180,7 @@ export default function PlanTrip() {
       }
       toast({
         title: "Budget Calculation",
-        description: `Total budget: $${data.totalCost} ($${form.getValues().budget} per person × ${numberOfPeople} people)`,
+        description: `Total budget: $${form.getValues().budget} ($${(form.getValues().budget / numberOfPeople).toFixed(2)} per person × ${numberOfPeople} people)`,
       });
     },
     onError: (error: Error) => {
@@ -496,14 +496,14 @@ export default function PlanTrip() {
                             className="w-24"
                           />
                           <span className="text-sm text-muted-foreground">
-                            Budget will be calculated per person
+                            This is the total budget for your trip
                           </span>
                         </div>
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium mb-2">
-                          Budget (per person)
+                          Total Budget
                         </label>
                         <div className="relative">
                           <DollarSign className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
@@ -517,8 +517,8 @@ export default function PlanTrip() {
                         </div>
                         {numberOfPeople > 1 && (
                           <p className="text-sm text-muted-foreground mt-1">
-                            Total budget: $
-                            {(form.watch("budget") || 0) * numberOfPeople}
+                            Per person: $
+                            {((form.watch("budget") || 0) / numberOfPeople).toFixed(2)}
                           </p>
                         )}
                       </div>
