@@ -11,6 +11,7 @@ import HomePage from "@/pages/home-page";
 import PlanTrip from "@/pages/plan-trip";
 import MyTrips from "@/pages/my-trips";
 import TripDetails from "@/pages/trip-details";
+import TripDashboard from "@/pages/trip-dashboard";
 import MapsPage from "@/pages/maps-page";
 
 function Router() {
@@ -22,7 +23,8 @@ function Router() {
         <Switch>
           <Route path="/" component={HomePage} />
           <Route path="/plan" component={PlanTrip} />
-          <ProtectedRoute path="/my-trips" component={MyTrips} />
+          <ProtectedRoute path="/my-trips" component={TripDashboard} />
+          <ProtectedRoute path="/trip-dashboard/:id" component={TripDashboard} />
           <ProtectedRoute path="/trip/:id" component={TripDetails} />
           <ProtectedRoute path="/maps" component={MapsPage} />
           <Route path="/auth" component={AuthPage} />

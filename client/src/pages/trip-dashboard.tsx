@@ -1,0 +1,949 @@
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { useLocation, useRoute, Link } from "wouter";
+import { format, parseISO } from "date-fns";
+import Nav from "@/components/Nav";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Cloud,
+  CloudRain,
+  Droplets,
+  Edit,
+  Link as LinkIcon,
+  Loader2,
+  MapPin,
+  Plus,
+  ThermometerSun,
+  Trash2,
+  Wind,
+  CalendarIcon,
+  MapIcon,
+  HeadphonesIcon,
+  CreditCard
+} from "lucide-react";
+import { jsPDF } from "jspdf";
+import type { Trip } from "@shared/schema";
+import TripMap from "@/components/TripMap";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+
+interface TimeSlot {
+  time: string;
+  activity: string;
+  location: string;
+  duration: string;
+  notes: string;
+  isEdited: boolean;
+  url?: string;
+}
+
+interface TripDay {
+  date: string;
+  dayOfWeek?: string;
+  activities: {
+    timeSlots: TimeSlot[];
+  };
+  aiSuggestions?: {
+    reasoning: string;
+    weatherContext?: {
+      description: string;
+      temperature: number;
+      precipitation_probability: number;
+      is_suitable_for_outdoor: boolean;
+    };
+    alternativeActivities: string[];
+  };
+  userFeedback?: string;
+  isFinalized: boolean;
+}
+
+interface WeatherForecast {
+  date: string;
+  dayOfWeek: string | undefined;
+  high: number;
+  low: number;
+  description: string;
+  precipitation: number;
+  icon: JSX.Element;
+}
+
+export default function TripDashboard() {
+  const { toast } = useToast();
+  const [match, params] = useRoute<{ id?: string }>("/trip-dashboard/:id");
+  const [, setLocation] = useLocation();
+  
+  const [editingActivity, setEditingActivity] = useState<{ tripId: number; dayIndex: number; slotIndex: number } | null>(null);
+  const [editedActivity, setEditedActivity] = useState<Partial<TimeSlot> | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showAddActivityDialog, setShowAddActivityDialog] = useState(false);
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
+  const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState("itinerary");
+  const [newActivity, setNewActivity] = useState<Partial<TimeSlot>>({
+    time: "",
+    activity: "",
+    location: "",
+    duration: "",
+    notes: "",
+    url: ""
+  });
+
+  // Query all trips
+  const { data: trips, isLoading } = useQuery<Trip[]>({
+    queryKey: ["/api/trips"],
+  });
+
+  // Get current trip
+  const currentTrip = trips?.find(trip => trip.id === selectedTripId);
+
+  // Set the first trip as selected or use the route param if available
+  useEffect(() => {
+    if (trips && trips.length > 0) {
+      if (params?.id) {
+        const tripId = parseInt(params.id);
+        setSelectedTripId(tripId);
+      } else if (!selectedTripId) {
+        setSelectedTripId(trips[0].id);
+      }
+    }
+  }, [trips, params, selectedTripId]);
+
+  // Update URL when selected trip changes
+  useEffect(() => {
+    if (selectedTripId) {
+      setLocation(`/trip-dashboard/${selectedTripId}`);
+    }
+  }, [selectedTripId, setLocation]);
+
+  // Handle trip selection
+  const handleTripSelect = (tripId: string) => {
+    setSelectedTripId(parseInt(tripId));
+  };
+
+  // Handle activity edit
+  const handleEditActivity = (tripId: number, dayIndex: number, slotIndex: number, activity: TimeSlot) => {
+    setEditingActivity({ tripId, dayIndex, slotIndex });
+    setEditedActivity({ ...activity });
+    setShowEditDialog(true);
+  };
+
+  // Handle save edited activity
+  const handleSaveEditedActivity = async () => {
+    if (!editingActivity || !editedActivity || !currentTrip || !currentTrip.itinerary) return;
+
+    try {
+      // Create a deep copy of the trip
+      const updatedTrip = JSON.parse(JSON.stringify(currentTrip)) as Trip;
+      const { dayIndex, slotIndex } = editingActivity;
+      
+      // Update the activity in the trip's itinerary
+      if (updatedTrip.itinerary && updatedTrip.itinerary.days) {
+        const timeSlot = updatedTrip.itinerary.days[dayIndex].activities.timeSlots[slotIndex];
+        updatedTrip.itinerary.days[dayIndex].activities.timeSlots[slotIndex] = {
+          ...timeSlot,
+          ...editedActivity,
+          isEdited: true
+        };
+      }
+
+      // Update the trip on the server
+      await apiRequest(`/api/trips/${currentTrip.id}`, 
+        JSON.stringify({
+          method: "PATCH",
+          body: JSON.stringify(updatedTrip)
+        })
+      );
+
+      // Invalidate cache to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+      
+      toast({
+        title: "Activity Updated",
+        description: "The activity has been updated successfully."
+      });
+      
+      // Close the dialog
+      setShowEditDialog(false);
+      setEditingActivity(null);
+      setEditedActivity(null);
+    } catch (error) {
+      console.error("Error updating activity:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update the activity. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Handle add activity
+  const handleAddActivity = (tripId: number, dayIndex: number) => {
+    setSelectedDayIndex(dayIndex);
+    setSelectedTripId(tripId);
+    setShowAddActivityDialog(true);
+  };
+
+  // Handle save new activity
+  const handleSaveNewActivity = async () => {
+    if (selectedDayIndex === null || !currentTrip || !currentTrip.itinerary || !newActivity.time || !newActivity.activity) return;
+
+    try {
+      // Create a deep copy of the trip
+      const updatedTrip = JSON.parse(JSON.stringify(currentTrip)) as Trip;
+      
+      // Add the new activity to the trip's itinerary
+      if (updatedTrip.itinerary && updatedTrip.itinerary.days) {
+        updatedTrip.itinerary.days[selectedDayIndex].activities.timeSlots.push({
+          ...newActivity as TimeSlot,
+          isEdited: true
+        });
+
+        // Sort activities by time
+        updatedTrip.itinerary.days[selectedDayIndex].activities.timeSlots.sort((a, b) => {
+          return a.time.localeCompare(b.time);
+        });
+      }
+
+      // Update the trip on the server
+      await apiRequest(`/api/trips/${currentTrip.id}`, 
+        JSON.stringify({
+          method: "PATCH",
+          body: JSON.stringify(updatedTrip)
+        })
+      );
+
+      // Invalidate cache to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+      
+      toast({
+        title: "Activity Added",
+        description: "The new activity has been added successfully."
+      });
+      
+      // Reset form and close dialog
+      setNewActivity({
+        time: "",
+        activity: "",
+        location: "",
+        duration: "",
+        notes: "",
+        url: ""
+      });
+      setShowAddActivityDialog(false);
+      setSelectedDayIndex(null);
+    } catch (error) {
+      console.error("Error adding activity:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add the activity. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Generate PDF from trip itinerary
+  const generatePDF = async (trip: Trip) => {
+    const pdf = new jsPDF();
+    const lineHeight = 10;
+    let yPos = 20;
+
+    pdf.setFontSize(20);
+    pdf.text(trip.title, 20, yPos);
+    yPos += lineHeight * 1.5;
+
+    pdf.setFontSize(14);
+    pdf.text(`Destination: ${trip.destination}`, 20, yPos);
+    yPos += lineHeight;
+    pdf.text(`Budget: $${trip.budget}`, 20, yPos);
+    yPos += lineHeight;
+    
+    // Calculate trip duration from start and end dates
+    const tripDuration = trip.itinerary?.days?.length || 0;
+    pdf.text(`Duration: ${tripDuration} days`, 20, yPos);
+    yPos += lineHeight * 2;
+
+    pdf.setFontSize(16);
+    pdf.text("Itinerary", 20, yPos);
+    yPos += lineHeight * 1.5;
+
+    if (trip.itinerary && trip.itinerary.days) {
+      trip.itinerary.days.forEach((day: TripDay) => {
+        if (yPos > 270) {
+          pdf.addPage();
+          yPos = 20;
+        }
+
+        pdf.setFontSize(14);
+        const dayDate = parseISO(day.date);
+        pdf.text(format(dayDate, "EEEE, MMMM d, yyyy"), 20, yPos);
+        yPos += lineHeight;
+        pdf.setFontSize(12);
+
+        day.activities.timeSlots.forEach((slot: TimeSlot) => {
+          if (yPos > 270) {
+            pdf.addPage();
+            yPos = 20;
+          }
+          pdf.text(`• ${slot.time} - ${slot.activity}`, 30, yPos);
+          yPos += lineHeight;
+          if (slot.location) {
+            pdf.text(`  Location: ${slot.location}`, 35, yPos);
+            yPos += lineHeight;
+          }
+        });
+        yPos += lineHeight;
+      });
+    }
+
+    pdf.save(`${trip.title.replace(/\s+/g, '_')}_itinerary.pdf`);
+    toast({
+      title: "Success",
+      description: "Trip details downloaded as PDF",
+    });
+  };
+
+  // Helper function to create mock weather forecasts based on trip days
+  const getWeatherForecasts = (trip: Trip | undefined): WeatherForecast[] => {
+    if (!trip || !trip.itinerary || !trip.itinerary.days) return [];
+    
+    return trip.itinerary.days.map(day => {
+      const weatherContext = day.aiSuggestions?.weatherContext;
+      
+      // If we have weather data from AI suggestions, use it
+      if (weatherContext) {
+        const isRainy = weatherContext.precipitation_probability > 30;
+        const isCloudy = weatherContext.description.toLowerCase().includes('cloud') || 
+                         weatherContext.description.toLowerCase().includes('overcast');
+        
+        let icon: JSX.Element;
+        if (isRainy) {
+          icon = <CloudRain className="h-8 w-8 text-blue-500" />;
+        } else if (isCloudy) {
+          icon = <Cloud className="h-8 w-8 text-slate-500" />;
+        } else {
+          icon = <ThermometerSun className="h-8 w-8 text-yellow-500" />;
+        }
+        
+        return {
+          date: day.date,
+          dayOfWeek: day.dayOfWeek,
+          high: Math.round(weatherContext.temperature + 5),
+          low: Math.round(weatherContext.temperature - 5),
+          description: weatherContext.description,
+          precipitation: weatherContext.precipitation_probability,
+          icon
+        };
+      }
+      
+      // Fallback with placeholder
+      return {
+        date: day.date,
+        dayOfWeek: day.dayOfWeek,
+        high: 0,
+        low: 0,
+        description: "Weather data not available",
+        precipitation: 0,
+        icon: <Cloud className="h-8 w-8 text-slate-300" />
+      };
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Nav />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!trips || trips.length === 0) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Nav />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center h-64">
+              <p className="text-muted-foreground mb-4">No trips planned yet</p>
+              <Button variant="outline" asChild>
+                <Link href="/plan-trip">Plan Your First Trip</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="min-h-screen bg-background">
+      <Nav />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center mb-8 space-x-4">
+          <h1 className="text-3xl font-bold flex-grow">
+            {currentTrip ? currentTrip.title : "My Trips"}
+          </h1>
+          <Select value={selectedTripId?.toString()} onValueChange={handleTripSelect}>
+            <SelectTrigger className="w-[250px]">
+              <SelectValue placeholder="Select a trip" />
+            </SelectTrigger>
+            <SelectContent>
+              {trips.map((trip) => (
+                <SelectItem key={trip.id} value={trip.id.toString()}>
+                  {trip.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {currentTrip && (
+          <div className="grid grid-cols-12 gap-6">
+            {/* Left Sidebar */}
+            <div className="col-span-12 md:col-span-3">
+              <Card>
+                <CardContent className="p-0">
+                  <Tabs
+                    value={activeTab}
+                    onValueChange={setActiveTab}
+                    orientation="vertical"
+                    className="w-full"
+                  >
+                    <TabsList className="flex flex-col items-stretch h-auto w-full space-y-1 rounded-none p-0">
+                      <TabsTrigger value="itinerary" className="justify-start px-5 py-3 text-left">
+                        <CalendarIcon className="h-5 w-5 mr-2" />
+                        Itinerary
+                      </TabsTrigger>
+                      <TabsTrigger value="weather" className="justify-start px-5 py-3 text-left">
+                        <ThermometerSun className="h-5 w-5 mr-2" />
+                        Weather
+                      </TabsTrigger>
+                      <TabsTrigger value="calendar" className="justify-start px-5 py-3 text-left">
+                        <CalendarIcon className="h-5 w-5 mr-2" />
+                        Calendar
+                      </TabsTrigger>
+                      <TabsTrigger value="maps" className="justify-start px-5 py-3 text-left">
+                        <MapIcon className="h-5 w-5 mr-2" />
+                        Maps
+                      </TabsTrigger>
+                      <TabsTrigger value="advisor" className="justify-start px-5 py-3 text-left">
+                        <HeadphonesIcon className="h-5 w-5 mr-2" />
+                        Travel Advisor
+                      </TabsTrigger>
+                      <TabsTrigger value="booking" className="justify-start px-5 py-3 text-left">
+                        <CreditCard className="h-5 w-5 mr-2" />
+                        Book Now
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Main Content */}
+            <div className="col-span-12 md:col-span-9">
+              <TabsContent value="itinerary" className="mt-0">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Trip Itinerary</CardTitle>
+                      <CardDescription>
+                        {currentTrip.destination} - {currentTrip.itinerary?.days?.length || 0} days
+                      </CardDescription>
+                    </div>
+                    <Button variant="outline" onClick={() => generatePDF(currentTrip)}>
+                      Download PDF
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    {currentTrip.itinerary?.days && (
+                      <div className="space-y-6">
+                        {currentTrip.itinerary.days.map((day, dayIndex) => (
+                          <div key={dayIndex} className="border rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="text-lg font-semibold">
+                                {day.dayOfWeek} - {format(parseISO(day.date), "MMM d, yyyy")}
+                              </h3>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleAddActivity(currentTrip.id, dayIndex)}
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add Activity
+                              </Button>
+                            </div>
+                            
+                            {/* Weather context if available */}
+                            {day.aiSuggestions?.weatherContext && (
+                              <div className="flex items-center gap-2 mb-4 text-sm bg-muted/50 p-2 rounded">
+                                <ThermometerSun className="h-4 w-4 text-orange-500" />
+                                <span>{Math.round(day.aiSuggestions.weatherContext.temperature)}°F</span>
+                                <CloudRain className="h-4 w-4 text-blue-500 ml-2" />
+                                <span>{Math.round(day.aiSuggestions.weatherContext.precipitation_probability)}%</span>
+                                <span className="ml-2">{day.aiSuggestions.weatherContext.description}</span>
+                              </div>
+                            )}
+                            
+                            {/* Activities */}
+                            <div className="space-y-3">
+                              {day.activities.timeSlots.length === 0 ? (
+                                <p className="text-muted-foreground text-sm italic">No activities planned yet</p>
+                              ) : (
+                                day.activities.timeSlots.map((slot, slotIndex) => (
+                                  <div key={slotIndex} className="flex items-start justify-between p-3 bg-background rounded border">
+                                    <div className="flex items-start space-x-4">
+                                      <div className="min-w-[60px] text-sm font-medium">
+                                        {slot.time}
+                                      </div>
+                                      <div>
+                                        <h4 className="font-medium">{slot.activity}</h4>
+                                        {slot.location && (
+                                          <div className="flex items-center text-sm text-muted-foreground mt-1">
+                                            <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                                            {slot.location}
+                                          </div>
+                                        )}
+                                        {slot.notes && (
+                                          <p className="text-sm mt-1 text-muted-foreground">{slot.notes}</p>
+                                        )}
+                                        {slot.url && (
+                                          <a 
+                                            href={slot.url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="flex items-center text-sm text-blue-500 mt-1"
+                                          >
+                                            <LinkIcon className="h-3 w-3 mr-1" /> 
+                                            More info
+                                          </a>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleEditActivity(currentTrip.id, dayIndex, slotIndex, slot)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                      <span className="sr-only">Edit</span>
+                                    </Button>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="weather" className="mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Weather Forecast</CardTitle>
+                    <CardDescription>
+                      Weather forecast for {currentTrip.destination}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Current Weather */}
+                    {currentTrip.itinerary?.days && currentTrip.itinerary.days[0]?.aiSuggestions?.weatherContext && (
+                      <div className="mb-8">
+                        <div className="flex flex-col md:flex-row gap-6">
+                          <div className="flex items-center">
+                            <ThermometerSun className="h-16 w-16 text-orange-500 mr-2" />
+                            <div className="text-6xl font-bold">
+                              {Math.round(currentTrip.itinerary.days[0].aiSuggestions.weatherContext.temperature)}
+                              <span className="text-2xl align-top">°F</span>
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="text-2xl">
+                              Weather
+                            </div>
+                            <div className="text-lg text-muted-foreground">
+                              {format(new Date(), "EEEE h:mm a")}
+                            </div>
+                            <div className="text-lg">
+                              {currentTrip.itinerary.days[0].aiSuggestions.weatherContext.description}
+                            </div>
+                          </div>
+                          <div className="ml-auto flex flex-col gap-2">
+                            <div className="flex items-center">
+                              <CloudRain className="h-5 w-5 text-blue-500 mr-2" />
+                              <div>
+                                Precipitation: {currentTrip.itinerary.days[0].aiSuggestions.weatherContext.precipitation_probability}%
+                              </div>
+                            </div>
+                            <div className="flex items-center">
+                              <Droplets className="h-5 w-5 text-blue-400 mr-2" />
+                              <div>
+                                Humidity: {Math.round(Math.random() * 30) + 50}%
+                              </div>
+                            </div>
+                            <div className="flex items-center">
+                              <Wind className="h-5 w-5 text-slate-500 mr-2" />
+                              <div>
+                                Wind: {Math.round(Math.random() * 10) + 1} mph
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Navigation tabs for temperature, precipitation, wind */}
+                    <Tabs defaultValue="temperature" className="mt-6">
+                      <TabsList className="mb-4">
+                        <TabsTrigger value="temperature">Temperature</TabsTrigger>
+                        <TabsTrigger value="precipitation">Precipitation</TabsTrigger>
+                        <TabsTrigger value="wind">Wind</TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="temperature" className="space-y-8">
+                        {/* Hourly temperature graph */}
+                        <div className="h-40 w-full bg-muted/20 rounded-lg p-4 relative">
+                          <div className="absolute bottom-4 left-0 right-0 h-px bg-border"></div>
+                          <div className="flex h-full justify-between items-end relative">
+                            {Array.from({ length: 8 }).map((_, i) => {
+                              const height = `${Math.round(Math.random() * 40) + 30}%`;
+                              return (
+                                <div key={i} className="flex flex-col items-center">
+                                  <div 
+                                    className="w-10 bg-gradient-to-t from-primary/40 to-primary/80 rounded-t"
+                                    style={{ height }}
+                                  ></div>
+                                  <div className="text-xs mt-2">{i === 0 ? "9PM" : i === 1 ? "12AM" : i === 2 ? "3AM" : i === 3 ? "6AM" : i === 4 ? "9AM" : i === 5 ? "12PM" : i === 6 ? "3PM" : "6PM"}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        
+                        {/* Daily forecast */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
+                          {getWeatherForecasts(currentTrip).map((forecast, index) => (
+                            <div key={index} className="flex flex-col items-center p-2">
+                              <div className="font-medium">{format(parseISO(forecast.date), "E")}</div>
+                              {forecast.icon}
+                              <div className="flex items-center gap-1 mt-1">
+                                <span className="font-medium">{forecast.high}°</span>
+                                <span className="text-muted-foreground">{forecast.low}°</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="precipitation">
+                        <div className="flex flex-col items-center p-6 bg-muted/20 rounded-lg">
+                          <p>Precipitation data is not available for this trip.</p>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="wind">
+                        <div className="flex flex-col items-center p-6 bg-muted/20 rounded-lg">
+                          <p>Wind data is not available for this trip.</p>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="calendar" className="mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Calendar</CardTitle>
+                    <CardDescription>View your trip in calendar format</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-center p-12">
+                      <p className="text-muted-foreground">Calendar view will be coming soon</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="maps" className="mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Trip Map</CardTitle>
+                    <CardDescription>Interactive map of your trip locations</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[500px]">
+                      {currentTrip.itinerary?.days && (
+                        <TripMap
+                          activities={currentTrip.itinerary.days.flatMap(day =>
+                            day.activities.timeSlots.map(slot => ({
+                              activity: slot.activity,
+                              location: slot.location
+                            }))
+                          )}
+                          accommodation={currentTrip.itinerary.days[0].accommodation}
+                        />
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="advisor" className="mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Travel Advisor</CardTitle>
+                    <CardDescription>Get personalized travel recommendations</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-center p-12">
+                      <p className="text-muted-foreground">Travel advisor will be coming soon</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="booking" className="mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Book Your Trip</CardTitle>
+                    <CardDescription>Find and book flights, hotels, and activities</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-center p-12">
+                      <p className="text-muted-foreground">Booking functionality will be coming soon</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </div>
+          </div>
+        )}
+      </main>
+      
+      {/* Edit Activity Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Activity</DialogTitle>
+            <DialogDescription>
+              Make changes to the activity details.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="time" className="text-right">
+                Time
+              </Label>
+              <Input
+                id="time"
+                type="time"
+                value={editedActivity?.time ?? ""}
+                onChange={(e) => setEditedActivity({ ...editedActivity, time: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="activity" className="text-right">
+                Activity
+              </Label>
+              <Input
+                id="activity"
+                value={editedActivity?.activity ?? ""}
+                onChange={(e) => setEditedActivity({ ...editedActivity, activity: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="location" className="text-right">
+                Location
+              </Label>
+              <Input
+                id="location"
+                value={editedActivity?.location ?? ""}
+                onChange={(e) => setEditedActivity({ ...editedActivity, location: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="duration" className="text-right">
+                Duration
+              </Label>
+              <Input
+                id="duration"
+                value={editedActivity?.duration ?? ""}
+                onChange={(e) => setEditedActivity({ ...editedActivity, duration: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="url" className="text-right">
+                URL
+              </Label>
+              <Input
+                id="url"
+                value={editedActivity?.url ?? ""}
+                onChange={(e) => setEditedActivity({ ...editedActivity, url: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="notes" className="text-right">
+                Notes
+              </Label>
+              <Textarea
+                id="notes"
+                value={editedActivity?.notes ?? ""}
+                onChange={(e) => setEditedActivity({ ...editedActivity, notes: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEditedActivity}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Add New Activity Dialog */}
+      <Dialog open={showAddActivityDialog} onOpenChange={setShowAddActivityDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Activity</DialogTitle>
+            <DialogDescription>
+              Enter details for a new activity.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="new-time" className="text-right">
+                Time
+              </Label>
+              <Input
+                id="new-time"
+                type="time"
+                value={newActivity.time}
+                onChange={(e) => setNewActivity({ ...newActivity, time: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="new-activity" className="text-right">
+                Activity
+              </Label>
+              <Input
+                id="new-activity"
+                value={newActivity.activity}
+                onChange={(e) => setNewActivity({ ...newActivity, activity: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="new-location" className="text-right">
+                Location
+              </Label>
+              <Input
+                id="new-location"
+                value={newActivity.location}
+                onChange={(e) => setNewActivity({ ...newActivity, location: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="new-duration" className="text-right">
+                Duration
+              </Label>
+              <Input
+                id="new-duration"
+                value={newActivity.duration}
+                onChange={(e) => setNewActivity({ ...newActivity, duration: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="new-url" className="text-right">
+                URL
+              </Label>
+              <Input
+                id="new-url"
+                value={newActivity.url}
+                onChange={(e) => setNewActivity({ ...newActivity, url: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="new-notes" className="text-right">
+                Notes
+              </Label>
+              <Textarea
+                id="new-notes"
+                value={newActivity.notes}
+                onChange={(e) => setNewActivity({ ...newActivity, notes: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddActivityDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveNewActivity}>Add Activity</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
