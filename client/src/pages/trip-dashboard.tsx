@@ -489,283 +489,285 @@ export default function TripDashboard() {
             
             {/* Main Content */}
             <div className="col-span-12 md:col-span-9">
-              <TabsContent value="itinerary" className="mt-0">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle>Trip Itinerary</CardTitle>
-                      <CardDescription>
-                        {currentTrip.destination} - {currentTrip.itinerary?.days?.length || 0} days
-                      </CardDescription>
-                    </div>
-                    <Button variant="outline" onClick={() => generatePDF(currentTrip)}>
-                      Download PDF
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    {currentTrip.itinerary?.days && (
-                      <div className="space-y-6">
-                        {currentTrip.itinerary.days.map((day, dayIndex) => (
-                          <div key={dayIndex} className="border rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-4">
-                              <h3 className="text-lg font-semibold">
-                                {day.dayOfWeek} - {format(parseISO(day.date), "MMM d, yyyy")}
-                              </h3>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleAddActivity(currentTrip.id, dayIndex)}
-                              >
-                                <Plus className="h-4 w-4 mr-1" />
-                                Add Activity
-                              </Button>
-                            </div>
-                            
-                            {/* Weather context if available */}
-                            {day.aiSuggestions?.weatherContext && (
-                              <div className="flex items-center gap-2 mb-4 text-sm bg-muted/50 p-2 rounded">
-                                <ThermometerSun className="h-4 w-4 text-orange-500" />
-                                <span>{Math.round(day.aiSuggestions.weatherContext.temperature)}°F</span>
-                                <CloudRain className="h-4 w-4 text-blue-500 ml-2" />
-                                <span>{Math.round(day.aiSuggestions.weatherContext.precipitation_probability)}%</span>
-                                <span className="ml-2">{day.aiSuggestions.weatherContext.description}</span>
-                              </div>
-                            )}
-                            
-                            {/* Activities */}
-                            <div className="space-y-3">
-                              {day.activities.timeSlots.length === 0 ? (
-                                <p className="text-muted-foreground text-sm italic">No activities planned yet</p>
-                              ) : (
-                                day.activities.timeSlots.map((slot, slotIndex) => (
-                                  <div key={slotIndex} className="flex items-start justify-between p-3 bg-background rounded border">
-                                    <div className="flex items-start space-x-4">
-                                      <div className="min-w-[60px] text-sm font-medium">
-                                        {slot.time}
-                                      </div>
-                                      <div>
-                                        <h4 className="font-medium">{slot.activity}</h4>
-                                        {slot.location && (
-                                          <div className="flex items-center text-sm text-muted-foreground mt-1">
-                                            <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
-                                            {slot.location}
-                                          </div>
-                                        )}
-                                        {slot.notes && (
-                                          <p className="text-sm mt-1 text-muted-foreground">{slot.notes}</p>
-                                        )}
-                                        {slot.url && (
-                                          <a 
-                                            href={slot.url} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="flex items-center text-sm text-blue-500 mt-1"
-                                          >
-                                            <LinkIcon className="h-3 w-3 mr-1" /> 
-                                            More info
-                                          </a>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleEditActivity(currentTrip.id, dayIndex, slotIndex, slot)}
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                      <span className="sr-only">Edit</span>
-                                    </Button>
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          </div>
-                        ))}
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsContent value="itinerary" className="mt-0">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle>Trip Itinerary</CardTitle>
+                        <CardDescription>
+                          {currentTrip.destination} - {currentTrip.itinerary?.days?.length || 0} days
+                        </CardDescription>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="weather" className="mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Weather Forecast</CardTitle>
-                    <CardDescription>
-                      Weather forecast for {currentTrip.destination}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {/* Current Weather */}
-                    {currentTrip.itinerary?.days && currentTrip.itinerary.days[0]?.aiSuggestions?.weatherContext && (
-                      <div className="mb-8">
-                        <div className="flex flex-col md:flex-row gap-6">
-                          <div className="flex items-center">
-                            <ThermometerSun className="h-16 w-16 text-orange-500 mr-2" />
-                            <div className="text-6xl font-bold">
-                              {Math.round(currentTrip.itinerary.days[0].aiSuggestions.weatherContext.temperature)}
-                              <span className="text-2xl align-top">°F</span>
-                            </div>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="text-2xl">
-                              Weather
-                            </div>
-                            <div className="text-lg text-muted-foreground">
-                              {format(new Date(), "EEEE h:mm a")}
-                            </div>
-                            <div className="text-lg">
-                              {currentTrip.itinerary.days[0].aiSuggestions.weatherContext.description}
-                            </div>
-                          </div>
-                          <div className="ml-auto flex flex-col gap-2">
-                            <div className="flex items-center">
-                              <CloudRain className="h-5 w-5 text-blue-500 mr-2" />
-                              <div>
-                                Precipitation: {currentTrip.itinerary.days[0].aiSuggestions.weatherContext.precipitation_probability}%
+                      <Button variant="outline" onClick={() => generatePDF(currentTrip)}>
+                        Download PDF
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      {currentTrip.itinerary?.days && (
+                        <div className="space-y-6">
+                          {currentTrip.itinerary.days.map((day, dayIndex) => (
+                            <div key={dayIndex} className="border rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-semibold">
+                                  {day.dayOfWeek} - {format(parseISO(day.date), "MMM d, yyyy")}
+                                </h3>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleAddActivity(currentTrip.id, dayIndex)}
+                                >
+                                  <Plus className="h-4 w-4 mr-1" />
+                                  Add Activity
+                                </Button>
                               </div>
-                            </div>
-                            <div className="flex items-center">
-                              <Droplets className="h-5 w-5 text-blue-400 mr-2" />
-                              <div>
-                                Humidity: {Math.round(Math.random() * 30) + 50}%
-                              </div>
-                            </div>
-                            <div className="flex items-center">
-                              <Wind className="h-5 w-5 text-slate-500 mr-2" />
-                              <div>
-                                Wind: {Math.round(Math.random() * 10) + 1} mph
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Navigation tabs for temperature, precipitation, wind */}
-                    <Tabs defaultValue="temperature" className="mt-6">
-                      <TabsList className="mb-4">
-                        <TabsTrigger value="temperature">Temperature</TabsTrigger>
-                        <TabsTrigger value="precipitation">Precipitation</TabsTrigger>
-                        <TabsTrigger value="wind">Wind</TabsTrigger>
-                      </TabsList>
-                      
-                      <TabsContent value="temperature" className="space-y-8">
-                        {/* Hourly temperature graph */}
-                        <div className="h-40 w-full bg-muted/20 rounded-lg p-4 relative">
-                          <div className="absolute bottom-4 left-0 right-0 h-px bg-border"></div>
-                          <div className="flex h-full justify-between items-end relative">
-                            {Array.from({ length: 8 }).map((_, i) => {
-                              const height = `${Math.round(Math.random() * 40) + 30}%`;
-                              return (
-                                <div key={i} className="flex flex-col items-center">
-                                  <div 
-                                    className="w-10 bg-gradient-to-t from-primary/40 to-primary/80 rounded-t"
-                                    style={{ height }}
-                                  ></div>
-                                  <div className="text-xs mt-2">{i === 0 ? "9PM" : i === 1 ? "12AM" : i === 2 ? "3AM" : i === 3 ? "6AM" : i === 4 ? "9AM" : i === 5 ? "12PM" : i === 6 ? "3PM" : "6PM"}</div>
+                              
+                              {/* Weather context if available */}
+                              {day.aiSuggestions?.weatherContext && (
+                                <div className="flex items-center gap-2 mb-4 text-sm bg-muted/50 p-2 rounded">
+                                  <ThermometerSun className="h-4 w-4 text-orange-500" />
+                                  <span>{Math.round(day.aiSuggestions.weatherContext.temperature)}°F</span>
+                                  <CloudRain className="h-4 w-4 text-blue-500 ml-2" />
+                                  <span>{Math.round(day.aiSuggestions.weatherContext.precipitation_probability)}%</span>
+                                  <span className="ml-2">{day.aiSuggestions.weatherContext.description}</span>
                                 </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                        
-                        {/* Daily forecast */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
-                          {getWeatherForecasts(currentTrip).map((forecast, index) => (
-                            <div key={index} className="flex flex-col items-center p-2">
-                              <div className="font-medium">{format(parseISO(forecast.date), "E")}</div>
-                              {forecast.icon}
-                              <div className="flex items-center gap-1 mt-1">
-                                <span className="font-medium">{forecast.high}°</span>
-                                <span className="text-muted-foreground">{forecast.low}°</span>
+                              )}
+                              
+                              {/* Activities */}
+                              <div className="space-y-3">
+                                {day.activities.timeSlots.length === 0 ? (
+                                  <p className="text-muted-foreground text-sm italic">No activities planned yet</p>
+                                ) : (
+                                  day.activities.timeSlots.map((slot, slotIndex) => (
+                                    <div key={slotIndex} className="flex items-start justify-between p-3 bg-background rounded border">
+                                      <div className="flex items-start space-x-4">
+                                        <div className="min-w-[60px] text-sm font-medium">
+                                          {slot.time}
+                                        </div>
+                                        <div>
+                                          <h4 className="font-medium">{slot.activity}</h4>
+                                          {slot.location && (
+                                            <div className="flex items-center text-sm text-muted-foreground mt-1">
+                                              <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                                              {slot.location}
+                                            </div>
+                                          )}
+                                          {slot.notes && (
+                                            <p className="text-sm mt-1 text-muted-foreground">{slot.notes}</p>
+                                          )}
+                                          {slot.url && (
+                                            <a 
+                                              href={slot.url} 
+                                              target="_blank" 
+                                              rel="noopener noreferrer"
+                                              className="flex items-center text-sm text-blue-500 mt-1"
+                                            >
+                                              <LinkIcon className="h-3 w-3 mr-1" /> 
+                                              More info
+                                            </a>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleEditActivity(currentTrip.id, dayIndex, slotIndex, slot)}
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                        <span className="sr-only">Edit</span>
+                                      </Button>
+                                    </div>
+                                  ))
+                                )}
                               </div>
                             </div>
                           ))}
                         </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="precipitation">
-                        <div className="flex flex-col items-center p-6 bg-muted/20 rounded-lg">
-                          <p>Precipitation data is not available for this trip.</p>
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="wind">
-                        <div className="flex flex-col items-center p-6 bg-muted/20 rounded-lg">
-                          <p>Wind data is not available for this trip.</p>
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="calendar" className="mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Calendar</CardTitle>
-                    <CardDescription>View your trip in calendar format</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-center p-12">
-                      <p className="text-muted-foreground">Calendar view will be coming soon</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="maps" className="mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Trip Map</CardTitle>
-                    <CardDescription>Interactive map of your trip locations</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[500px]">
-                      {currentTrip.itinerary?.days && (
-                        <TripMap
-                          activities={currentTrip.itinerary.days.flatMap(day =>
-                            day.activities.timeSlots.map(slot => ({
-                              activity: slot.activity,
-                              location: slot.location
-                            }))
-                          )}
-                          accommodation={currentTrip.itinerary.days[0].accommodation}
-                        />
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="advisor" className="mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Travel Advisor</CardTitle>
-                    <CardDescription>Get personalized travel recommendations</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-center p-12">
-                      <p className="text-muted-foreground">Travel advisor will be coming soon</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="booking" className="mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Book Your Trip</CardTitle>
-                    <CardDescription>Find and book flights, hotels, and activities</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-center p-12">
-                      <p className="text-muted-foreground">Booking functionality will be coming soon</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="weather" className="mt-0">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Weather Forecast</CardTitle>
+                      <CardDescription>
+                        Weather forecast for {currentTrip.destination}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {/* Current Weather */}
+                      {currentTrip.itinerary?.days && currentTrip.itinerary.days[0]?.aiSuggestions?.weatherContext && (
+                        <div className="mb-8">
+                          <div className="flex flex-col md:flex-row gap-6">
+                            <div className="flex items-center">
+                              <ThermometerSun className="h-16 w-16 text-orange-500 mr-2" />
+                              <div className="text-6xl font-bold">
+                                {Math.round(currentTrip.itinerary.days[0].aiSuggestions.weatherContext.temperature)}
+                                <span className="text-2xl align-top">°F</span>
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="text-2xl">
+                                Weather
+                              </div>
+                              <div className="text-lg text-muted-foreground">
+                                {format(new Date(), "EEEE h:mm a")}
+                              </div>
+                              <div className="text-lg">
+                                {currentTrip.itinerary.days[0].aiSuggestions.weatherContext.description}
+                              </div>
+                            </div>
+                            <div className="ml-auto flex flex-col gap-2">
+                              <div className="flex items-center">
+                                <CloudRain className="h-5 w-5 text-blue-500 mr-2" />
+                                <div>
+                                  Precipitation: {currentTrip.itinerary.days[0].aiSuggestions.weatherContext.precipitation_probability}%
+                                </div>
+                              </div>
+                              <div className="flex items-center">
+                                <Droplets className="h-5 w-5 text-blue-400 mr-2" />
+                                <div>
+                                  Humidity: {Math.round(Math.random() * 30) + 50}%
+                                </div>
+                              </div>
+                              <div className="flex items-center">
+                                <Wind className="h-5 w-5 text-slate-500 mr-2" />
+                                <div>
+                                  Wind: {Math.round(Math.random() * 10) + 1} mph
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Navigation tabs for temperature, precipitation, wind */}
+                      <Tabs defaultValue="temperature" className="mt-6">
+                        <TabsList className="mb-4">
+                          <TabsTrigger value="temperature">Temperature</TabsTrigger>
+                          <TabsTrigger value="precipitation">Precipitation</TabsTrigger>
+                          <TabsTrigger value="wind">Wind</TabsTrigger>
+                        </TabsList>
+                        
+                        <TabsContent value="temperature" className="space-y-8">
+                          {/* Hourly temperature graph */}
+                          <div className="h-40 w-full bg-muted/20 rounded-lg p-4 relative">
+                            <div className="absolute bottom-4 left-0 right-0 h-px bg-border"></div>
+                            <div className="flex h-full justify-between items-end relative">
+                              {Array.from({ length: 8 }).map((_, i) => {
+                                const height = `${Math.round(Math.random() * 40) + 30}%`;
+                                return (
+                                  <div key={i} className="flex flex-col items-center">
+                                    <div 
+                                      className="w-10 bg-gradient-to-t from-primary/40 to-primary/80 rounded-t"
+                                      style={{ height }}
+                                    ></div>
+                                    <div className="text-xs mt-2">{i === 0 ? "9PM" : i === 1 ? "12AM" : i === 2 ? "3AM" : i === 3 ? "6AM" : i === 4 ? "9AM" : i === 5 ? "12PM" : i === 6 ? "3PM" : "6PM"}</div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          
+                          {/* Daily forecast */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
+                            {getWeatherForecasts(currentTrip).map((forecast, index) => (
+                              <div key={index} className="flex flex-col items-center p-2">
+                                <div className="font-medium">{format(parseISO(forecast.date), "E")}</div>
+                                {forecast.icon}
+                                <div className="flex items-center gap-1 mt-1">
+                                  <span className="font-medium">{forecast.high}°</span>
+                                  <span className="text-muted-foreground">{forecast.low}°</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </TabsContent>
+                        
+                        <TabsContent value="precipitation">
+                          <div className="flex flex-col items-center p-6 bg-muted/20 rounded-lg">
+                            <p>Precipitation data is not available for this trip.</p>
+                          </div>
+                        </TabsContent>
+                        
+                        <TabsContent value="wind">
+                          <div className="flex flex-col items-center p-6 bg-muted/20 rounded-lg">
+                            <p>Wind data is not available for this trip.</p>
+                          </div>
+                        </TabsContent>
+                      </Tabs>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="calendar" className="mt-0">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Calendar</CardTitle>
+                      <CardDescription>View your trip in calendar format</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-center p-12">
+                        <p className="text-muted-foreground">Calendar view will be coming soon</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="maps" className="mt-0">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Trip Map</CardTitle>
+                      <CardDescription>Interactive map of your trip locations</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[500px]">
+                        {currentTrip.itinerary?.days && (
+                          <TripMap
+                            activities={currentTrip.itinerary.days.flatMap(day =>
+                              day.activities.timeSlots.map(slot => ({
+                                activity: slot.activity,
+                                location: slot.location
+                              }))
+                            )}
+                            accommodation={currentTrip.itinerary.days[0].accommodation}
+                          />
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="advisor" className="mt-0">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Travel Advisor</CardTitle>
+                      <CardDescription>Get personalized travel recommendations</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-center p-12">
+                        <p className="text-muted-foreground">Travel advisor will be coming soon</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="booking" className="mt-0">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Book Your Trip</CardTitle>
+                      <CardDescription>Find and book flights, hotels, and activities</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-center p-12">
+                        <p className="text-muted-foreground">Booking functionality will be coming soon</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         )}
