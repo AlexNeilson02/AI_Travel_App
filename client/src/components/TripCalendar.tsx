@@ -25,9 +25,9 @@ interface TimeSlot {
 
 interface TripCalendarProps {
   tripDays: any[];
-  onSaveEvents: (events: EventInput[]) => Promise<void>;
-  tripStartDate: string;
-  tripEndDate: string;
+  onSaveEvents: (events: EventInput[]) => Promise<boolean | void>;
+  tripStartDate: string | Date;
+  tripEndDate: string | Date;
 }
 
 export default function TripCalendar({ tripDays, onSaveEvents, tripStartDate, tripEndDate }: TripCalendarProps) {
@@ -58,52 +58,59 @@ export default function TripCalendar({ tripDays, onSaveEvents, tripStartDate, tr
       tripDays.forEach(day => {
         if (day.activities && day.activities.timeSlots) {
           day.activities.timeSlots.forEach((slot: TimeSlot) => {
-            // Extract hours and minutes from time string (format: "HH:MM")
-            const [hours, minutes] = slot.time.split(':').map((part: string) => parseInt(part, 10));
-            
-            // Create date object for the event start
-            const eventDate = new Date(day.date);
-            eventDate.setHours(hours, minutes, 0, 0);
-            
-            // Calculate end time based on duration (format: "X hours Y minutes" or "X hours" or "Y minutes")
-            const durationMatch = slot.duration.match(/(\d+)\s*hours?(?:\s*and\s*)?(?:(\d+)\s*minutes?)?/) || 
-                                  slot.duration.match(/(\d+)\s*minutes?/);
-            
-            let durationMinutes = 60; // Default duration: 1 hour
-            
-            if (durationMatch) {
-              if (durationMatch[1] && durationMatch[2]) {
-                // Hours and minutes
-                durationMinutes = parseInt(durationMatch[1], 10) * 60 + parseInt(durationMatch[2], 10);
-              } else if (durationMatch[1] && durationMatch[0].includes('hour')) {
-                // Only hours
-                durationMinutes = parseInt(durationMatch[1], 10) * 60;
-              } else if (durationMatch[1]) {
-                // Only minutes
-                durationMinutes = parseInt(durationMatch[1], 10);
+            try {
+              // Extract hours and minutes from time string (format: "HH:MM")
+              const [hours, minutes] = slot.time.split(':').map((part: string) => parseInt(part, 10));
+              
+              // Create date object for the event start
+              const eventDate = new Date(day.date);
+              eventDate.setHours(hours, minutes, 0, 0);
+              
+              // Calculate end time based on duration (format: "X hours Y minutes" or "X hours" or "Y minutes")
+              const durationMatch = slot.duration.match(/(\d+)\s*hours?(?:\s*and\s*)?(?:(\d+)\s*minutes?)?/) || 
+                                    slot.duration.match(/(\d+)\s*minutes?/);
+              
+              let durationMinutes = 60; // Default duration: 1 hour
+              
+              if (durationMatch) {
+                if (durationMatch[1] && durationMatch[2]) {
+                  // Hours and minutes
+                  durationMinutes = parseInt(durationMatch[1], 10) * 60 + parseInt(durationMatch[2], 10);
+                } else if (durationMatch[1] && durationMatch[0].includes('hour')) {
+                  // Only hours
+                  durationMinutes = parseInt(durationMatch[1], 10) * 60;
+                } else if (durationMatch[1]) {
+                  // Only minutes
+                  durationMinutes = parseInt(durationMatch[1], 10);
+                }
               }
+              
+              // Create end date by adding duration
+              const endDate = new Date(eventDate);
+              endDate.setMinutes(endDate.getMinutes() + durationMinutes);
+              
+              calendarEvents.push({
+                id: `${day.date}-${slot.time}-${slot.activity}`,
+                title: slot.activity,
+                start: eventDate,
+                end: endDate,
+                extendedProps: {
+                  location: slot.location,
+                  notes: slot.notes,
+                  duration: slot.duration,
+                  url: slot.url
+                }
+              });
+              
+              console.log(`Added event: ${slot.activity} at ${eventDate.toISOString()}`);
+            } catch (error) {
+              console.error(`Failed to process event: ${slot.activity}`, error);
             }
-            
-            // Create end date by adding duration
-            const endDate = new Date(eventDate);
-            endDate.setMinutes(endDate.getMinutes() + durationMinutes);
-            
-            calendarEvents.push({
-              id: `${day.date}-${slot.time}-${slot.activity}`,
-              title: slot.activity,
-              start: eventDate,
-              end: endDate,
-              extendedProps: {
-                location: slot.location,
-                notes: slot.notes,
-                duration: slot.duration,
-                url: slot.url
-              }
-            });
           });
         }
       });
       
+      console.log(`Total calendar events: ${calendarEvents.length}`);
       setEvents(calendarEvents);
     }
   }, [tripDays]);
@@ -352,6 +359,18 @@ export default function TripCalendar({ tripDays, onSaveEvents, tripStartDate, tr
             meridiem: 'short'
           }}
           height="100%"
+          views={{
+            timeGridDay: {
+              // Make day view fill the entire width
+              dayMaxEventRows: false,
+              dayMinWidth: 300,
+              expandRows: true
+            },
+            timeGridWeek: {
+              dayMaxEventRows: 6,
+              dayMinWidth: 120
+            }
+          }}
         />
       </div>
       
