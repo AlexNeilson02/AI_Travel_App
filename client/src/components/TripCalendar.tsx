@@ -52,18 +52,6 @@ export default function TripCalendar({ tripDays, onSaveEvents, tripStartDate, tr
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [viewMode, setViewMode] = useState<'timeGridWeek' | 'timeGridDay'>('timeGridWeek');
 
-  // Apply the initial view class when calendar is mounted
-  useEffect(() => {
-    if (calendarRef.current) {
-      // Access the DOM element directly
-      const calendarApi = calendarRef.current.getApi();
-      const calendarEl = document.querySelector('.fc');
-      if (calendarEl) {
-        calendarEl.classList.add(viewMode === 'timeGridDay' ? 'fc-timeGridDay-view' : 'fc-timeGridWeek-view');
-      }
-    }
-  }, [viewMode]);
-
   // Convert trip days to calendar events
   useEffect(() => {
     if (tripDays && tripDays.length > 0) {
@@ -315,19 +303,21 @@ export default function TripCalendar({ tripDays, onSaveEvents, tripStartDate, tr
       const calendarApi = calendarRef.current.getApi();
       calendarApi.changeView(newMode);
       
-      // Add or remove the day view class to control CSS styling
+      // When switching to day view, ensure we remove any previous classes
+      // and add the day view specific class
       setTimeout(() => {
-        const calendarEl = document.querySelector('.fc');
-        if (calendarEl) {
-          if (newMode === 'timeGridDay') {
-            calendarEl.classList.add('fc-timeGridDay-view');
-            calendarEl.classList.remove('fc-timeGridWeek-view');
-          } else {
-            calendarEl.classList.add('fc-timeGridWeek-view');
-            calendarEl.classList.remove('fc-timeGridDay-view');
+        if (newMode === 'timeGridDay') {
+          const calendarBody = document.querySelector('.fc-timegrid-body');
+          if (calendarBody) {
+            calendarBody.classList.add('fc-timegrid-body-day-view');
+          }
+        } else {
+          const calendarBody = document.querySelector('.fc-timegrid-body');
+          if (calendarBody) {
+            calendarBody.classList.remove('fc-timegrid-body-day-view');
           }
         }
-      }, 0);
+      }, 10);
     }
   };
 
@@ -359,11 +349,23 @@ export default function TripCalendar({ tripDays, onSaveEvents, tripStartDate, tr
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView={viewMode}
+          initialView="timeGridWeek"
           headerToolbar={{
             left: 'prev,next today',
             center: 'title',
             right: ''
+          }}
+          viewDidMount={(arg) => {
+            // Ensure DOM is ready after view change
+            setTimeout(() => {
+              // Add custom styling to make day view fill width in grid mode
+              if (arg.view.type === 'timeGridDay') {
+                const calendarEl = document.querySelector('.fc-timegrid-body');
+                if (calendarEl) {
+                  calendarEl.classList.add('fc-timegrid-body-day-view');
+                }
+              }
+            }, 0);
           }}
           validRange={{
             start: tripStartDate,
