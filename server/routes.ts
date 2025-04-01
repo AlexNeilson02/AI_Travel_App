@@ -170,6 +170,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Weather API endpoint
+  app.get("/api/weather", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const { location, date } = req.query;
+    
+    if (!location || !date) {
+      return res.status(400).json({
+        error: "Missing required parameters: location and date"
+      });
+    }
+
+    try {
+      const weatherDate = new Date(date as string);
+      const weatherData = await getWeatherForecast(location as string, weatherDate);
+      
+      if (!weatherData) {
+        return res.status(404).json({
+          error: "Could not retrieve weather data for the specified location and date."
+        });
+      }
+      
+      res.json(weatherData);
+    } catch (error: any) {
+      console.error('Error fetching weather data:', error);
+      res.status(500).json({
+        error: error.message || 'Failed to retrieve weather data'
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

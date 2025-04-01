@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useRoute, Link } from "wouter";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isBefore, startOfDay, differenceInMinutes } from "date-fns";
 import Nav from "@/components/Nav";
 import {
   Card,
@@ -10,7 +10,9 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -63,7 +65,10 @@ import {
   CalendarIcon,
   MapIcon,
   HeadphonesIcon,
-  CreditCard
+  CreditCard,
+  AlertCircle,
+  Calendar,
+  CheckCircle2
 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import type { Trip } from "@shared/schema";
@@ -91,8 +96,11 @@ interface TripDay {
     weatherContext?: {
       description: string;
       temperature: number;
+      humidity?: number;
+      wind_speed?: number;
       precipitation_probability: number;
       is_suitable_for_outdoor: boolean;
+      warning?: string;
     };
     alternativeActivities: string[];
   };
@@ -108,6 +116,7 @@ interface WeatherForecast {
   description: string;
   precipitation: number;
   icon: JSX.Element;
+  warning?: string;
 }
 
 export default function TripDashboard() {
@@ -345,10 +354,157 @@ export default function TripDashboard() {
     });
   };
 
-  // Helper function to create mock weather forecasts based on trip days
+  // State for fetching weather data
+  const [isLoadingWeather, setIsLoadingWeather] = useState(false);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [weatherForecasts, setWeatherForecasts] = useState<WeatherForecast[]>([]);
+  const [weatherLastFetched, setWeatherLastFetched] = useState<Date | null>(null);
+  
+  // State for trip completion
+  const [isMarkingComplete, setIsMarkingComplete] = useState(false);
+  const [tripCompleted, setTripCompleted] = useState(false);
+
+  // Check if trip date has already passed
+  const isTripInPast = useCallback((trip: Trip | undefined): boolean => {
+    if (!trip || !trip.itinerary || !trip.itinerary.days || trip.itinerary.days.length === 0) return false;
+    
+    // Get the last day of the trip
+    const lastDay = trip.itinerary.days[trip.itinerary.days.length - 1];
+    const lastDayDate = parseISO(lastDay.date);
+    
+    // Compare with current date
+    return isBefore(lastDayDate, startOfDay(new Date()));
+  }, []);
+
+  // Mark trip as complete
+  const handleMarkTripComplete = async () => {
+    if (!currentTrip) return;
+    
+    setIsMarkingComplete(true);
+    
+    try {
+      // Create a deep copy of the trip
+      const updatedTrip = JSON.parse(JSON.stringify(currentTrip)) as Trip;
+      
+      // Mark all days as finalized
+      if (updatedTrip.itinerary && updatedTrip.itinerary.days) {
+        updatedTrip.itinerary.days = updatedTrip.itinerary.days.map(day => ({
+          ...day,
+          isFinalized: true
+        }));
+      }
+      
+      // Update the trip on the server
+      await apiRequest(`/api/trips/${currentTrip.id}`, 
+        JSON.stringify({
+          method: "PATCH",
+          body: JSON.stringify(updatedTrip)
+        })
+      );
+
+      // Invalidate cache to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+      
+      setTripCompleted(true);
+      
+      toast({
+        title: "Trip Completed",
+        description: "Your trip has been marked as complete."
+      });
+    } catch (error) {
+      console.error("Error marking trip as complete:", error);
+      toast({
+        title: "Error",
+        description: "Failed to mark trip as complete. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsMarkingComplete(false);
+    }
+  };
+
+  // Function to fetch weather data from our API
+  const fetchWeatherData = useCallback(async (trip: Trip) => {
+    if (!trip || !trip.itinerary || !trip.itinerary.days || trip.itinerary.days.length === 0) return;
+    
+    setIsLoadingWeather(true);
+    setWeatherError(null);
+    
+    try {
+      const forecasts: WeatherForecast[] = [];
+      
+      // Fetch weather for each day
+      for (const day of trip.itinerary.days) {
+        try {
+          const response = await fetch(`/api/weather?location=${encodeURIComponent(trip.destination)}&date=${encodeURIComponent(day.date)}`);
+          
+          if (!response.ok) {
+            throw new Error(`Failed to fetch weather: ${response.statusText}`);
+          }
+          
+          const weatherData = await response.json();
+          
+          // Determine icon based on weather description
+          const isRainy = weatherData.precipitation_probability > 30;
+          const isCloudy = weatherData.description.toLowerCase().includes('cloud') || 
+                          weatherData.description.toLowerCase().includes('overcast');
+          
+          let icon: JSX.Element;
+          if (isRainy) {
+            icon = <CloudRain className="h-8 w-8 text-blue-500" />;
+          } else if (isCloudy) {
+            icon = <Cloud className="h-8 w-8 text-slate-500" />;
+          } else {
+            icon = <ThermometerSun className="h-8 w-8 text-yellow-500" />;
+          }
+          
+          forecasts.push({
+            date: day.date,
+            dayOfWeek: day.dayOfWeek,
+            high: Math.round(weatherData.temperature + 5),
+            low: Math.round(weatherData.temperature - 5),
+            description: weatherData.description,
+            precipitation: weatherData.precipitation_probability,
+            icon,
+            warning: weatherData.warning
+          });
+        } catch (error) {
+          console.error(`Error fetching weather for ${day.date}:`, error);
+          
+          // Add a placeholder for this day
+          forecasts.push({
+            date: day.date,
+            dayOfWeek: day.dayOfWeek,
+            high: 0,
+            low: 0,
+            description: "Weather data not available",
+            precipitation: 0,
+            icon: <Cloud className="h-8 w-8 text-slate-300" />
+          });
+        }
+      }
+      
+      setWeatherForecasts(forecasts);
+      setWeatherLastFetched(new Date());
+    } catch (error) {
+      console.error("Error fetching weather data:", error);
+      setWeatherError("Failed to fetch weather data. Please try again later.");
+    } finally {
+      setIsLoadingWeather(false);
+    }
+  }, []);
+
+  // Helper function to get weather forecasts
   const getWeatherForecasts = (trip: Trip | undefined): WeatherForecast[] => {
+    // If we have fresh weather data (fetched in the last hour), use it
+    if (weatherLastFetched && weatherForecasts.length > 0 && 
+        differenceInMinutes(new Date(), weatherLastFetched) < 60) {
+      return weatherForecasts;
+    }
+    
     if (!trip || !trip.itinerary || !trip.itinerary.days) return [];
     
+    // Otherwise use the existing data from aiSuggestions as a fallback
     return trip.itinerary.days.map(day => {
       const weatherContext = day.aiSuggestions?.weatherContext;
       
@@ -490,6 +646,14 @@ export default function TripDashboard() {
             {/* Main Content */}
             <div className="col-span-12 md:col-span-9">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="hidden">
+                  <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
+                  <TabsTrigger value="weather">Weather</TabsTrigger>
+                  <TabsTrigger value="calendar">Calendar</TabsTrigger>
+                  <TabsTrigger value="maps">Maps</TabsTrigger>
+                  <TabsTrigger value="advisor">Advisor</TabsTrigger>
+                  <TabsTrigger value="booking">Booking</TabsTrigger>
+                </TabsList>
                 <TabsContent value="itinerary" className="mt-0">
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
@@ -590,114 +754,137 @@ export default function TripDashboard() {
                 
                 <TabsContent value="weather" className="mt-0">
                   <Card>
-                    <CardHeader>
-                      <CardTitle>Weather Forecast</CardTitle>
-                      <CardDescription>
-                        Weather forecast for {currentTrip.destination}
-                      </CardDescription>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle>Weather Forecast</CardTitle>
+                        <CardDescription>
+                          {currentTrip.destination} - {format(parseISO(currentTrip.itinerary?.days?.[0]?.date || new Date().toISOString()), "MMM yyyy")}
+                        </CardDescription>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => fetchWeatherData(currentTrip)}
+                        disabled={isLoadingWeather}
+                      >
+                        {isLoadingWeather ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Updating...
+                          </>
+                        ) : (
+                          <>
+                            <Cloud className="h-4 w-4 mr-2" />
+                            Update Forecast
+                          </>
+                        )}
+                      </Button>
                     </CardHeader>
-                    <CardContent>
-                      {/* Current Weather */}
-                      {currentTrip.itinerary?.days && currentTrip.itinerary.days[0]?.aiSuggestions?.weatherContext && (
-                        <div className="mb-8">
-                          <div className="flex flex-col md:flex-row gap-6">
-                            <div className="flex items-center">
-                              <ThermometerSun className="h-16 w-16 text-orange-500 mr-2" />
-                              <div className="text-6xl font-bold">
-                                {Math.round(currentTrip.itinerary.days[0].aiSuggestions.weatherContext.temperature)}
-                                <span className="text-2xl align-top">°F</span>
-                              </div>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="text-2xl">
-                                Weather
-                              </div>
-                              <div className="text-lg text-muted-foreground">
-                                {format(new Date(), "EEEE h:mm a")}
-                              </div>
-                              <div className="text-lg">
-                                {currentTrip.itinerary.days[0].aiSuggestions.weatherContext.description}
-                              </div>
-                            </div>
-                            <div className="ml-auto flex flex-col gap-2">
-                              <div className="flex items-center">
-                                <CloudRain className="h-5 w-5 text-blue-500 mr-2" />
-                                <div>
-                                  Precipitation: {currentTrip.itinerary.days[0].aiSuggestions.weatherContext.precipitation_probability}%
-                                </div>
-                              </div>
-                              <div className="flex items-center">
-                                <Droplets className="h-5 w-5 text-blue-400 mr-2" />
-                                <div>
-                                  Humidity: {Math.round(Math.random() * 30) + 50}%
-                                </div>
-                              </div>
-                              <div className="flex items-center">
-                                <Wind className="h-5 w-5 text-slate-500 mr-2" />
-                                <div>
-                                  Wind: {Math.round(Math.random() * 10) + 1} mph
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                    
+                    {/* Trip Status Alert - If trip is in the past */}
+                    {isTripInPast(currentTrip) && !tripCompleted && (
+                      <Alert className="mx-6 mt-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Trip Dates Have Passed</AlertTitle>
+                        <AlertDescription>
+                          This trip's dates are in the past. Would you like to update the dates or mark it as complete?
+                        </AlertDescription>
+                        <div className="flex gap-2 mt-3">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setActiveTab("itinerary");
+                              // Future implementation: Will add date edit functionality
+                            }}
+                          >
+                            <Calendar className="h-4 w-4 mr-2" />
+                            Change Dates
+                          </Button>
+                          <Button 
+                            variant="default" 
+                            size="sm"
+                            onClick={handleMarkTripComplete}
+                            disabled={isMarkingComplete}
+                          >
+                            {isMarkingComplete ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="h-4 w-4 mr-2" />
+                            )}
+                            Mark as Complete
+                          </Button>
                         </div>
+                      </Alert>
+                    )}
+                    
+                    {/* Trip Completed Status */}
+                    {tripCompleted && (
+                      <Alert className="mx-6 mt-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <AlertTitle>Trip Completed</AlertTitle>
+                        <AlertDescription>
+                          This trip has been marked as complete. We hope you had a great time!
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    
+                    <CardContent className="pt-6">
+                      {weatherError && (
+                        <Alert variant="destructive" className="mb-4">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertTitle>Error</AlertTitle>
+                          <AlertDescription>{weatherError}</AlertDescription>
+                        </Alert>
                       )}
                       
-                      {/* Navigation tabs for temperature, precipitation, wind */}
-                      <Tabs defaultValue="temperature" className="mt-6">
-                        <TabsList className="mb-4">
-                          <TabsTrigger value="temperature">Temperature</TabsTrigger>
-                          <TabsTrigger value="precipitation">Precipitation</TabsTrigger>
-                          <TabsTrigger value="wind">Wind</TabsTrigger>
-                        </TabsList>
-                        
-                        <TabsContent value="temperature" className="space-y-8">
-                          {/* Hourly temperature graph */}
-                          <div className="h-40 w-full bg-muted/20 rounded-lg p-4 relative">
-                            <div className="absolute bottom-4 left-0 right-0 h-px bg-border"></div>
-                            <div className="flex h-full justify-between items-end relative">
-                              {Array.from({ length: 8 }).map((_, i) => {
-                                const height = `${Math.round(Math.random() * 40) + 30}%`;
-                                return (
-                                  <div key={i} className="flex flex-col items-center">
-                                    <div 
-                                      className="w-10 bg-gradient-to-t from-primary/40 to-primary/80 rounded-t"
-                                      style={{ height }}
-                                    ></div>
-                                    <div className="text-xs mt-2">{i === 0 ? "9PM" : i === 1 ? "12AM" : i === 2 ? "3AM" : i === 3 ? "6AM" : i === 4 ? "9AM" : i === 5 ? "12PM" : i === 6 ? "3PM" : "6PM"}</div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                          
-                          {/* Daily forecast */}
-                          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
-                            {getWeatherForecasts(currentTrip).map((forecast, index) => (
-                              <div key={index} className="flex flex-col items-center p-2">
-                                <div className="font-medium">{format(parseISO(forecast.date), "E")}</div>
-                                {forecast.icon}
-                                <div className="flex items-center gap-1 mt-1">
-                                  <span className="font-medium">{forecast.high}°</span>
-                                  <span className="text-muted-foreground">{forecast.low}°</span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {getWeatherForecasts(currentTrip).map((forecast, index) => (
+                          <Card key={index} className="overflow-hidden">
+                            <CardHeader className="p-4 pb-2">
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <CardTitle className="text-base">
+                                    {forecast.dayOfWeek || format(parseISO(forecast.date), "EEEE")}
+                                  </CardTitle>
+                                  <CardDescription>
+                                    {format(parseISO(forecast.date), "MMMM d, yyyy")}
+                                  </CardDescription>
+                                </div>
+                                <div className="text-right">
+                                  {forecast.icon}
                                 </div>
                               </div>
-                            ))}
-                          </div>
-                        </TabsContent>
-                        
-                        <TabsContent value="precipitation">
-                          <div className="flex flex-col items-center p-6 bg-muted/20 rounded-lg">
-                            <p>Precipitation data is not available for this trip.</p>
-                          </div>
-                        </TabsContent>
-                        
-                        <TabsContent value="wind">
-                          <div className="flex flex-col items-center p-6 bg-muted/20 rounded-lg">
-                            <p>Wind data is not available for this trip.</p>
-                          </div>
-                        </TabsContent>
-                      </Tabs>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-0">
+                              <div className="flex flex-col space-y-1 mt-2">
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-muted-foreground">Temperature</span>
+                                  <span className="text-sm font-medium">
+                                    {forecast.high}°F / {forecast.low}°F
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-muted-foreground">Precipitation</span>
+                                  <span className="text-sm font-medium">{forecast.precipitation}%</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-sm text-muted-foreground">Conditions</span>
+                                  <span className="text-sm font-medium">{forecast.description}</span>
+                                </div>
+                              </div>
+                              
+                              {forecast.warning && (
+                                <Alert variant="destructive" className="mt-3 py-2 px-3">
+                                  <AlertCircle className="h-3 w-3" />
+                                  <AlertDescription className="text-xs">
+                                    {forecast.warning}
+                                  </AlertDescription>
+                                </Alert>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>
