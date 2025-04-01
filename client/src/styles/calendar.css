@@ -68,6 +68,37 @@
   border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
   overflow: hidden;
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+/* ScrollGrid implementation */
+.fc-scrollgrid-section {
+  display: table-row;
+}
+
+.fc-scrollgrid-section > * {
+  display: table-cell;
+}
+
+.fc-scrollgrid-section-header,
+.fc-scrollgrid-section-body,
+.fc-scrollgrid-section-footer {
+  display: table-row;
+}
+
+.fc-scrollgrid-section-body table,
+.fc-scrollgrid-section-footer table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.fc-scrollgrid-sync-table {
+  width: 100%;
+  table-layout: fixed;
+  height: 100%;
 }
 
 .fc-scrollgrid-section-header {

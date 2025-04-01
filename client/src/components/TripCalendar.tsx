@@ -4,6 +4,8 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { EventInput, DateSelectArg, EventChangeArg, EventClickArg } from '@fullcalendar/core';
+// Import common which is necessary for ScrollGrid implementation
+import '@fullcalendar/common/main.css';
 // Import custom CSS for the calendar
 import '../styles/calendar.css';
 import { Button } from '@/components/ui/button';
@@ -350,6 +352,7 @@ export default function TripCalendar({ tripDays, onSaveEvents, tripStartDate, tr
           ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="timeGridWeek"
+          themeSystem="standard"
           headerToolbar={{
             left: 'prev,next today',
             center: 'title',
