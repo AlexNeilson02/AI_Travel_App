@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { initSubscriptionPlans } from "./init-subscription-plans";
 
 const app = express();
 app.use(express.json());
@@ -37,6 +38,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize subscription plans
+  try {
+    await initSubscriptionPlans();
+    log('Successfully initialized subscription plans');
+  } catch (error) {
+    console.error('Failed to initialize subscription plans:', error);
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
