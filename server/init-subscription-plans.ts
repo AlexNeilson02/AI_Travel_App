@@ -5,7 +5,31 @@ import { log } from './vite';
 
 // Initialize Stripe with the secret key from environment variables
 const stripeApiKey = process.env.STRIPE_SECRET_KEY || '';
-const stripe = new Stripe(stripeApiKey);
+
+// Create a mock Stripe object for development without API key
+const stripeMock = {
+  products: {
+    create: async (params: any) => ({ id: `prod_mock_${Date.now()}` }),
+  },
+  prices: {
+    create: async (params: any) => ({ id: `price_mock_${params.product}_${Date.now()}` }),
+  }
+};
+
+// Get Stripe instance or mock based on API key availability
+function getStripe() {
+  if (!stripeApiKey) {
+    log('No Stripe API key found. Using mock Stripe implementation.');
+    return stripeMock;
+  }
+  
+  try {
+    return new Stripe(stripeApiKey);
+  } catch (error) {
+    log('Error initializing Stripe. Using mock implementation.', error);
+    return stripeMock;
+  }
+}
 
 // Define subscription plan types
 type BasePlan = {
@@ -66,6 +90,9 @@ async function createStripePrice(planName: string, priceInDollars: number, inter
   }
 
   try {
+    // Get Stripe instance or mock
+    const stripe = getStripe();
+    
     // First create a product
     const product = await stripe.products.create({
       name: `Juno ${planName} Plan`,
