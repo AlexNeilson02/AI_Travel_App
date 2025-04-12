@@ -18,8 +18,11 @@ export default {
       },
       colors: {
         primary: "#1E3A8A",
+        "primary-foreground": "#FFFFFF",
         secondary: "#3B82F6",
+        "secondary-foreground": "#FFFFFF",
         accent: "#60A5FA",
+        "accent-foreground": "#FFFFFF",
         neutral: {
           900: "#1E3A8A",
           800: "#1E40AF",
