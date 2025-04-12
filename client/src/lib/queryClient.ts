@@ -7,30 +7,32 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest<T = any>(
+export async function apiRequest(
+  method: string,
   url: string, 
+  data?: any,
   options?: RequestInit
-): Promise<T> {
-  const method = options?.method || 'GET';
-  const res = await fetch(url, {
-    method,
-    headers: options?.body ? { 
-      "Content-Type": "application/json",
-      ...options.headers
-    } : options?.headers || {},
-    body: options?.body,
-    credentials: "include",
-    ...options
-  });
-
-  await throwIfResNotOk(res);
+): Promise<Response> {
+  const headers: Record<string, string> = {
+    ...options?.headers as Record<string, string>
+  };
   
-  // For HEAD requests or when no content is expected
-  if (method === 'HEAD' || res.status === 204) {
-    return {} as T;
+  if (data && method !== 'GET') {
+    headers['Content-Type'] = 'application/json';
   }
   
-  return res.json() as Promise<T>;
+  const config: RequestInit = {
+    method,
+    headers,
+    credentials: "include",
+    ...options
+  };
+  
+  if (data && method !== 'GET') {
+    config.body = JSON.stringify(data);
+  }
+  
+  return fetch(url, config);
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -39,15 +41,18 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
+    // Use our improved apiRequest function
+    const res = await apiRequest('GET', queryKey[0] as string);
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;
     }
 
-    await throwIfResNotOk(res);
+    if (!res.ok) {
+      const text = (await res.text()) || res.statusText;
+      throw new Error(`${res.status}: ${text}`);
+    }
+    
     return await res.json();
   };
 
