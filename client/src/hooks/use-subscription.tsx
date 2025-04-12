@@ -57,13 +57,21 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       // Get all available plans first
-      const plans = await apiRequest<SubscriptionPlan[]>('/api/subscriptions/plans');
+      const plansRes = await apiRequest('GET', '/api/subscriptions/plans');
+      if (!plansRes.ok) {
+        throw new Error('Failed to fetch subscription plans');
+      }
+      const plans = await plansRes.json() as SubscriptionPlan[];
       setAllPlans(plans);
 
       // If user is logged in, try to fetch their subscription
       if (user) {
         try {
-          const subscription = await apiRequest<UserSubscription>('/api/subscriptions/my-subscription');
+          const subscriptionRes = await apiRequest('GET', '/api/subscriptions/my-subscription');
+          if (!subscriptionRes.ok) {
+            throw new Error('Failed to fetch user subscription');
+          }
+          const subscription = await subscriptionRes.json() as UserSubscription;
           setActiveSubscription(subscription);
 
           // Find the matching plan

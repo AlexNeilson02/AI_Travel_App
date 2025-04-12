@@ -114,9 +114,9 @@ export function setupAuth(app: Express) {
           return res.status(200).json(user);
         });
       })(req, res, next);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
-      res.status(500).json({ message: "Login failed", error: error.message });
+      res.status(500).json({ message: "Login failed", error: error.message || "Unknown error" });
     }
   });
 
