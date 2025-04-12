@@ -59,11 +59,11 @@ export default function SubscriptionPage() {
     setSubscribing(true);
     try {
       // Get checkout URL from server
-      const response = await apiRequest('/api/subscriptions/checkout', {
+      const response = await apiRequest<{ url: string }>('/api/subscriptions/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planId }),
-      }) as { url: string };
+      });
 
       // Redirect to Stripe checkout
       if (response?.url) {
@@ -83,7 +83,7 @@ export default function SubscriptionPage() {
 
   // Cancel subscription
   const handleCancel = async () => {
-    if (!user || !userSubscription) {
+    if (!user || !activeSubscription) {
       return;
     }
 
@@ -94,8 +94,7 @@ export default function SubscriptionPage() {
       });
 
       // Refresh subscription data
-      const subRes = await apiRequest<UserSubscription>('/api/subscriptions/my-subscription');
-      setUserSubscription(subRes);
+      await refreshSubscription();
 
       toast({
         title: 'Subscription Cancelled',
@@ -124,17 +123,16 @@ export default function SubscriptionPage() {
 
   // Check if user is subscribed to a plan
   const isSubscribedTo = (planName: string) => {
-    if (!userSubscription) return false;
+    if (!activeSubscription) return false;
     
-    const userPlan = plans.find(p => p.id === userSubscription.planId);
-    return userPlan?.name.toLowerCase() === planName.toLowerCase();
+    return activePlan?.name.toLowerCase() === planName.toLowerCase();
   };
 
   // Get subscription end date in readable format
   const getSubscriptionEndDate = () => {
-    if (!userSubscription?.currentPeriodEnd) return '';
+    if (!activeSubscription?.currentPeriodEnd) return '';
     
-    return new Date(userSubscription.currentPeriodEnd).toLocaleDateString('en-US', {
+    return new Date(activeSubscription.currentPeriodEnd).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -143,10 +141,10 @@ export default function SubscriptionPage() {
 
   // Check if subscription is active
   const hasActiveSubscription = () => {
-    return userSubscription && userSubscription.status === 'active';
+    return activeSubscription && activeSubscription.status === 'active';
   };
 
-  if (loading) {
+  if (loading || subscriptionLoading) {
     return (
       <div className="container mx-auto py-10 text-center">
         <p>Loading subscription information...</p>
@@ -168,11 +166,11 @@ export default function SubscriptionPage() {
             <p>
               You are currently subscribed to the{' '}
               <span className="font-bold">
-                {plans.find(p => p.id === userSubscription?.planId)?.name || 'Unknown'}
+                {activePlan?.name || 'Unknown'}
               </span>{' '}
               plan.
             </p>
-            {userSubscription?.cancelAtPeriodEnd ? (
+            {activeSubscription?.cancelAtPeriodEnd ? (
               <p className="text-yellow-600 mt-2">
                 Your subscription is set to cancel on {getSubscriptionEndDate()}.
               </p>
@@ -223,7 +221,7 @@ export default function SubscriptionPage() {
               </CardContent>
               <CardFooter>
                 {isSubscribedTo(plan.name) ? (
-                  userSubscription?.cancelAtPeriodEnd ? (
+                  activeSubscription?.cancelAtPeriodEnd ? (
                     <Button variant="outline" className="w-full" disabled>
                       Cancellation Scheduled
                     </Button>
@@ -243,7 +241,7 @@ export default function SubscriptionPage() {
                     className="w-full"
                     onClick={() => handleSubscribe(plan.id)}
                     disabled={subscribing || 
-                      (hasActiveSubscription() && userSubscription?.cancelAtPeriodEnd === false)}
+                      (hasActiveSubscription() && activeSubscription?.cancelAtPeriodEnd === false)}
                   >
                     {subscribing ? 'Processing...' : 'Subscribe'}
                   </Button>
