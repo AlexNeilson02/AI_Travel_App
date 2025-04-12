@@ -6,9 +6,13 @@ import { insertTripSchema } from "@shared/schema";
 import { generateTripSuggestions, generateFollowUpQuestion } from "./openai";
 import { format } from "date-fns";
 import { getWeatherForecast, suggestAlternativeActivities } from "./weather";
+import subscriptionRoutes from "./subscription-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
+  
+  // Mount subscription routes
+  app.use('/api/subscriptions', subscriptionRoutes);
 
   app.post("/api/trips", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

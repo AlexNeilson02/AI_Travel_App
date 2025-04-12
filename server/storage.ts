@@ -88,18 +88,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTrip(userId: number, trip: InsertTrip): Promise<Trip> {
-    const tripData = {
-      ...trip,
-      userId,
-      isActive: true,
-      itinerary: trip.itinerary || {
-        days: []
-      }
-    };
-
+    // Prepare itinerary data with proper structure
+    const itinerary = trip.itinerary || { days: [] };
+    
     // Validate itinerary structure before saving
-    if (tripData.itinerary?.days) {
-      tripData.itinerary.days = tripData.itinerary.days.map(day => ({
+    if (itinerary.days) {
+      itinerary.days = itinerary.days.map(day => ({
         ...day,
         accommodation: day.accommodation || {
           name: "TBD",
@@ -123,9 +117,24 @@ export class DatabaseStorage implements IStorage {
       }));
     }
 
+    // Create a plain object with all the trip fields explicitly
+    const tripData = {
+      userId,
+      title: trip.title,
+      destination: trip.destination,
+      startDate: trip.startDate,
+      endDate: trip.endDate,
+      budget: trip.budget,
+      currency: 'USD', // Default currency
+      preferences: trip.preferences,
+      itinerary,
+      isActive: true
+    };
+
+    // Insert a single trip (not an array)
     const [newTrip] = await db
       .insert(trips)
-      .values(tripData)
+      .values([tripData]) // Wrap in array to satisfy the type
       .returning();
 
     return newTrip;
@@ -205,6 +214,129 @@ export class DatabaseStorage implements IStorage {
       .limit(10);
 
     return destinations.map(d => d.destination);
+  }
+
+  // Subscription Plan Methods
+  async createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan> {
+    // Explicitly create a new object matching the required schema
+    const planData = {
+      name: plan.name,
+      description: plan.description,
+      stripePriceId: plan.stripePriceId,
+      monthlyPrice: plan.monthlyPrice,
+      features: plan.features,
+      maxTrips: plan.maxTrips,
+      isActive: plan.isActive !== undefined ? plan.isActive : true
+    };
+    
+    const [newPlan] = await db
+      .insert(subscriptionPlans)
+      .values([planData]) // Wrap in array to satisfy type
+      .returning();
+    
+    return newPlan;
+  }
+
+  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    return await db
+      .select()
+      .from(subscriptionPlans)
+      .where(eq(subscriptionPlans.isActive, true))
+      .orderBy(subscriptionPlans.monthlyPrice);
+  }
+
+  async getSubscriptionPlan(id: number): Promise<SubscriptionPlan | undefined> {
+    const [plan] = await db
+      .select()
+      .from(subscriptionPlans)
+      .where(eq(subscriptionPlans.id, id));
+    
+    return plan;
+  }
+
+  async updateSubscriptionPlan(id: number, planUpdate: Partial<SubscriptionPlan>): Promise<SubscriptionPlan> {
+    const [plan] = await db
+      .update(subscriptionPlans)
+      .set(planUpdate)
+      .where(eq(subscriptionPlans.id, id))
+      .returning();
+    
+    if (!plan) {
+      throw new Error("Subscription plan not found");
+    }
+    
+    return plan;
+  }
+
+  // User Subscription Methods
+  async createUserSubscription(subscription: InsertUserSubscription): Promise<UserSubscription> {
+    const [newSubscription] = await db
+      .insert(userSubscriptions)
+      .values(subscription)
+      .returning();
+    
+    return newSubscription;
+  }
+
+  async getUserSubscription(userId: number): Promise<UserSubscription | undefined> {
+    const [subscription] = await db
+      .select()
+      .from(userSubscriptions)
+      .where(eq(userSubscriptions.userId, userId))
+      .orderBy(desc(userSubscriptions.createdAt))
+      .limit(1);
+    
+    return subscription;
+  }
+
+  async getUserActiveSubscription(userId: number): Promise<UserSubscription | undefined> {
+    const now = new Date();
+    
+    // Find subscription that is active (status = 'active') and not expired
+    const [subscription] = await db
+      .select()
+      .from(userSubscriptions)
+      .where(
+        and(
+          eq(userSubscriptions.userId, userId),
+          eq(userSubscriptions.status, 'active'),
+          gte(userSubscriptions.currentPeriodEnd, now)
+        )
+      )
+      .orderBy(desc(userSubscriptions.currentPeriodEnd))
+      .limit(1);
+    
+    return subscription;
+  }
+
+  async updateUserSubscription(id: number, subscriptionUpdate: Partial<UserSubscription>): Promise<UserSubscription> {
+    const [subscription] = await db
+      .update(userSubscriptions)
+      .set({
+        ...subscriptionUpdate,
+        updatedAt: new Date()
+      })
+      .where(eq(userSubscriptions.id, id))
+      .returning();
+    
+    if (!subscription) {
+      throw new Error("User subscription not found");
+    }
+    
+    return subscription;
+  }
+
+  async cancelUserSubscription(userId: number): Promise<UserSubscription> {
+    const subscription = await this.getUserActiveSubscription(userId);
+    
+    if (!subscription) {
+      throw new Error("No active subscription found for user");
+    }
+    
+    return await this.updateUserSubscription(subscription.id, {
+      cancelAtPeriodEnd: true,
+      status: 'canceled'
+    });
   }
 }
 
