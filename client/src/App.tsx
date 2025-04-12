@@ -13,6 +13,7 @@ import MyTrips from "@/pages/my-trips";
 import TripDetails from "@/pages/trip-details";
 import TripDashboard from "@/pages/trip-dashboard";
 import MapsPage from "@/pages/maps-page";
+import SubscriptionPage from "@/pages/subscription-page";
 
 function Router() {
   const isMobile = useIsMobile();
@@ -27,6 +28,7 @@ function Router() {
           <ProtectedRoute path="/trip-dashboard/:id" component={TripDashboard} />
           <ProtectedRoute path="/trip/:id" component={TripDetails} />
           <ProtectedRoute path="/maps" component={MapsPage} />
+          <ProtectedRoute path="/subscription" component={SubscriptionPage} />
           <Route path="/auth" component={AuthPage} />
           <Route component={NotFound} />
         </Switch>
