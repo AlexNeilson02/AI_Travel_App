@@ -28,8 +28,12 @@ export default function SubscriptionPage() {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const plansRes = await apiRequest<SubscriptionPlan[]>('/api/subscriptions/plans');
-        setPlans(plansRes);
+        const plansRes = await apiRequest('GET', '/api/subscriptions/plans');
+        if (!plansRes.ok) {
+          throw new Error('Failed to fetch subscription plans');
+        }
+        const data = await plansRes.json() as SubscriptionPlan[];
+        setPlans(data);
       } catch (error) {
         console.error('Error fetching subscription plans:', error);
         toast({
@@ -59,15 +63,16 @@ export default function SubscriptionPage() {
     setSubscribing(true);
     try {
       // Get checkout URL from server
-      const response = await apiRequest<{ url: string }>('/api/subscriptions/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId }),
-      });
-
+      const response = await apiRequest('POST', '/api/subscriptions/checkout', { planId });
+      if (!response.ok) {
+        throw new Error('Failed to initiate checkout');
+      }
+      
+      const data = await response.json() as { url: string };
+      
       // Redirect to Stripe checkout
-      if (response?.url) {
-        window.location.href = response.url;
+      if (data?.url) {
+        window.location.href = data.url;
       }
     } catch (error) {
       console.error('Error starting checkout:', error);
@@ -89,9 +94,10 @@ export default function SubscriptionPage() {
 
     setCancelling(true);
     try {
-      await apiRequest('/api/subscriptions/cancel', {
-        method: 'POST',
-      });
+      const response = await apiRequest('POST', '/api/subscriptions/cancel');
+      if (!response.ok) {
+        throw new Error('Failed to cancel subscription');
+      }
 
       // Refresh subscription data
       await refreshSubscription();
@@ -140,8 +146,8 @@ export default function SubscriptionPage() {
   };
 
   // Check if subscription is active
-  const hasActiveSubscription = () => {
-    return activeSubscription && activeSubscription.status === 'active';
+  const hasActiveSubscription = (): boolean => {
+    return Boolean(activeSubscription && activeSubscription.status === 'active');
   };
 
   if (loading || subscriptionLoading) {
@@ -241,7 +247,10 @@ export default function SubscriptionPage() {
                     className="w-full"
                     onClick={() => handleSubscribe(plan.id)}
                     disabled={subscribing || 
-                      (hasActiveSubscription() && activeSubscription?.cancelAtPeriodEnd === false)}
+                      (hasActiveSubscription() && 
+                       activeSubscription ? 
+                       activeSubscription.cancelAtPeriodEnd === false : 
+                       false)}
                   >
                     {subscribing ? 'Processing...' : 'Subscribe'}
                   </Button>
