@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
+import { useSubscription, SubscriptionPlan, UserSubscription } from '@/hooks/use-subscription';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,54 +9,32 @@ import { Separator } from '@/components/ui/separator';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
-interface SubscriptionPlan {
-  id: number;
-  name: string;
-  description: string;
-  monthlyPrice: number;
-  features: string[];
-  maxTrips: number;
-  isActive: boolean;
-}
-
-interface UserSubscription {
-  id: number;
-  planId: number;
-  status: string;
-  currentPeriodEnd: string;
-  cancelAtPeriodEnd: boolean;
-}
-
 export default function SubscriptionPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { 
+    isLoading: subscriptionLoading, 
+    activeSubscription, 
+    activePlan,
+    refreshSubscription 
+  } = useSubscription();
+  
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-  const [userSubscription, setUserSubscription] = useState<UserSubscription | null>(null);
-  const [loading, setLoading] = useState(true);
   const [subscribing, setSubscribing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-
-  // Fetch subscription plans and user subscription
+  const [loading, setLoading] = useState(true);
+  
+  // Fetch all subscription plans
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchPlans = async () => {
       try {
         const plansRes = await apiRequest<SubscriptionPlan[]>('/api/subscriptions/plans');
         setPlans(plansRes);
-
-        if (user) {
-          try {
-            const subRes = await apiRequest<UserSubscription>('/api/subscriptions/my-subscription');
-            setUserSubscription(subRes);
-          } catch (error) {
-            // User might not have a subscription yet, which is fine
-            console.log('No active subscription found');
-          }
-        }
       } catch (error) {
-        console.error('Error fetching subscription data:', error);
+        console.error('Error fetching subscription plans:', error);
         toast({
           title: 'Error',
-          description: 'Failed to load subscription information',
+          description: 'Failed to load subscription plans',
           variant: 'destructive',
         });
       } finally {
@@ -63,8 +42,8 @@ export default function SubscriptionPage() {
       }
     };
 
-    fetchData();
-  }, [user, toast]);
+    fetchPlans();
+  }, [toast]);
 
   // Start subscription checkout process
   const handleSubscribe = async (planId: number) => {

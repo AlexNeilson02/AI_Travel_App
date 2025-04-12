@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, Home, Map, Calendar, Globe, LogIn } from "lucide-react";
+import { LogOut, Home, Map, Calendar, Globe, LogIn, CreditCard } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Nav() {
@@ -18,6 +18,7 @@ export default function Nav() {
   const authenticatedNavItems = [
     { href: "/my-trips", label: "My Trips", icon: Calendar },
     { href: "/maps", label: "Maps", icon: Globe },
+    { href: "/subscription", label: "Subscription", icon: CreditCard },
   ];
   
   const navItems = user 
@@ -61,7 +62,7 @@ export default function Nav() {
         </header>
 
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t">
-          <div className="grid grid-cols-4 h-16">
+          <div className={`grid ${navItems.length > 4 ? 'grid-cols-5' : 'grid-cols-4'} h-16`}>
             {navItems.map((item) => (
               <Link
                 key={item.href}
