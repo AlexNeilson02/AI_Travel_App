@@ -11,6 +11,10 @@ export const users = pgTable("users", {
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   email: text("email").notNull().unique(),
+  subscriptionTier: text("subscription_tier").notNull().default('free'),
+  subscriptionStartDate: timestamp("subscription_start_date"),
+  subscriptionEndDate: timestamp("subscription_end_date"),
+  stripeCustomerId: text("stripe_customer_id"),
 });
 
 export const trips = pgTable("trips", {
@@ -103,6 +107,31 @@ export const tripLocations = pgTable("trip_locations", {
   duration: integer("duration").notNull(),
   notes: text("notes"),
   isVisited: boolean("is_visited").notNull().default(false),
+});
+
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  stripePriceId: text("stripe_price_id").notNull(),
+  monthlyPrice: integer("monthly_price").notNull(),
+  features: jsonb("features").$type<string[]>().notNull(),
+  maxTrips: integer("max_trips").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const userSubscriptions = pgTable("user_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  planId: integer("plan_id").notNull(),
+  stripeSubscriptionId: text("stripe_subscription_id").notNull(),
+  currentPeriodStart: timestamp("current_period_start").notNull(),
+  currentPeriodEnd: timestamp("current_period_end").notNull(),
+  status: text("status").notNull(),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const insertLocationSchema = createInsertSchema(locations)
@@ -222,6 +251,30 @@ export const insertTripSchema = createInsertSchema(trips)
     }).optional(),
   });
 
+export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans)
+  .pick({
+    name: true,
+    description: true,
+    stripePriceId: true,
+    monthlyPrice: true,
+    features: true,
+    maxTrips: true,
+    isActive: true,
+  });
+
+export const insertUserSubscriptionSchema = createInsertSchema(userSubscriptions)
+  .pick({
+    userId: true,
+    planId: true,
+    stripeSubscriptionId: true,
+    status: true,
+    cancelAtPeriodEnd: true,
+  })
+  .extend({
+    currentPeriodStart: z.coerce.date(),
+    currentPeriodEnd: z.coerce.date(),
+  });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Trip = typeof trips.$inferSelect;
@@ -230,3 +283,7 @@ export type Location = typeof locations.$inferSelect;
 export type InsertLocation = z.infer<typeof insertLocationSchema>;
 export type TripLocation = typeof tripLocations.$inferSelect;
 export type InsertTripLocation = z.infer<typeof insertTripLocationSchema>;
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
+export type UserSubscription = typeof userSubscriptions.$inferSelect;
+export type InsertUserSubscription = z.infer<typeof insertUserSubscriptionSchema>;

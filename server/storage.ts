@@ -1,6 +1,19 @@
 import { db } from "./db";
-import { users, trips, type User, type InsertUser, type Trip, type InsertTrip } from "@shared/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { 
+  users, 
+  trips, 
+  subscriptionPlans, 
+  userSubscriptions,
+  type User, 
+  type InsertUser, 
+  type Trip, 
+  type InsertTrip,
+  type SubscriptionPlan,
+  type InsertSubscriptionPlan,
+  type UserSubscription,
+  type InsertUserSubscription
+} from "@shared/schema";
+import { eq, and, sql, desc, lt, gte } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -11,12 +24,27 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<User>): Promise<User>;
   createTrip(userId: number, trip: InsertTrip): Promise<Trip>;
   getTrip(id: number): Promise<Trip | undefined>;
   getUserTrips(userId: number): Promise<Trip[]>;
   updateTrip(id: number, trip: Partial<Trip>): Promise<Trip>;
   deleteTrip(id: number): Promise<void>;
   getPopularDestinations(): Promise<string[]>;
+  
+  // Subscription Plan Methods
+  createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan>;
+  getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
+  getSubscriptionPlan(id: number): Promise<SubscriptionPlan | undefined>;
+  updateSubscriptionPlan(id: number, plan: Partial<SubscriptionPlan>): Promise<SubscriptionPlan>;
+  
+  // User Subscription Methods
+  createUserSubscription(subscription: InsertUserSubscription): Promise<UserSubscription>;
+  getUserSubscription(userId: number): Promise<UserSubscription | undefined>;
+  getUserActiveSubscription(userId: number): Promise<UserSubscription | undefined>;
+  updateUserSubscription(id: number, subscription: Partial<UserSubscription>): Promise<UserSubscription>;
+  cancelUserSubscription(userId: number): Promise<UserSubscription>;
+  
   sessionStore: session.Store;
 }
 
@@ -42,6 +70,20 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  async updateUser(id: number, userUpdate: Partial<User>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set(userUpdate)
+      .where(eq(users.id, id))
+      .returning();
+    
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
     return user;
   }
 
