@@ -69,6 +69,7 @@ export default function ProfilePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageDialogView, setImageDialogView] = useState<'preview' | 'upload'>('preview');
+  const [isResizingImage, setIsResizingImage] = useState(false);
 
   // Load user data when component mounts
   useEffect(() => {
@@ -203,6 +204,62 @@ export default function ProfilePage() {
       reader.onerror = error => reject(error);
     });
   };
+  
+  // Resize image to reduce file size
+  const resizeImage = (file: File, maxWidth = 800, maxHeight = 800): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      setIsResizingImage(true);
+      
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          
+          // Calculate new dimensions while maintaining aspect ratio
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round(height * (maxWidth / width));
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round(width * (maxHeight / height));
+              height = maxHeight;
+            }
+          }
+          
+          // Create canvas and resize
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Get resized image as data URL
+          const resizedDataUrl = canvas.toDataURL(file.type || 'image/jpeg', 0.85);
+          setIsResizingImage(false);
+          resolve(resizedDataUrl);
+        };
+        
+        img.onerror = () => {
+          setIsResizingImage(false);
+          reject(new Error('Error loading image'));
+        };
+      };
+      
+      reader.onerror = (error) => {
+        setIsResizingImage(false);
+        reject(error);
+      };
+    });
+  };
 
   // Upload profile image
   const uploadProfileImage = async () => {
@@ -212,10 +269,26 @@ export default function ProfilePage() {
       let imageUrl = '';
       
       if (selectedFile) {
-        // For real implementation, this would upload to a server
-        // For now, we'll just use base64 data
-        const base64Data = await fileToBase64(selectedFile);
-        imageUrl = base64Data;
+        // Resize the image to reduce file size
+        try {
+          // For files larger than 1MB, resize the image to reduce file size
+          if (selectedFile.size > 1024 * 1024) {
+            toast({
+              title: 'Resizing Image',
+              description: 'Optimizing image size for upload...',
+            });
+            
+            // Resize to 800x800 max dimensions
+            imageUrl = await resizeImage(selectedFile, 800, 800);
+          } else {
+            // For smaller files, just convert to base64
+            imageUrl = await fileToBase64(selectedFile);
+          }
+        } catch (resizeError) {
+          console.error('Error resizing image:', resizeError);
+          // Fallback to original file if resizing fails
+          imageUrl = await fileToBase64(selectedFile);
+        }
       } else if (uploadImageUrl) {
         imageUrl = uploadImageUrl;
       } else {
@@ -226,6 +299,14 @@ export default function ProfilePage() {
         });
         setLoading(false);
         return;
+      }
+      
+      // Show loading message for large files
+      if (imageUrl.length > 500000) {
+        toast({
+          title: 'Uploading Large Image',
+          description: 'This may take a moment. Please wait...',
+        });
       }
       
       const response = await apiRequest('POST', '/api/profile/image', { 
@@ -259,6 +340,7 @@ export default function ProfilePage() {
       });
     } finally {
       setLoading(false);
+      setIsResizingImage(false);
     }
   };
 
@@ -361,14 +443,7 @@ export default function ProfilePage() {
                   </div>
                 )}
                 
-                <div className="pt-2">
-                  <Link href="/subscription">
-                    <Button variant="outline" size="sm" className="w-full">
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Manage Subscription
-                    </Button>
-                  </Link>
-                </div>
+
               </div>
             </CardContent>
           </Card>
@@ -517,14 +592,7 @@ export default function ProfilePage() {
                         )}
                       </div>
                       
-                      <div className="flex justify-center mt-6">
-                        <Link href="/subscription">
-                          <Button variant="outline">
-                            <CreditCard className="h-4 w-4 mr-2" />
-                            {hasActiveSubscription() ? 'Manage Subscription' : 'View Plans'}
-                          </Button>
-                        </Link>
-                      </div>
+
                     </>
                   )}
                 </CardContent>

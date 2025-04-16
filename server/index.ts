@@ -4,7 +4,8 @@ import { setupVite, serveStatic, log } from "./vite";
 import { initSubscriptionPlans } from "./init-subscription-plans";
 
 const app = express();
-app.use(express.json());
+// Increase the size limit to allow larger image uploads (10MB limit)
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false }));
 
 app.use((req, res, next) => {
