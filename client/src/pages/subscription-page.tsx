@@ -4,10 +4,18 @@ import { useSubscription, SubscriptionPlan, UserSubscription } from '@/hooks/use
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check, X } from 'lucide-react';
+import { Check, X, CreditCard, Calendar, Shield } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export default function SubscriptionPage() {
   const { user } = useAuth();
@@ -23,6 +31,8 @@ export default function SubscriptionPage() {
   const [subscribing, setSubscribing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   
   // Fetch all subscription plans
   useEffect(() => {
@@ -49,8 +59,8 @@ export default function SubscriptionPage() {
     fetchPlans();
   }, [toast]);
 
-  // Start subscription checkout process
-  const handleSubscribe = async (planId: number) => {
+  // Open the checkout modal
+  const openCheckoutModal = (plan: SubscriptionPlan) => {
     if (!user) {
       toast({
         title: 'Authentication Required',
@@ -59,11 +69,24 @@ export default function SubscriptionPage() {
       });
       return;
     }
-
+    
+    setSelectedPlan(plan);
+    setCheckoutOpen(true);
+  };
+  
+  // Process the actual subscription checkout
+  const processCheckout = async () => {
+    if (!selectedPlan || !user) return;
+    
     setSubscribing(true);
     try {
       // Get checkout URL from server
-      const response = await apiRequest('POST', '/api/subscriptions/checkout', { planId });
+      const response = await apiRequest('POST', '/api/subscriptions/checkout', { 
+        planId: selectedPlan.id,
+        successUrl: window.location.origin + '/subscription-success',
+        cancelUrl: window.location.origin + '/subscriptions'
+      });
+      
       if (!response.ok) {
         throw new Error('Failed to initiate checkout');
       }
@@ -83,6 +106,7 @@ export default function SubscriptionPage() {
       });
     } finally {
       setSubscribing(false);
+      setCheckoutOpen(false);
     }
   };
 
@@ -245,7 +269,7 @@ export default function SubscriptionPage() {
                   <Button 
                     variant={plan.name.toLowerCase() === 'free' ? 'outline' : 'default'} 
                     className="w-full"
-                    onClick={() => handleSubscribe(plan.id)}
+                    onClick={() => openCheckoutModal(plan)}
                     disabled={subscribing || 
                       (hasActiveSubscription() && 
                        activeSubscription ? 
