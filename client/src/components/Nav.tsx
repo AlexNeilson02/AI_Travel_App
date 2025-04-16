@@ -119,8 +119,8 @@ export default function Nav() {
               <div className="flex items-center space-x-4">
                 <Link href="/profile" className="flex items-center space-x-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.profileImageUrl} alt={user.firstName} />
-                    <AvatarFallback>{user.firstName?.charAt(0)}{user.lastName?.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={user.profileImageUrl || undefined} alt={user.firstName || ''} />
+                    <AvatarFallback>{user.firstName?.charAt(0) || ''}{user.lastName?.charAt(0) || ''}</AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium">
                     {user.firstName} {user.lastName}
