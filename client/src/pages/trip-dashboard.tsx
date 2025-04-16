@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useRoute, Link } from "wouter";
 import { format, parseISO, isBefore, startOfDay, differenceInMinutes } from "date-fns";
+import { PremiumFeature } from "@/components/PremiumFeature";
+import { AIChatPlanner } from "@/components/AIChatPlanner";
 import Nav from "@/components/Nav";
 import {
   Card,
@@ -1046,12 +1048,25 @@ export default function TripDashboard() {
                     </CardHeader>
                     <CardContent>
                       {currentTrip && currentTrip.itinerary?.days ? (
-                        <TripCalendar 
-                          tripDays={currentTrip.itinerary.days}
-                          onSaveEvents={handleSaveCalendarEvents}
-                          tripStartDate={currentTrip.startDate || currentTrip.itinerary.days[0].date}
-                          tripEndDate={currentTrip.endDate || currentTrip.itinerary.days[currentTrip.itinerary.days.length-1].date}
-                        />
+                        <PremiumFeature feature="adjustable-calendar" fallback={
+                          <div className="space-y-4">
+                            <div className="relative bg-muted/30 p-4 rounded-lg opacity-50 pointer-events-none">
+                              <TripCalendar 
+                                tripDays={currentTrip.itinerary.days}
+                                onSaveEvents={handleSaveCalendarEvents}
+                                tripStartDate={currentTrip.startDate || currentTrip.itinerary.days[0].date}
+                                tripEndDate={currentTrip.endDate || currentTrip.itinerary.days[currentTrip.itinerary.days.length-1].date}
+                              />
+                            </div>
+                          </div>
+                        }>
+                          <TripCalendar 
+                            tripDays={currentTrip.itinerary.days}
+                            onSaveEvents={handleSaveCalendarEvents}
+                            tripStartDate={currentTrip.startDate || currentTrip.itinerary.days[0].date}
+                            tripEndDate={currentTrip.endDate || currentTrip.itinerary.days[currentTrip.itinerary.days.length-1].date}
+                          />
+                        </PremiumFeature>
                       ) : (
                         <div className="flex items-center justify-center h-64">
                           <p className="text-muted-foreground">No trip details available</p>
@@ -1091,12 +1106,33 @@ export default function TripDashboard() {
                   <Card>
                     <CardHeader>
                       <CardTitle>Travel Advisor</CardTitle>
-                      <CardDescription>Get personalized travel recommendations</CardDescription>
+                      <CardDescription>Get personalized travel recommendations from our AI assistant</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex items-center justify-center p-12">
-                        <p className="text-muted-foreground">Travel advisor will be coming soon</p>
-                      </div>
+                      {currentTrip ? (
+                        <PremiumFeature feature="ai-chatbot">
+                          {/* Import AIChatPlanner at the top of the file */}
+                          <div className="h-[500px]">
+                            <AIChatPlanner 
+                              tripId={currentTrip.id} 
+                              destination={currentTrip.destination}
+                              onPlanCreated={(plan) => {
+                                // Handle plan created by AI
+                                toast({
+                                  title: "Plan Created",
+                                  description: "AI has created a travel plan for you!"
+                                });
+                                // We would update the trip with the plan here
+                                queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+                              }}
+                            />
+                          </div>
+                        </PremiumFeature>
+                      ) : (
+                        <div className="flex items-center justify-center p-12">
+                          <p className="text-muted-foreground">Select a trip to use the AI Travel Advisor</p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
