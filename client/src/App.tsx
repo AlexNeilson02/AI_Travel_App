@@ -16,6 +16,7 @@ import TripDashboard from "@/pages/trip-dashboard";
 import MapsPage from "@/pages/maps-page";
 import SubscriptionPage from "@/pages/subscription-page";
 import SubscriptionSuccessPage from "@/pages/subscription-success";
+import ProfilePage from "@/pages/profile-page";
 
 function Router() {
   const isMobile = useIsMobile();
@@ -32,6 +33,7 @@ function Router() {
           <ProtectedRoute path="/maps" component={MapsPage} />
           <ProtectedRoute path="/subscription" component={SubscriptionPage} />
           <ProtectedRoute path="/subscription-success" component={SubscriptionSuccessPage} />
+          <ProtectedRoute path="/profile" component={ProfilePage} />
           <Route path="/auth" component={AuthPage} />
           <Route component={NotFound} />
         </Switch>

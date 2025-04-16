@@ -1,7 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, Home, Map, Calendar, Globe, LogIn, CreditCard } from "lucide-react";
+import { LogOut, Home, Map, Calendar, Globe, LogIn, CreditCard, User } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Nav() {
@@ -19,6 +20,7 @@ export default function Nav() {
     { href: "/my-trips", label: "My Trips", icon: Calendar },
     { href: "/maps", label: "Maps", icon: Globe },
     { href: "/subscription", label: "Subscription", icon: CreditCard },
+    { href: "/profile", label: "Profile", icon: User },
   ];
   
   const navItems = user 
@@ -30,7 +32,16 @@ export default function Nav() {
       <>
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container flex h-14 items-center justify-between">
-            <div className="w-14"></div>
+            {user ? (
+              <Link href="/profile" className="flex w-10">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user.profileImageUrl || undefined} alt={user.firstName || ''} />
+                  <AvatarFallback>{user.firstName?.charAt(0) || ''}{user.lastName?.charAt(0) || ''}</AvatarFallback>
+                </Avatar>
+              </Link>
+            ) : (
+              <div className="w-10"></div>
+            )}
             <div className="flex items-center space-x-2">
               <span className="font-bold">Juno: AI Travel Planner</span>
             </div>
@@ -40,7 +51,7 @@ export default function Nav() {
                 size="icon" 
                 onClick={() => logoutMutation.mutate()}
                 disabled={logoutMutation.isPending}
-                className="w-14"
+                className="w-10"
               >
                 <LogOut className="h-5 w-5" />
                 <span className="sr-only">Logout</span>
@@ -50,7 +61,7 @@ export default function Nav() {
                 variant="ghost"
                 size="icon"
                 asChild
-                className="w-14"
+                className="w-10"
               >
                 <Link href="/auth">
                   <LogIn className="h-5 w-5" />
@@ -105,10 +116,16 @@ export default function Nav() {
           </div>
           <div className="flex flex-1 items-center justify-end space-x-2">
             {user ? (
-              <div className="flex items-center">
-                <span className="text-sm mr-2 text-muted-foreground">
-                  {user.username}
-                </span>
+              <div className="flex items-center space-x-4">
+                <Link href="/profile" className="flex items-center space-x-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.profileImageUrl} alt={user.firstName} />
+                    <AvatarFallback>{user.firstName?.charAt(0)}{user.lastName?.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium">
+                    {user.firstName} {user.lastName}
+                  </span>
+                </Link>
                 <Button 
                   variant="ghost" 
                   size="icon" 
