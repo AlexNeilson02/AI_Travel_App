@@ -1070,15 +1070,17 @@ export default function TripDashboard() {
                     <CardContent>
                       <div className="h-[500px]">
                         {currentTrip.itinerary?.days && (
-                          <TripMap
-                            activities={currentTrip.itinerary.days.flatMap(day =>
-                              day.activities.timeSlots.map(slot => ({
-                                activity: slot.activity,
-                                location: slot.location
-                              }))
-                            )}
-                            accommodation={currentTrip.itinerary.days[0].accommodation}
-                          />
+                          <PremiumFeature feature="maps">
+                            <TripMap
+                              activities={currentTrip.itinerary.days.flatMap(day =>
+                                day.activities.timeSlots.map(slot => ({
+                                  activity: slot.activity,
+                                  location: slot.location
+                                }))
+                              )}
+                              accommodation={currentTrip.itinerary.days[0].accommodation}
+                            />
+                          </PremiumFeature>
                         )}
                       </div>
                     </CardContent>

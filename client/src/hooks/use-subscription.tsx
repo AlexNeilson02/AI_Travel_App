@@ -13,6 +13,9 @@ interface SubscriptionContextType {
   hasUnlimitedTrips: boolean;
   hasPdfExport: boolean;
   hasAdvancedAi: boolean;
+  hasMapsFeature: boolean;
+  hasAdjustableCalendar: boolean;
+  hasAiChatbot: boolean;
   // Gets the subscription status for UI display
   getSubscriptionStatus: () => 'free' | 'premium' | 'business' | 'none';
   // Force refresh the subscription data
@@ -125,6 +128,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   // Premium features
   const hasPdfExport = status === 'premium' || status === 'business';
   const hasAdvancedAi = status === 'business';
+  
+  // New premium features
+  const hasMapsFeature = status === 'premium' || status === 'business';
+  const hasAdjustableCalendar = status === 'premium' || status === 'business';
+  const hasAiChatbot = status === 'premium' || status === 'business';
 
   // Provide the context value
   const contextValue: SubscriptionContextType = {
@@ -136,6 +144,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     hasUnlimitedTrips,
     hasPdfExport,
     hasAdvancedAi,
+    hasMapsFeature,
+    hasAdjustableCalendar,
+    hasAiChatbot,
     getSubscriptionStatus,
     refreshSubscription: fetchSubscriptionData,
   };
