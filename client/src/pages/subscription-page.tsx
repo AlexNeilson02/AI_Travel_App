@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLocation, Link } from 'wouter';
 import { useSubscription, SubscriptionPlan, UserSubscription } from '@/hooks/use-subscription';
+import { Layout, ContentContainer } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -185,7 +186,8 @@ export default function SubscriptionPage() {
   }
 
   return (
-    <div className="container mx-auto py-10">
+    <Layout>
+      <ContentContainer className="py-10">
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-3xl font-bold">Subscription Plans</h1>
         <div className="flex space-x-3">
@@ -381,6 +383,7 @@ export default function SubscriptionPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </ContentContainer>
+    </Layout>
   );
 }

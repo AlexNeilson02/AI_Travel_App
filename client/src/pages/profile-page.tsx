@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useSubscription } from '@/hooks/use-subscription';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { Layout, ContentContainer } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -366,526 +367,508 @@ export default function ProfilePage() {
   // Show loading state while data is loading
   if (authLoading) {
     return (
-      <div className="container mx-auto py-10 text-center">
-        <p>Loading profile information...</p>
-      </div>
+      <Layout>
+        <ContentContainer className="py-10 text-center">
+          <p>Loading profile information...</p>
+        </ContentContainer>
+      </Layout>
     );
   }
 
   // Redirect to login if not authenticated
   if (!user) {
     return (
-      <div className="container mx-auto py-10 text-center">
-        <h2 className="text-2xl font-bold mb-4">Not Authenticated</h2>
-        <p className="mb-6">Please log in to view your profile.</p>
-        <Link href="/auth">
-          <Button>Go to Login</Button>
-        </Link>
-      </div>
+      <Layout>
+        <ContentContainer className="py-10 text-center">
+          <h2 className="text-2xl font-bold mb-4">Not Authenticated</h2>
+          <p className="mb-6">Please log in to view your profile.</p>
+          <Link href="/auth">
+            <Button>Go to Login</Button>
+          </Link>
+        </ContentContainer>
+      </Layout>
     );
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="mb-6 flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
-            </Link>
-          </Button>
-          <h1 className="text-3xl font-bold">My Profile</h1>
+    <Layout>
+      <ContentContainer className="py-10">
+        <div className="mb-6 flex justify-between items-center">
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
+              </Link>
+            </Button>
+            <h1 className="text-3xl font-bold">My Profile</h1>
+          </div>
+          <div className="flex space-x-3">
+            <Button variant="outline" asChild>
+              <Link href="/my-trips">
+                <Calendar className="h-4 w-4 mr-2" />
+                My Trips
+              </Link>
+            </Button>
+          </div>
         </div>
-        <div className="flex space-x-3">
-          <Button variant="outline" asChild>
-            <Link href="/my-trips">
-              <Calendar className="h-4 w-4 mr-2" />
-              My Trips
-            </Link>
-          </Button>
-        </div>
-      </div>
-      <div className="flex flex-col md:flex-row gap-6">
-        {/* Left sidebar with profile overview */}
-        <div className="w-full md:w-1/3">
-          <Card>
-            <CardHeader className="text-center pb-2">
-              <div className="flex justify-center mb-4">
-                <div 
-                  className="cursor-pointer relative group" 
-                  onClick={() => {
-                    setImageDialogView(profileData.profileImageUrl ? 'preview' : 'upload');
-                    setUploadImageOpen(true);
-                  }}
-                >
-                  <Avatar className="w-24 h-24">
-                    <AvatarImage src={profileData.profileImageUrl} alt={user.firstName} />
-                    <AvatarFallback className="text-2xl">{getInitials()}</AvatarFallback>
-                  </Avatar>
-                  <div className="absolute inset-0 bg-black/30 rounded-full opacity-0 flex items-center justify-center group-hover:opacity-100 transition-opacity">
-                    <Upload className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-              </div>
-              <CardTitle className="text-xl">
-                {user.firstName} {user.lastName}
-              </CardTitle>
-              <CardDescription className="text-sm mt-1">
-                {user.email}
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent className="pt-2">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Subscription</h3>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={getSubscriptionStatus() === 'free' ? 'outline' : 'default'}>
-                      {activePlan?.name || 'Free'}
-                    </Badge>
-                    {hasActiveSubscription() && activeSubscription?.cancelAtPeriodEnd && (
-                      <Badge variant="outline" className="text-yellow-600 border-yellow-600">
-                        Cancels on {getSubscriptionEndDate()}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                
-                {profileData.bio ? (
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Bio</h3>
-                    <p className="text-sm">{profileData.bio}</p>
-                  </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground italic">
-                    Add a bio to tell others about yourself
-                  </div>
-                )}
-                
-
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* Right content with tabs for different settings */}
-        <div className="w-full md:w-2/3">
-          <Tabs defaultValue="account">
-            <TabsList className="mb-4">
-              <TabsTrigger value="account">
-                <User className="h-4 w-4 mr-2" />
-                Account
-              </TabsTrigger>
-              <TabsTrigger value="subscription">
-                <Shield className="h-4 w-4 mr-2" />
-                Subscription
-              </TabsTrigger>
-              <TabsTrigger value="security">
-                <Lock className="h-4 w-4 mr-2" />
-                Security
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="account" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Account Information</CardTitle>
-                  <CardDescription>
-                    Update your personal details
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input
-                        id="firstName"
-                        name="firstName"
-                        value={profileData.firstName}
-                        onChange={handleProfileChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input
-                        id="lastName"
-                        name="lastName"
-                        value={profileData.lastName}
-                        onChange={handleProfileChange}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={profileData.email}
-                      onChange={handleProfileChange}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="bio">Bio</Label>
-                    <Textarea
-                      id="bio"
-                      name="bio"
-                      placeholder="Tell us about yourself"
-                      value={profileData.bio || ''}
-                      onChange={handleProfileChange}
-                      rows={4}
-                    />
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button 
-                    onClick={updateProfile} 
-                    disabled={loading}
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Left sidebar with profile overview */}
+          <div className="w-full md:w-1/3">
+            <Card>
+              <CardHeader className="text-center pb-2">
+                <div className="flex justify-center mb-4">
+                  <div 
+                    className="cursor-pointer relative group" 
+                    onClick={() => {
+                      setImageDialogView(profileData.profileImageUrl ? 'preview' : 'upload');
+                      setUploadImageOpen(true);
+                    }}
                   >
-                    {loading ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="subscription" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Subscription Details</CardTitle>
-                  <CardDescription>
-                    Manage your subscription plan and billing
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {subscriptionLoading ? (
-                    <p>Loading subscription information...</p>
+                    <Avatar className="w-24 h-24">
+                      <AvatarImage src={profileData.profileImageUrl} alt={user.firstName} />
+                      <AvatarFallback className="text-2xl">{getInitials()}</AvatarFallback>
+                    </Avatar>
+                    <div className="absolute inset-0 bg-black/30 rounded-full opacity-0 flex items-center justify-center group-hover:opacity-100 transition-opacity">
+                      <Upload className="h-5 w-5 text-white" />
+                    </div>
+                  </div>
+                </div>
+                <CardTitle className="text-xl">
+                  {user.firstName} {user.lastName}
+                </CardTitle>
+                <CardDescription className="text-sm mt-1">
+                  {user.email}
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent className="pt-2">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Subscription</h3>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={getSubscriptionStatus() === 'free' ? 'outline' : 'default'}>
+                        {activePlan?.name || 'Free'}
+                      </Badge>
+                      {hasActiveSubscription() && activeSubscription?.cancelAtPeriodEnd && (
+                        <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                          Cancels on {getSubscriptionEndDate()}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {profileData.bio ? (
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Bio</h3>
+                      <p className="text-sm">{profileData.bio}</p>
+                    </div>
                   ) : (
-                    <>
-                      <div className="bg-primary/5 p-4 rounded-md">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-semibold">Current Plan</h3>
-                          <Badge variant={getSubscriptionStatus() === 'free' ? 'outline' : 'default'}>
-                            {activePlan?.name || 'Free'}
-                          </Badge>
-                        </div>
-                        
-                        {hasActiveSubscription() ? (
-                          <>
-                            <div className="flex items-start gap-3 mt-4">
-                              <Calendar className="h-5 w-5 text-primary mt-0.5" />
-                              <div>
-                                <h4 className="font-medium">Billing Period</h4>
-                                {activeSubscription?.cancelAtPeriodEnd ? (
-                                  <p className="text-sm text-yellow-600">
-                                    Your subscription will cancel on {getSubscriptionEndDate()}
-                                  </p>
-                                ) : (
-                                  <p className="text-sm text-muted-foreground">
-                                    Next billing date: {getSubscriptionEndDate()}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-start gap-3 mt-4">
-                              <Shield className="h-5 w-5 text-primary mt-0.5" />
-                              <div>
-                                <h4 className="font-medium">Features</h4>
-                                <ul className="text-sm text-muted-foreground space-y-1 mt-1">
-                                  {activePlan?.features.map((feature, i) => (
-                                    <li key={i} className="flex items-center">
-                                      <Check className="h-3.5 w-3.5 text-primary mr-1.5" />
-                                      {feature}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="text-sm text-muted-foreground mt-2">
-                            You are currently on the free plan. Upgrade to access premium features.
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex justify-center mt-6">
-                        <Link href="/subscription">
-                          <Button variant="default">
-                            <CreditCard className="h-4 w-4 mr-2" />
-                            {hasActiveSubscription() ? 'Manage Subscription' : 'Upgrade Plan'}
-                          </Button>
-                        </Link>
-                      </div>
-
-                    </>
+                    <div className="text-sm text-muted-foreground italic">
+                      Add a bio to tell others about yourself
+                    </div>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="security" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Security Settings</CardTitle>
-                  <CardDescription>
-                    Manage your password and account security
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between py-2">
-                    <div className="flex items-center gap-2">
-                      <Lock className="h-5 w-5" />
-                      <div>
-                        <h3 className="font-medium">Password</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Change your account password
-                        </p>
-                      </div>
-                    </div>
-                    <Button onClick={() => setChangePasswordOpen(true)} variant="outline">
-                      Update
-                    </Button>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="flex items-center justify-between py-2">
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-5 w-5" />
-                      <div>
-                        <h3 className="font-medium">Email Address</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {user.email}
-                        </p>
-                      </div>
-                    </div>
-                    <Link href="#account">
-                      <Button variant="outline">Change</Button>
-                    </Link>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="flex items-center justify-between py-2">
-                    <div className="flex items-center gap-2">
-                      <UserCircle className="h-5 w-5" />
-                      <div>
-                        <h3 className="font-medium">Account Status</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Your account is active
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="bg-green-50">Active</Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
-
-      {/* Change Password Dialog */}
-      <Dialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Change Password</DialogTitle>
-            <DialogDescription>
-              Enter your current password and a new password below.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
-              <Input
-                id="currentPassword"
-                name="currentPassword"
-                type="password"
-                value={passwordData.currentPassword}
-                onChange={handlePasswordChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
-              <Input
-                id="newPassword"
-                name="newPassword"
-                type="password"
-                value={passwordData.newPassword}
-                onChange={handlePasswordChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                value={passwordData.confirmPassword}
-                onChange={handlePasswordChange}
-              />
-            </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
           
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setChangePasswordOpen(false)}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={changePassword} 
-              disabled={loading || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
-            >
-              {loading ? 'Updating...' : 'Update Password'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Upload Profile Image Dialog */}
-      <Dialog open={uploadImageOpen} onOpenChange={setUploadImageOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Profile Picture</DialogTitle>
-            <DialogDescription>
-              {imageDialogView === 'preview' 
-                ? 'Your profile picture is visible to other users'
-                : 'Upload a new profile picture from your computer or enter a URL'
-              }
-            </DialogDescription>
-          </DialogHeader>
-          
-          {imageDialogView === 'preview' ? (
-            <div className="space-y-6 py-4">
-              {/* Enlarged profile image view */}
-              <div className="flex justify-center">
-                <div className="relative">
-                  {profileData.profileImageUrl ? (
-                    <img 
-                      src={profileData.profileImageUrl} 
-                      alt={user.firstName} 
-                      className="max-w-full rounded-lg shadow-md max-h-[400px]" 
-                    />
-                  ) : (
-                    <div className="h-48 w-48 rounded-full bg-primary/10 flex items-center justify-center text-5xl font-semibold text-primary">
-                      {getInitials()}
+          {/* Right content with tabs for different settings */}
+          <div className="w-full md:w-2/3">
+            <Tabs defaultValue="account">
+              <TabsList className="mb-4">
+                <TabsTrigger value="account">
+                  <User className="h-4 w-4 mr-2" />
+                  Account
+                </TabsTrigger>
+                <TabsTrigger value="subscription">
+                  <Shield className="h-4 w-4 mr-2" />
+                  Subscription
+                </TabsTrigger>
+                <TabsTrigger value="security">
+                  <Lock className="h-4 w-4 mr-2" />
+                  Security
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="account" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Account Information</CardTitle>
+                    <CardDescription>
+                      Update your personal details
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="firstName">First Name</Label>
+                        <Input
+                          id="firstName"
+                          name="firstName"
+                          value={profileData.firstName}
+                          onChange={handleProfileChange}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lastName">Last Name</Label>
+                        <Input
+                          id="lastName"
+                          name="lastName"
+                          value={profileData.lastName}
+                          onChange={handleProfileChange}
+                        />
+                      </div>
                     </div>
-                  )}
-                </div>
-              </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value={profileData.email}
+                        onChange={handleProfileChange}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="bio">Bio</Label>
+                      <Textarea
+                        id="bio"
+                        name="bio"
+                        placeholder="Tell us about yourself"
+                        value={profileData.bio || ''}
+                        onChange={handleProfileChange}
+                        rows={4}
+                      />
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      onClick={updateProfile} 
+                      disabled={loading}
+                    >
+                      {loading ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </TabsContent>
               
-              <div className="flex justify-center">
-                <Button 
-                  onClick={() => setImageDialogView('upload')}
-                  className="w-full md:w-auto"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Change Profile Picture
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-5 py-4">
-              {/* File upload section */}
-              <div className="space-y-3">
-                <Label htmlFor="fileUpload">Upload from Computer</Label>
-                <div 
-                  className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => document.getElementById('fileUpload')?.click()}
-                >
-                  <Upload className="h-8 w-8 mb-2 text-muted-foreground" />
-                  <p className="text-sm font-medium">Click to select a file</p>
-                  <p className="text-xs text-muted-foreground mt-1">PNG, JPG or WEBP up to 5MB</p>
-                  <input
-                    type="file"
-                    id="fileUpload"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleFileSelect}
-                  />
-                </div>
-              </div>
+              <TabsContent value="subscription" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Subscription Details</CardTitle>
+                    <CardDescription>
+                      Manage your subscription plan and billing
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {subscriptionLoading ? (
+                      <p>Loading subscription information...</p>
+                    ) : (
+                      <>
+                        <div className="bg-primary/5 p-4 rounded-md">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold">Current Plan</h3>
+                            <Badge variant={getSubscriptionStatus() === 'free' ? 'outline' : 'default'}>
+                              {activePlan?.name || 'Free'}
+                            </Badge>
+                          </div>
+                          
+                          {hasActiveSubscription() ? (
+                            <>
+                              <div className="flex items-start gap-3 mt-4">
+                                <Calendar className="h-5 w-5 text-primary mt-0.5" />
+                                <div>
+                                  <h4 className="font-medium">Billing Period</h4>
+                                  {activeSubscription?.cancelAtPeriodEnd ? (
+                                    <p className="text-sm text-yellow-600">
+                                      Your subscription will cancel on {getSubscriptionEndDate()}
+                                    </p>
+                                  ) : (
+                                    <p className="text-sm text-muted-foreground">
+                                      Next billing date: {getSubscriptionEndDate()}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-start gap-3 mt-4">
+                                <Shield className="h-5 w-5 text-primary mt-0.5" />
+                                <div>
+                                  <h4 className="font-medium">Features</h4>
+                                  <ul className="text-sm text-muted-foreground space-y-1 mt-1">
+                                    {activePlan?.features.map((feature, i) => (
+                                      <li key={i} className="flex items-center">
+                                        <Check className="h-3.5 w-3.5 text-primary mr-1.5" />
+                                        {feature}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-sm text-muted-foreground mt-2">
+                              You are currently on the free plan. Upgrade to access premium features.
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex justify-center mt-6">
+                          <Link href="/subscription">
+                            <Button variant="default">
+                              <CreditCard className="h-4 w-4 mr-2" />
+                              {hasActiveSubscription() ? 'Manage Subscription' : 'Upgrade Plan'}
+                            </Button>
+                          </Link>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
               
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Or</span>
-                </div>
-              </div>
-              
-              {/* URL input section */}
+              <TabsContent value="security" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Security Settings</CardTitle>
+                    <CardDescription>
+                      Manage your password and account security
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-2">
+                        <Lock className="h-5 w-5" />
+                        <div>
+                          <h3 className="font-medium">Password</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Change your account password
+                          </p>
+                        </div>
+                      </div>
+                      <Button onClick={() => setChangePasswordOpen(true)} variant="outline">
+                        Update
+                      </Button>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-5 w-5" />
+                        <div>
+                          <h3 className="font-medium">Email Address</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {user.email}
+                          </p>
+                        </div>
+                      </div>
+                      <Link href="#account">
+                        <Button variant="outline">Change</Button>
+                      </Link>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-2">
+                        <UserCircle className="h-5 w-5" />
+                        <div>
+                          <h3 className="font-medium">Account Status</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Your account is active
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="bg-green-50">Active</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+
+        {/* Change Password Dialog */}
+        <Dialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Change Password</DialogTitle>
+              <DialogDescription>
+                Enter your current password and a new password below.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="imageUrl">Image URL</Label>
+                <Label htmlFor="currentPassword">Current Password</Label>
                 <Input
-                  id="imageUrl"
-                  placeholder="https://example.com/your-image.jpg"
-                  value={uploadImageUrl}
-                  onChange={(e) => setUploadImageUrl(e.target.value)}
+                  id="currentPassword"
+                  name="currentPassword"
+                  type="password"
+                  value={passwordData.currentPassword}
+                  onChange={handlePasswordChange}
                 />
               </div>
               
-              {/* Preview section */}
-              {(previewUrl || uploadImageUrl) && (
-                <div className="mt-4">
-                  <Label className="text-sm mb-2 block">Preview</Label>
-                  <div className="flex justify-center">
-                    <Avatar className="w-24 h-24">
-                      <AvatarImage src={previewUrl || uploadImageUrl} alt="Preview" />
-                      <AvatarFallback className="text-2xl">{getInitials()}</AvatarFallback>
-                    </Avatar>
-                  </div>
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  id="newPassword"
+                  name="newPassword"
+                  type="password"
+                  value={passwordData.newPassword}
+                  onChange={handlePasswordChange}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  value={passwordData.confirmPassword}
+                  onChange={handlePasswordChange}
+                />
+              </div>
             </div>
-          )}
-          
-          <DialogFooter>
-            {imageDialogView === 'preview' ? (
+            
+            <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => setUploadImageOpen(false)}
-                className="w-full md:w-auto"
+                onClick={() => setChangePasswordOpen(false)}
+                disabled={loading}
               >
-                Close
+                Cancel
               </Button>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    if (profileData.profileImageUrl) {
-                      setImageDialogView('preview');
-                    } else {
-                      setUploadImageOpen(false);
-                    }
-                  }}
-                  disabled={loading}
-                  className="md:mr-2"
-                >
-                  Cancel
-                </Button>
+              <Button 
+                onClick={changePassword} 
+                disabled={loading || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+              >
+                {loading ? 'Updating...' : 'Update Password'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Upload Profile Image Dialog */}
+        <Dialog open={uploadImageOpen} onOpenChange={setUploadImageOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Profile Picture</DialogTitle>
+              <DialogDescription>
+                {imageDialogView === 'preview' 
+                  ? 'Your profile picture is visible to other users'
+                  : 'Upload a new profile picture from your computer or enter a URL'
+                }
+              </DialogDescription>
+            </DialogHeader>
+            
+            {imageDialogView === 'preview' && profileData.profileImageUrl ? (
+              <div className="flex flex-col items-center justify-center space-y-4">
+                <div className="relative max-w-full max-h-[70vh] overflow-hidden rounded-lg">
+                  <img 
+                    src={profileData.profileImageUrl} 
+                    alt={`${user.firstName} ${user.lastName}`}
+                    className="object-contain"
+                  />
+                </div>
                 <Button 
-                  onClick={uploadProfileImage} 
-                  disabled={loading || (!uploadImageUrl && !selectedFile)}
+                  variant="outline" 
+                  onClick={() => setImageDialogView('upload')}
                 >
-                  {loading ? 'Uploading...' : 'Upload Image'}
+                  <Upload className="h-4 w-4 mr-2" />
+                  Change Photo
                 </Button>
-              </>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex flex-col items-center justify-center w-full">
+                    <label 
+                      htmlFor="dropzone-file" 
+                      className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-background hover:bg-background/50 border-border"
+                    >
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
+                        <p className="mb-2 text-sm text-muted-foreground">
+                          <span className="font-semibold">Click to upload</span> or drag and drop
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          SVG, PNG, JPG or GIF (MAX. 10MB)
+                        </p>
+                      </div>
+                      {previewUrl && (
+                        <div className="relative w-full h-full">
+                          <img 
+                            src={previewUrl} 
+                            alt="Preview" 
+                            className="absolute inset-0 w-full h-full object-contain"
+                          />
+                        </div>
+                      )}
+                      <input 
+                        id="dropzone-file" 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                      />
+                    </label>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="imageUrl">Or enter an image URL</Label>
+                    <Input
+                      id="imageUrl"
+                      placeholder="https://example.com/image.jpg"
+                      value={uploadImageUrl}
+                      onChange={(e) => setUploadImageUrl(e.target.value)}
+                      disabled={!!selectedFile}
+                    />
+                  </div>
+                </div>
+              </div>
             )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+            
+            <DialogFooter>
+              {imageDialogView === 'preview' ? (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setUploadImageOpen(false)}
+                >
+                  Close
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (profileData.profileImageUrl) {
+                        setImageDialogView('preview');
+                      } else {
+                        setUploadImageOpen(false);
+                      }
+                    }}
+                    disabled={loading || isResizingImage}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={uploadProfileImage} 
+                    disabled={loading || isResizingImage || (!selectedFile && !uploadImageUrl)}
+                  >
+                    {loading || isResizingImage ? 'Processing...' : 'Upload'}
+                  </Button>
+                </>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </ContentContainer>
+    </Layout>
   );
 }

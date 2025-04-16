@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
+import { Layout, ContentContainer } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, User, Home } from 'lucide-react';
@@ -15,7 +16,8 @@ export default function SubscriptionSuccessPage() {
   }, [refreshSubscription]);
   
   return (
-    <div className="container mx-auto py-20 flex justify-center">
+    <Layout>
+      <ContentContainer className="py-20 flex justify-center">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
@@ -61,6 +63,7 @@ export default function SubscriptionSuccessPage() {
           </Button>
         </CardFooter>
       </Card>
-    </div>
+      </ContentContainer>
+    </Layout>
   );
 }
