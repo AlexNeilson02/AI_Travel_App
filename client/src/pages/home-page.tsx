@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import Nav from "@/components/Nav";
+import { Card, CardContent } from "@/components/ui/card";
+import { Layout, ContentContainer } from "@/components/layout";
 import { Star } from "lucide-react";
 
 // Fixed destinations with high-quality images
@@ -45,10 +45,8 @@ const testimonials = [
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-background">
-      <Nav />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <Layout>
+      <ContentContainer className="py-6">
         {/* Hero Section */}
         <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] md:aspect-[21/9] mb-8 mt-4 rounded-lg overflow-hidden">
           <img 
@@ -140,7 +138,7 @@ export default function HomePage() {
             ))}
           </div>
         </section>
-      </main>
-    </div>
+      </ContentContainer>
+    </Layout>
   );
 }
