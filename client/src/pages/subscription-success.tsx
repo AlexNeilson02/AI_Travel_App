@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check } from 'lucide-react';
+import { Check, User, Home } from 'lucide-react';
 import { useSubscription } from '@/hooks/use-subscription';
 
 export default function SubscriptionSuccessPage() {
@@ -46,9 +46,18 @@ export default function SubscriptionSuccessPage() {
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex justify-center">
-          <Button onClick={() => navigate('/my-trips')}>
-            Plan Your Trip Now
+        <CardFooter className="flex justify-center gap-4 flex-wrap">
+          <Button asChild variant="outline">
+            <Link href="/profile">
+              <User className="h-4 w-4 mr-2" />
+              View Profile
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/my-trips">
+              <Check className="h-4 w-4 mr-2" />
+              Plan Your Trip
+            </Link>
           </Button>
         </CardFooter>
       </Card>

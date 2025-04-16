@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
+import { useLocation, Link } from 'wouter';
 import { useSubscription, SubscriptionPlan, UserSubscription } from '@/hooks/use-subscription';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check, X, CreditCard, Calendar, Shield } from 'lucide-react';
+import { Check, X, CreditCard, Calendar, Shield, ChevronLeft, User } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +27,7 @@ export default function SubscriptionPage() {
     activePlan,
     refreshSubscription 
   } = useSubscription();
+  const [location, navigate] = useLocation();
   
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [subscribing, setSubscribing] = useState(false);
@@ -184,8 +186,18 @@ export default function SubscriptionPage() {
 
   return (
     <div className="container mx-auto py-10">
-      <div className="space-y-4">
+      <div className="mb-6 flex justify-between items-center">
         <h1 className="text-3xl font-bold">Subscription Plans</h1>
+        <div className="flex space-x-3">
+          <Button variant="outline" asChild>
+            <Link href="/profile">
+              <User className="h-4 w-4 mr-2" />
+              Back to Profile
+            </Link>
+          </Button>
+        </div>
+      </div>
+      <div className="space-y-4">
         <p className="text-muted-foreground">
           Choose the plan that works best for your travel planning needs
         </p>
