@@ -66,6 +66,9 @@ export default function ProfilePage() {
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [uploadImageUrl, setUploadImageUrl] = useState('');
   const [uploadImageOpen, setUploadImageOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [imageDialogView, setImageDialogView] = useState<'preview' | 'upload'>('preview');
 
   // Load user data when component mounts
   useEffect(() => {
@@ -176,21 +179,57 @@ export default function ProfilePage() {
     }
   };
 
+  // Handle file selection
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
   // Upload profile image
   const uploadProfileImage = async () => {
-    if (!uploadImageUrl) {
-      toast({
-        title: 'No Image URL',
-        description: 'Please enter an image URL',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
     setLoading(true);
+    
     try {
+      let imageUrl = '';
+      
+      if (selectedFile) {
+        // For real implementation, this would upload to a server
+        // For now, we'll just use base64 data
+        const base64Data = await fileToBase64(selectedFile);
+        imageUrl = base64Data;
+      } else if (uploadImageUrl) {
+        imageUrl = uploadImageUrl;
+      } else {
+        toast({
+          title: 'No Image Selected',
+          description: 'Please select an image file or enter an image URL',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+      }
+      
       const response = await apiRequest('POST', '/api/profile/image', { 
-        profileImageUrl: uploadImageUrl 
+        profileImageUrl: imageUrl 
       });
       
       if (!response.ok) {
@@ -199,10 +238,12 @@ export default function ProfilePage() {
       }
       
       // Update local state with new image
-      setProfileData(prev => ({ ...prev, profileImageUrl: uploadImageUrl }));
+      setProfileData(prev => ({ ...prev, profileImageUrl: imageUrl }));
       
       // Reset form and close dialog
       setUploadImageUrl('');
+      setSelectedFile(null);
+      setPreviewUrl(null);
       setUploadImageOpen(false);
       
       toast({
@@ -269,20 +310,22 @@ export default function ProfilePage() {
           <Card>
             <CardHeader className="text-center pb-2">
               <div className="flex justify-center mb-4">
-                <Avatar className="w-24 h-24">
-                  <AvatarImage src={profileData.profileImageUrl} alt={user.firstName} />
-                  <AvatarFallback className="text-2xl">{getInitials()}</AvatarFallback>
-                </Avatar>
+                <div 
+                  className="cursor-pointer relative group" 
+                  onClick={() => {
+                    setImageDialogView(profileData.profileImageUrl ? 'preview' : 'upload');
+                    setUploadImageOpen(true);
+                  }}
+                >
+                  <Avatar className="w-24 h-24">
+                    <AvatarImage src={profileData.profileImageUrl} alt={user.firstName} />
+                    <AvatarFallback className="text-2xl">{getInitials()}</AvatarFallback>
+                  </Avatar>
+                  <div className="absolute inset-0 bg-black/30 rounded-full opacity-0 flex items-center justify-center group-hover:opacity-100 transition-opacity">
+                    <Upload className="h-5 w-5 text-white" />
+                  </div>
+                </div>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mb-4"
-                onClick={() => setUploadImageOpen(true)}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Change Photo
-              </Button>
               <CardTitle className="text-xl">
                 {user.firstName} {user.lastName}
               </CardTitle>
@@ -615,52 +658,136 @@ export default function ProfilePage() {
 
       {/* Upload Profile Image Dialog */}
       <Dialog open={uploadImageOpen} onOpenChange={setUploadImageOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Upload Profile Image</DialogTitle>
+            <DialogTitle>Profile Picture</DialogTitle>
             <DialogDescription>
-              Enter the URL of your profile image.
+              {imageDialogView === 'preview' 
+                ? 'Your profile picture is visible to other users'
+                : 'Upload a new profile picture from your computer or enter a URL'
+              }
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="imageUrl">Image URL</Label>
-              <Input
-                id="imageUrl"
-                placeholder="https://example.com/your-image.jpg"
-                value={uploadImageUrl}
-                onChange={(e) => setUploadImageUrl(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Enter a valid URL for your profile image. Recommended size: 200x200 pixels.
-              </p>
-            </div>
-            
-            {uploadImageUrl && (
+          {imageDialogView === 'preview' ? (
+            <div className="space-y-6 py-4">
+              {/* Enlarged profile image view */}
               <div className="flex justify-center">
-                <Avatar className="w-24 h-24">
-                  <AvatarImage src={uploadImageUrl} alt="Preview" />
-                  <AvatarFallback className="text-2xl">{getInitials()}</AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  {profileData.profileImageUrl ? (
+                    <img 
+                      src={profileData.profileImageUrl} 
+                      alt={user.firstName} 
+                      className="max-w-full rounded-lg shadow-md max-h-[400px]" 
+                    />
+                  ) : (
+                    <div className="h-48 w-48 rounded-full bg-primary/10 flex items-center justify-center text-5xl font-semibold text-primary">
+                      {getInitials()}
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
+              
+              <div className="flex justify-center">
+                <Button 
+                  onClick={() => setImageDialogView('upload')}
+                  className="w-full md:w-auto"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Change Profile Picture
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-5 py-4">
+              {/* File upload section */}
+              <div className="space-y-3">
+                <Label htmlFor="fileUpload">Upload from Computer</Label>
+                <div 
+                  className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => document.getElementById('fileUpload')?.click()}
+                >
+                  <Upload className="h-8 w-8 mb-2 text-muted-foreground" />
+                  <p className="text-sm font-medium">Click to select a file</p>
+                  <p className="text-xs text-muted-foreground mt-1">PNG, JPG or WEBP up to 5MB</p>
+                  <input
+                    type="file"
+                    id="fileUpload"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                  />
+                </div>
+              </div>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">Or</span>
+                </div>
+              </div>
+              
+              {/* URL input section */}
+              <div className="space-y-2">
+                <Label htmlFor="imageUrl">Image URL</Label>
+                <Input
+                  id="imageUrl"
+                  placeholder="https://example.com/your-image.jpg"
+                  value={uploadImageUrl}
+                  onChange={(e) => setUploadImageUrl(e.target.value)}
+                />
+              </div>
+              
+              {/* Preview section */}
+              {(previewUrl || uploadImageUrl) && (
+                <div className="mt-4">
+                  <Label className="text-sm mb-2 block">Preview</Label>
+                  <div className="flex justify-center">
+                    <Avatar className="w-24 h-24">
+                      <AvatarImage src={previewUrl || uploadImageUrl} alt="Preview" />
+                      <AvatarFallback className="text-2xl">{getInitials()}</AvatarFallback>
+                    </Avatar>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setUploadImageOpen(false)}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={uploadProfileImage} 
-              disabled={loading || !uploadImageUrl}
-            >
-              {loading ? 'Uploading...' : 'Upload Image'}
-            </Button>
+            {imageDialogView === 'preview' ? (
+              <Button
+                variant="outline"
+                onClick={() => setUploadImageOpen(false)}
+                className="w-full md:w-auto"
+              >
+                Close
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (profileData.profileImageUrl) {
+                      setImageDialogView('preview');
+                    } else {
+                      setUploadImageOpen(false);
+                    }
+                  }}
+                  disabled={loading}
+                  className="md:mr-2"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={uploadProfileImage} 
+                  disabled={loading || (!uploadImageUrl && !selectedFile)}
+                >
+                  {loading ? 'Uploading...' : 'Upload Image'}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
