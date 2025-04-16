@@ -4,6 +4,17 @@ import { type User, type SubscriptionPlan, type UserSubscription } from '@shared
 import { userSubscriptions } from '@shared/schema';
 import { db } from './db';
 
+// Extend the Stripe.Subscription type to include properties we need
+declare module 'stripe' {
+  namespace Stripe {
+    interface Subscription {
+      current_period_start: number;
+      current_period_end: number;
+      cancel_at_period_end: boolean;
+    }
+  }
+}
+
 // Initialize Stripe with API key, but only if it's available
 const stripeApiKey = process.env.STRIPE_SECRET_KEY || '';
 
@@ -120,7 +131,8 @@ class StripeService {
       },
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
-      customer_email: user.email, // Pre-fill email in checkout
+      // We're removing customer_email since we're already using the customer parameter
+      // This was causing the conflict error
     });
 
     return session.url || '';
