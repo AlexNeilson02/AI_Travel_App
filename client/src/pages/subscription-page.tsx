@@ -284,6 +284,91 @@ export default function SubscriptionPage() {
           ))}
         </div>
       </div>
+      
+      {/* Subscription Checkout Modal */}
+      <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Subscription</DialogTitle>
+            <DialogDescription>
+              Review your subscription details before proceeding to payment.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedPlan && (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center justify-between">
+                <div className="font-medium">{selectedPlan.name} Plan</div>
+                <div className="font-bold">
+                  {selectedPlan.monthlyPrice === 0 
+                    ? 'Free' 
+                    : formatPrice(selectedPlan.monthlyPrice) + '/month'
+                  }
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <CreditCard className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <h4 className="font-medium">Secure Payment</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Your payment information is processed securely by Stripe.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <Calendar className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <h4 className="font-medium">Subscription Period</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Monthly billing with automatic renewal. Cancel anytime.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <Shield className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <h4 className="font-medium">Features Included</h4>
+                    <ul className="text-sm text-muted-foreground space-y-1 mt-1">
+                      {selectedPlan.features.slice(0, 3).map((feature, i) => (
+                        <li key={i} className="flex items-center">
+                          <Check className="h-3.5 w-3.5 text-primary mr-1.5" />
+                          {feature}
+                        </li>
+                      ))}
+                      {selectedPlan.features.length > 3 && (
+                        <li className="italic">...and more</li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setCheckoutOpen(false)}
+              disabled={subscribing}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={processCheckout}
+              disabled={subscribing}
+              className="sm:w-32"
+            >
+              {subscribing ? 'Processing...' : 'Continue'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

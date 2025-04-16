@@ -118,6 +118,9 @@ class StripeService {
         userId: userId.toString(),
         planId: planId.toString(),
       },
+      allow_promotion_codes: true,
+      billing_address_collection: 'auto',
+      customer_email: user.email, // Pre-fill email in checkout
     });
 
     return session.url || '';
