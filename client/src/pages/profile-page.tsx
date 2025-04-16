@@ -35,7 +35,8 @@ import {
   Calendar, 
   Lock, 
   Mail, 
-  UserCircle
+  UserCircle,
+  Home
 } from 'lucide-react';
 import { Link } from 'wouter';
 
@@ -386,6 +387,23 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto py-10">
+      <div className="mb-6 flex justify-between items-center">
+        <h1 className="text-3xl font-bold">My Profile</h1>
+        <div className="flex space-x-3">
+          <Button variant="outline" asChild>
+            <Link href="/">
+              <Home className="h-4 w-4 mr-2" />
+              Home
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/my-trips">
+              <Calendar className="h-4 w-4 mr-2" />
+              My Trips
+            </Link>
+          </Button>
+        </div>
+      </div>
       <div className="flex flex-col md:flex-row gap-6">
         {/* Left sidebar with profile overview */}
         <div className="w-full md:w-1/3">
@@ -592,6 +610,14 @@ export default function ProfilePage() {
                         )}
                       </div>
                       
+                      <div className="flex justify-center mt-6">
+                        <Link href="/subscription">
+                          <Button variant="default">
+                            <CreditCard className="h-4 w-4 mr-2" />
+                            {hasActiveSubscription() ? 'Manage Subscription' : 'Upgrade Plan'}
+                          </Button>
+                        </Link>
+                      </div>
 
                     </>
                   )}

@@ -19,7 +19,6 @@ export default function Nav() {
   const authenticatedNavItems = [
     { href: "/my-trips", label: "My Trips", icon: Calendar },
     { href: "/maps", label: "Maps", icon: Globe },
-    { href: "/subscription", label: "Subscription", icon: CreditCard },
     { href: "/profile", label: "Profile", icon: User },
   ];
   
