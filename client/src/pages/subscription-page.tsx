@@ -86,8 +86,8 @@ export default function SubscriptionPage() {
       // Get checkout URL from server
       const response = await apiRequest('POST', '/api/subscriptions/checkout', { 
         planId: selectedPlan.id,
-        successUrl: window.location.origin + '/subscription-success',
-        cancelUrl: window.location.origin + '/subscriptions'
+        successUrl: `${window.location.origin}/subscription-success?planId=${selectedPlan.id}`,
+        cancelUrl: window.location.origin + '/subscription'
       });
       
       if (!response.ok) {
