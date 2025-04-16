@@ -1076,18 +1076,36 @@ export default function PlanTrip() {
                         </div>
                       )}
 
-                      <Button
-                        className="w-full mt-4 text-white"
-                        onClick={() =>
-                          createTripMutation.mutate(form.getValues())
-                        }
-                        disabled={createTripMutation.isPending}
-                      >
-                        {createTripMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : null}
-                        Save Trip
-                      </Button>
+                      {!hasUnlimitedTrips && tripCount >= maxTrips ? (
+                        <div className="mt-4 p-4 bg-destructive/10 rounded-md text-center">
+                          <p className="text-sm text-destructive font-medium mb-2">
+                            Trip Limit Reached ({tripCount}/{maxTrips})
+                          </p>
+                          <p className="text-xs mb-3">
+                            You've reached your free tier limit. Upgrade to Premium for unlimited trips.
+                          </p>
+                          <Button 
+                            variant="outline"
+                            className="w-full"
+                            asChild
+                          >
+                            <Link href="/profile?tab=subscription">Upgrade to Premium</Link>
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          className="w-full mt-4 text-white"
+                          onClick={() =>
+                            createTripMutation.mutate(form.getValues())
+                          }
+                          disabled={createTripMutation.isPending}
+                        >
+                          {createTripMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : null}
+                          Save Trip
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
