@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscription } from "@/hooks/use-subscription";
 import jsPDF from 'jspdf';
 import React, { useState } from "react";
 import { Link } from "wouter";
@@ -26,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { PremiumFeature } from "@/components/PremiumFeature";
 
 interface TimeSlot {
   time: string;
@@ -59,6 +61,7 @@ interface TripDay {
 
 export default function MyTrips() {
   const { toast } = useToast();
+  const { hasUnlimitedTrips, maxTrips } = useSubscription();
   const [expandedTrip, setExpandedTrip] = useState<number | null>(null);
   const [editingActivity, setEditingActivity] = useState<{ tripId: number; dayIndex: number; slotIndex: number } | null>(null);
   const [editedActivity, setEditedActivity] = useState<Partial<TimeSlot> | null>(null);
@@ -289,6 +292,33 @@ export default function MyTrips() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">My Trips</h1>
+          <div className="flex items-center gap-4">
+            {!hasUnlimitedTrips && trips && trips.length > 0 && (
+              <div className="text-sm text-muted-foreground">
+                {trips.length} / {maxTrips} trips used
+              </div>
+            )}
+            <PremiumFeature 
+              feature="unlimited-trips" 
+              fallback={
+                trips && trips.length >= maxTrips ? (
+                  <Button asChild variant="outline">
+                    <Link href="/profile?tab=subscription">
+                      Upgrade for unlimited trips
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button asChild>
+                    <Link href="/plan-trip">Plan a New Trip</Link>
+                  </Button>
+                )
+              }
+            >
+              <Button asChild>
+                <Link href="/plan-trip">Plan a New Trip</Link>
+              </Button>
+            </PremiumFeature>
+          </div>
         </div>
 
         {isLoading ? (

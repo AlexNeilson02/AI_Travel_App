@@ -13,6 +13,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { useSubscription } from "@/hooks/use-subscription";
 import { TravelLoadingAnimation } from "@/components/TravelLoadingAnimation";
 import {
   CalendarIcon,
@@ -47,6 +48,8 @@ import { Badge } from "@/components/ui/badge";
 
 export default function PlanTrip() {
   const { toast } = useToast();
+  const { hasUnlimitedTrips, maxTrips } = useSubscription();
+  const [tripCount, setTripCount] = useState<number>(0);
   const [suggestions, setSuggestions] = useState<any>(null);
   const [chatHistory, setChatHistory] = useState<
     Array<{ role: string; content: string }>
@@ -72,6 +75,32 @@ export default function PlanTrip() {
   const [location, params] = useLocation();
   const { user } = useAuth();
   
+  // Fetch user's trip count
+  useEffect(() => {
+    if (user && !hasUnlimitedTrips) {
+      const fetchTrips = async () => {
+        try {
+          const response = await apiRequest("GET", "/api/trips");
+          const trips = await response.json();
+          setTripCount(trips.length);
+          
+          // If user is at or over their limit, show a warning
+          if (trips.length >= maxTrips) {
+            toast({
+              title: "Trip Limit Reached",
+              description: `You have reached your limit of ${maxTrips} trips. Upgrade to Premium for unlimited trips.`,
+              variant: "destructive"
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching trips:", error);
+        }
+      };
+      
+      fetchTrips();
+    }
+  }, [user, hasUnlimitedTrips, maxTrips]);
+
   // Check for saved trip data on component mount
   useEffect(() => {
     // Only attempt to restore data if the URL has a restore parameter and user is logged in
