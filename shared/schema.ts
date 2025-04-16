@@ -2,7 +2,7 @@ import { pgTable, text, serial, integer, jsonb, timestamp, boolean, decimal } fr
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const APP_NAME = "Juno";
+export const APP_NAME = "Juno";  // Updated with new branding
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
