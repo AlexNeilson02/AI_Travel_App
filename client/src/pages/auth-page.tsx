@@ -57,7 +57,7 @@ export default function AuthPage() {
       <div className="w-full max-w-[1200px] grid md:grid-cols-2 gap-4">
         <div className="flex flex-col justify-center">
           <div className="mb-8 flex justify-center">
-            <img src="/a340adbb-a64e-42f7-aa3a-6ce1afa0c057.png" alt="Juno" className="h-48 w-auto" />
+            <img src="/j2.webp" alt="Juno" className="h-48 w-auto" />
           </div>
           <div className="md:hidden">
             <h1 className="text-4xl font-bold mb-4 text-center">AI Travel Planner</h1>

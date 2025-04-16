@@ -94,7 +94,7 @@ export default function Nav() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
         <Link href="/" className="mr-6 flex items-center space-x-2">
-          <img src="/a340adbb-a64e-42f7-aa3a-6ce1afa0c057.png" alt="Juno" className="h-8 w-auto" />
+          <img src="/j2.webp" alt="Juno" className="h-8 w-auto" />
         </Link>
         <div className="flex flex-1 items-center">
           <div className="flex">
