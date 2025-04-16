@@ -11,6 +11,8 @@ export const users = pgTable("users", {
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   email: text("email").notNull().unique(),
+  profileImageUrl: text("profile_image_url"),
+  bio: text("bio"),
   subscriptionTier: text("subscription_tier").notNull().default('free'),
   subscriptionStartDate: timestamp("subscription_start_date"),
   subscriptionEndDate: timestamp("subscription_end_date"),
@@ -187,6 +189,32 @@ export const insertUserSchema = createInsertSchema(users)
     lastName: z.string().min(1, "Last name is required"),
   });
 
+export const updateUserProfileSchema = createInsertSchema(users)
+  .pick({
+    firstName: true,
+    lastName: true,
+    email: true,
+    bio: true,
+    profileImageUrl: true,
+  })
+  .extend({
+    email: z.string().email("Invalid email address"),
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    bio: z.string().optional(),
+    profileImageUrl: z.string().optional(),
+  })
+  .partial();
+
+export const updateUserPasswordSchema = z.object({
+  currentPassword: z.string().min(6, "Current password is required"),
+  newPassword: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Confirm password is required"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 export const insertTripSchema = createInsertSchema(trips)
   .pick({
     title: true,
@@ -276,6 +304,8 @@ export const insertUserSubscriptionSchema = createInsertSchema(userSubscriptions
   });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
+export type UpdateUserPassword = z.infer<typeof updateUserPasswordSchema>;
 export type User = typeof users.$inferSelect;
 export type Trip = typeof trips.$inferSelect;
 export type InsertTrip = z.infer<typeof insertTripSchema>;
