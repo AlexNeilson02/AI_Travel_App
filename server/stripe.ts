@@ -269,19 +269,29 @@ class StripeService {
    * Cancel a subscription
    */
   async cancelSubscription(userId: number): Promise<void> {
-    // We can still cancel subscriptions even if we're in mock mode
-
     // Get the user's active subscription
     const userSubscription = await storage.getUserActiveSubscription(userId);
     if (!userSubscription) {
       throw new Error('No active subscription found');
     }
 
-    // Cancel the subscription in Stripe
-    await getStripe().subscriptions.update(userSubscription.stripeSubscriptionId, {
-      cancel_at_period_end: true,
-    });
+    // Check if it's a demo/mock subscription
+    const isDemoSubscription = userSubscription.stripeSubscriptionId.startsWith('mock_sub_');
+    
+    if (!isDemoSubscription) {
+      // Cancel the subscription in Stripe for real subscriptions
+      try {
+        await getStripe().subscriptions.update(userSubscription.stripeSubscriptionId, {
+          cancel_at_period_end: true,
+        });
+      } catch (error) {
+        console.error('Error cancelling subscription in Stripe:', error);
+        // Continue anyway to update our database - we'll still cancel locally
+      }
+    }
 
+    // For demo subscriptions, we just update our database directly
+    
     // Update our records
     await storage.updateUserSubscription(userSubscription.id, {
       cancelAtPeriodEnd: true,
