@@ -604,7 +604,47 @@ Is this information correct? I'll create your itinerary once you confirm.
       return;
     }
     
-    createTripMutation.mutate(generatedPlan);
+    // Verify all required information is present
+    if (!tripDetails.destination || !tripDetails.startDate || !tripDetails.endDate) {
+      toast({
+        title: 'Missing Trip Details',
+        description: 'Please ensure your trip has a destination and dates.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    // Verify the user is logged in
+    if (!user?.id) {
+      toast({
+        title: 'Login Required',
+        description: 'Please log in or register to save your trip',
+        variant: 'default',
+      });
+      
+      // Redirect to auth page after a delay
+      setTimeout(() => {
+        navigate('/auth');
+      }, 1500);
+      return;
+    }
+    
+    toast({
+      title: 'Saving Trip',
+      description: 'Saving your trip to your account...',
+    });
+    
+    // Attempt to save the trip
+    try {
+      createTripMutation.mutate(generatedPlan);
+    } catch (error) {
+      console.error('Error initiating trip save:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save your trip. Please try again.',
+        variant: 'destructive'
+      });
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -854,31 +894,46 @@ Is this information correct? I'll create your itinerary once you confirm.
             </div>
           </div>
           
-          <div className="flex justify-between items-center mb-3">
-            <p className="text-sm">
-              Would you like to save this complete trip to your account?
-            </p>
-            <div className="flex space-x-2">
-              <Button variant="outline" onClick={() => {
-                // Add a request for any adjustment
-                setInput("The plan looks good, but could you make some changes to it?");
-                chatWithAI("The plan looks good, but could you make some changes to it?");
-              }}>
-                Suggest Changes
-              </Button>
-              <Button onClick={handleSaveTrip} disabled={createTripMutation.isPending}>
-                {createTripMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-1" />
-                    Save Trip
-                  </>
-                )}
-              </Button>
+          <div className="border-t border-green-200 dark:border-green-700 pt-4 mt-4">
+            <div className="bg-blue-50 dark:bg-blue-900/40 p-4 rounded-lg mb-3">
+              <h3 className="text-lg font-semibold mb-2 flex items-center">
+                <CheckCircle className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" />
+                Save Your Complete Itinerary
+              </h3>
+              <p className="text-sm mb-3">
+                This trip plan includes all your activities, accommodations, and details. Save it to your account to access it anytime, share with others, or modify it later.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-between items-center">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    // Add a request for any adjustment
+                    setInput("The plan looks good, but could you make some changes to it?");
+                    chatWithAI("The plan looks good, but could you make some changes to it?");
+                  }}
+                >
+                  Request Changes First
+                </Button>
+                <Button 
+                  size="lg" 
+                  onClick={handleSaveTrip} 
+                  disabled={createTripMutation.isPending}
+                  className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
+                >
+                  {createTripMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Saving Trip...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      Save This Trip
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
