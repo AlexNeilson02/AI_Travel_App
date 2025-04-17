@@ -51,9 +51,13 @@ interface TripDetails {
 }
 
 export function PremiumTripPlanner() {
+  // Core state management
+  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [generatedPlan, setGeneratedPlan] = useState<any>(null);
+  
+  // Trip details state
   const [tripDetails, setTripDetails] = useState<TripDetails>({
     destination: '',
     startDate: null,
@@ -65,11 +69,40 @@ export function PremiumTripPlanner() {
     activityFrequency: 'moderate',
     confirmed: false
   });
+  
+  // UI control state
   const [collectedDetails, setCollectedDetails] = useState<string[]>([]);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showRetryGeneration, setShowRetryGeneration] = useState(false);
-  const [generatedPlan, setGeneratedPlan] = useState<any>(null);
+  const [readyToGenerate, setReadyToGenerate] = useState(false);
+  const [currentQuestion, setCurrentQuestion] = useState('destination');
+  
+  // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Questions to ask in sequence
+  const questionSequence = [
+    'destination',
+    'dates',
+    'budget',
+    'people',
+    'accommodation',
+    'activities',
+    'frequency',
+    'confirmation'
+  ];
+
+  // Question text mappings
+  const questionText: Record<string, string> = {
+    destination: "Where would you like to travel to?",
+    dates: "When are you planning to travel? Please provide start and end dates.",
+    budget: "What's your budget for this trip?",
+    people: "How many people will be traveling?",
+    accommodation: "What type of accommodation do you prefer? (hotel, hostel, apartment, vacation rental, etc.)",
+    activities: "What types of activities are you interested in? (sightseeing, outdoor activities, food, shopping, etc.)",
+    frequency: "Would you prefer a busy itinerary with many activities each day, or a more relaxed pace with more free time?",
+    confirmation: "Would you like me to generate your itinerary now?"
+  };
   const { toast } = useToast();
   const [location, navigate] = useLocation();
   const { user } = useAuth();
@@ -475,7 +508,162 @@ Is this information correct? I'll create your itinerary once you confirm.
     askNextQuestion();
   }, [collectedDetails, tripDetails.confirmed, showConfirmation]);
 
-  // Chat with AI function
+  // Question sequence management
+  const moveToNextQuestion = () => {
+    const currentIndex = questionSequence.indexOf(currentQuestion);
+    if (currentIndex < questionSequence.length - 1) {
+      const nextQuestion = questionSequence[currentIndex + 1];
+      setCurrentQuestion(nextQuestion);
+      
+      // Add AI message for the next question
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: questionText[nextQuestion as keyof typeof questionText],
+          timestamp: new Date()
+        }]);
+      }, 500);
+    }
+  };
+
+  // Process user response based on current question
+  const processUserResponse = (message: string): boolean => {
+    let detailCaptured = false;
+    
+    switch(currentQuestion) {
+      case 'destination':
+        const destinationRegex = /(?:to|in|visit|going to|travel to) ([A-Z][a-zA-Z\s]+)(?:\.|\,|\!|\?|$)/i;
+        const destinationMatch = message.match(destinationRegex) || message.match(/^([A-Z][a-zA-Z\s]+)(?:\.|\,|\!|\?|$)/i);
+        if (destinationMatch && destinationMatch[1]) {
+          setTripDetails(prev => ({ ...prev, destination: destinationMatch[1].trim() }));
+          setCollectedDetails(prev => [...prev, 'destination']);
+          detailCaptured = true;
+        }
+        break;
+        
+      case 'dates':
+        const dateRangeRegex = /(?:from|between) ([A-Za-z]+ \d{1,2}(?:st|nd|rd|th)?,? \d{4}) (?:to|and|until|through) ([A-Za-z]+ \d{1,2}(?:st|nd|rd|th)?,? \d{4})/i;
+        const dateRangeMatch = message.match(dateRangeRegex);
+        if (dateRangeMatch && dateRangeMatch[1] && dateRangeMatch[2]) {
+          try {
+            const startDate = new Date(dateRangeMatch[1]);
+            const endDate = new Date(dateRangeMatch[2]);
+            if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+              setTripDetails(prev => ({ ...prev, startDate, endDate }));
+              setCollectedDetails(prev => [...prev, 'dates']);
+              detailCaptured = true;
+            }
+          } catch (e) {
+            // Couldn't parse the dates
+          }
+        }
+        break;
+        
+      case 'budget':
+        const budgetRegex = /\$?(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/;
+        const budgetMatch = message.match(budgetRegex);
+        if (budgetMatch && budgetMatch[1]) {
+          const budget = parseInt(budgetMatch[1].replace(/,/g, ''));
+          if (!isNaN(budget)) {
+            setTripDetails(prev => ({ ...prev, budget }));
+            setCollectedDetails(prev => [...prev, 'budget']);
+            detailCaptured = true;
+          }
+        }
+        break;
+        
+      case 'people':
+        const peopleRegex = /(\d+) (?:people|person|travelers|adults|guests)/i;
+        const peopleMatch = message.match(peopleRegex) || message.match(/^(\d+)$/);
+        if (peopleMatch && peopleMatch[1]) {
+          const people = parseInt(peopleMatch[1]);
+          if (!isNaN(people) && people > 0) {
+            setTripDetails(prev => ({ ...prev, numberOfPeople: people }));
+            setCollectedDetails(prev => [...prev, 'people']);
+            detailCaptured = true;
+          }
+        }
+        break;
+        
+      case 'accommodation':
+        const accommodationTypes = ['hotel', 'hostel', 'apartment', 'airbnb', 'resort', 'villa', 'cottage', 'vacation rental'];
+        const mentionedTypes: string[] = [];
+        
+        for (const type of accommodationTypes) {
+          if (message.toLowerCase().includes(type)) {
+            mentionedTypes.push(type);
+          }
+        }
+        
+        if (mentionedTypes.length > 0) {
+          setTripDetails(prev => ({ ...prev, accommodationType: mentionedTypes }));
+          setCollectedDetails(prev => [...prev, 'accommodation']);
+          detailCaptured = true;
+        }
+        break;
+        
+      case 'activities':
+        const activityTypes = [
+          'sightseeing', 'museums', 'beaches', 'hiking', 'shopping', 
+          'food', 'nightlife', 'cultural', 'historical', 'adventure',
+          'relaxation', 'nature', 'sports', 'outdoor'
+        ];
+        const mentionedActivities: string[] = [];
+        
+        for (const type of activityTypes) {
+          if (message.toLowerCase().includes(type)) {
+            mentionedActivities.push(type);
+          }
+        }
+        
+        if (mentionedActivities.length > 0 || message.toLowerCase().includes('everything')) {
+          // If user says "everything" or similar, include most activity types
+          const selectedActivities = mentionedActivities.length > 0 ? 
+            mentionedActivities : 
+            ['sightseeing', 'museums', 'beaches', 'hiking', 'shopping', 'food', 'adventure', 'nature'];
+            
+          setTripDetails(prev => ({ ...prev, activityTypes: selectedActivities }));
+          setCollectedDetails(prev => [...prev, 'activities']);
+          detailCaptured = true;
+        }
+        break;
+        
+      case 'frequency':
+        const busyIndicators = ['busy', 'packed', 'full', 'many', 'lots', 'active'];
+        const relaxedIndicators = ['relaxed', 'slow', 'leisure', 'free time', 'downtime', 'rest', 'chill'];
+        const moderateIndicators = ['moderate', 'balanced', 'mix', 'in between', 'middle'];
+        
+        let frequency = '';
+        
+        if (busyIndicators.some(indicator => message.toLowerCase().includes(indicator))) {
+          frequency = 'busy';
+        } else if (relaxedIndicators.some(indicator => message.toLowerCase().includes(indicator))) {
+          frequency = 'relaxed';
+        } else if (moderateIndicators.some(indicator => message.toLowerCase().includes(indicator))) {
+          frequency = 'moderate';
+        }
+        
+        if (frequency) {
+          setTripDetails(prev => ({ ...prev, activityFrequency: frequency }));
+          setCollectedDetails(prev => [...prev, 'frequency']);
+          detailCaptured = true;
+        }
+        break;
+        
+      case 'confirmation':
+        const confirmationRegex = /^(yes|yeah|sure|ok|okay|generate|create|go ahead|please do)/i;
+        if (message.toLowerCase().match(confirmationRegex)) {
+          setTripDetails(prev => ({ ...prev, confirmed: true }));
+          setShowConfirmation(true);
+          detailCaptured = true;
+        }
+        break;
+    }
+    
+    return detailCaptured;
+  };
+
+  // Chat with AI function - redesigned to follow the sequential question flow
   const chatWithAI = async (message: string) => {
     if (!message.trim()) return;
 
@@ -490,39 +678,28 @@ Is this information correct? I'll create your itinerary once you confirm.
     setLoading(true);
 
     try {
-      // Extract trip details from the user message
-      const detailsFound = extractTripDetails(message);
+      // Process the user's response based on the current question
+      const detailCaptured = processUserResponse(message);
       
-      // Check for generation confirmation
-      if (hasAllRequiredDetails() && !tripDetails.confirmed) {
-        // Check if the user is confirming to generate the itinerary
-        if (message.toLowerCase().match(/^(yes|yeah|sure|ok|okay|generate|create|go ahead|please do)/)) {
-          promptForConfirmation();
-          setLoading(false);
-          return;
-        }
-      }
-
-      // Prepare trip details to send to the API
-      let tripDetailsForAPI = null;
-      if (hasAllRequiredDetails() && tripDetails.confirmed) {
-        tripDetailsForAPI = {
-          destination: tripDetails.destination,
-          startDate: tripDetails.startDate?.toISOString(),
-          endDate: tripDetails.endDate?.toISOString(),
-          budget: tripDetails.budget,
-          numberOfPeople: tripDetails.numberOfPeople,
-          accommodationType: tripDetails.accommodationType,
-          activityTypes: tripDetails.activityTypes,
-          activityFrequency: tripDetails.activityFrequency
-        };
+      // Special case for confirmation
+      if (currentQuestion === 'confirmation' && tripDetails.confirmed) {
+        handleConfirmDetails();
+        setLoading(false);
+        return;
       }
       
-      // Make API request
+      // If we captured a detail, move to the next question
+      if (detailCaptured) {
+        moveToNextQuestion();
+        setLoading(false);
+        return;
+      }
+      
+      // If we didn't capture a detail, use the AI to help
       const response = await apiRequest('POST', '/api/trips/ai-chat', {
         message,
         messages: messages.map(m => ({ role: m.role, content: m.content })),
-        tripDetails: tripDetailsForAPI
+        tripDetails: null // We're not generating a plan yet
       });
       
       if (!response.ok) {
@@ -531,7 +708,7 @@ Is this information correct? I'll create your itinerary once you confirm.
       
       const data = await response.json();
       
-      // Add AI message
+      // Add AI response
       const aiMessage: Message = {
         role: 'assistant',
         content: data.response,
@@ -540,7 +717,15 @@ Is this information correct? I'll create your itinerary once you confirm.
       
       setMessages(prev => [...prev, aiMessage]);
       
-      // If a plan was provided, store it
+      // Try to extract details again from the AI response in case it restated the user's intent
+      const aiResponseDetails = processUserResponse(data.response);
+      
+      // If AI helped us capture a detail, move to the next question
+      if (aiResponseDetails) {
+        moveToNextQuestion();
+      }
+      
+      // If we're in confirmation stage and we have a plan, store it
       if (data.plan && tripDetails.confirmed) {
         setGeneratedPlan(data.plan);
         console.log("Received full itinerary from server:", data.plan);
