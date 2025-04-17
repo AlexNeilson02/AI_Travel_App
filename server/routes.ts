@@ -49,9 +49,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const trip = await storage.createTrip(req.user.id, tripData);
       console.log('Created trip:', trip);
       res.status(201).json(trip);
-    } catch (error) {
-      console.error('Validation error:', error);
-      res.status(400).json({ error: 'Invalid trip data' });
+    } catch (error: any) {
+      console.error('Error creating trip:', error);
+      
+      // Provide detailed error message based on the type of error
+      if (error.code === '57P01' || error.message?.includes('connection')) {
+        res.status(503).json({ 
+          error: "Database connection issue", 
+          message: "We're experiencing temporary database connection issues. Please try again in a moment.",
+          code: "DB_CONNECTION_ERROR"
+        });
+      } else if (error.name === 'ZodError' || error.errors) {
+        // Validation error
+        res.status(400).json({ 
+          error: "Invalid trip data", 
+          details: error.errors || error.message,
+          code: "VALIDATION_ERROR"
+        });
+      } else {
+        res.status(500).json({ 
+          error: "Failed to create trip", 
+          message: "An unexpected error occurred while creating your trip. Please try again.",
+          code: "UNKNOWN_ERROR"
+        });
+      }
     }
   });
 

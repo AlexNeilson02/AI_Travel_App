@@ -197,9 +197,9 @@ export function PremiumTripPlanner() {
         navigate('/trips');
       }, 2000);
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       // Handle authentication errors
-      if (error.message.includes("401") || error.message.includes("Unauthorized")) {
+      if (error.message?.includes("401") || error.message?.includes("Unauthorized")) {
         toast({
           title: "Login Required",
           description: "Please log in or register to save your trip",
@@ -213,9 +213,46 @@ export function PremiumTripPlanner() {
         return;
       }
       
+      // Handle database connection errors
+      if (error.message?.includes("DB_CONNECTION_ERROR") || 
+          error.message?.includes("Database connection") ||
+          error.message?.includes("503")) {
+        toast({
+          title: "Connection Error",
+          description: "We're having trouble connecting to our servers. Please try again in a moment.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Handle validation errors
+      if (error.message?.includes("VALIDATION_ERROR") || 
+          error.message?.includes("400") ||
+          error.message?.includes("Invalid")) {
+        toast({
+          title: "Invalid Trip Data",
+          description: "Some trip details appear to be invalid. Please check your trip information and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Add a Retry button for the user
       toast({
-        title: "Error creating trip",
-        description: error.message,
+        title: "Error Saving Trip",
+        description: 
+          <div className="space-y-2">
+            <p>{error.message || "An unexpected error occurred while saving your trip."}</p>
+            <Button 
+              onClick={handleSaveTrip} 
+              variant="outline" 
+              size="sm"
+              className="mt-2"
+            >
+              <RefreshCw className="w-3 h-3 mr-1" />
+              Try Again
+            </Button>
+          </div>,
         variant: "destructive",
       });
     },
