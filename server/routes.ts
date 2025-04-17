@@ -3,11 +3,14 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertTripSchema, updateUserProfileSchema, updateUserPasswordSchema } from "@shared/schema";
+import OpenAI from "openai";
 import { generateTripSuggestions, generateFollowUpQuestion } from "./openai";
 import { format } from "date-fns";
 import { getWeatherForecast, suggestAlternativeActivities } from "./weather";
 import subscriptionRoutes from "./subscription-routes";
 import { comparePasswords, hashPassword } from "./auth";
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
