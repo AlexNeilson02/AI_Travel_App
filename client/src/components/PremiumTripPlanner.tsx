@@ -77,7 +77,12 @@ export function PremiumTripPlanner() {
     setMessages([
       {
         role: 'system',
-        content: 'Welcome to Juno AI Travel Planner! I\'m here to help you plan your perfect trip. To get started, could you tell me where you\'d like to go?',
+        content: 'Welcome to Juno AI Travel Planner! I\'m here to help you plan your perfect trip. Let\'s build your itinerary step by step through conversation.',
+        timestamp: new Date()
+      },
+      {
+        role: 'assistant',
+        content: 'Hi there! To start planning your perfect trip, I\'ll need to ask you a few questions one by one. First, where would you like to travel to?',
         timestamp: new Date()
       }
     ]);
@@ -277,7 +282,7 @@ export function PremiumTripPlanner() {
     // Check for accommodation types
     if (tripDetails.accommodationType.length === 0 && !collectedDetails.includes('accommodation')) {
       const accommodationTypes = ['hotel', 'hostel', 'apartment', 'airbnb', 'resort', 'villa', 'cottage'];
-      const mentionedTypes = [];
+      const mentionedTypes: string[] = [];
       
       for (const type of accommodationTypes) {
         if (message.toLowerCase().includes(type)) {
@@ -451,34 +456,41 @@ Is this information correct? I'll create your itinerary once you confirm.
         }]);
       }
       
-      // If a new detail was found, follow up appropriately
-      if (detailsFound && !hasAllRequiredDetails()) {
-        // Ask about the next missing detail
+      // Get the next question to ask, one at a time in sequence
+      if (!hasAllRequiredDetails()) {
         setTimeout(() => {
           let followUpMessage = '';
           
+          // Only ask one question at a time in a specific sequence
           if (!tripDetails.destination) {
             followUpMessage = 'Where would you like to go on your trip?';
           } else if (!tripDetails.startDate || !tripDetails.endDate) {
-            followUpMessage = 'What are the dates for your trip to ' + tripDetails.destination + '?';
+            followUpMessage = `Great! I'll help you plan a trip to ${tripDetails.destination}. When are you planning to travel? Please provide start and end dates.`;
           } else if (tripDetails.budget === 0) {
-            followUpMessage = 'What\'s your budget for this trip?';
+            const days = tripDetails.startDate && tripDetails.endDate ? 
+              Math.floor((tripDetails.endDate.getTime() - tripDetails.startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 0;
+            followUpMessage = `A ${days}-day trip to ${tripDetails.destination} from ${tripDetails.startDate ? format(tripDetails.startDate, 'MMM d') : ''} to ${tripDetails.endDate ? format(tripDetails.endDate, 'MMM d') : ''}. What's your total budget for this trip?`;
           } else if (tripDetails.numberOfPeople === 1 && !collectedDetails.includes('people')) {
-            followUpMessage = 'How many people will be traveling?';
+            followUpMessage = `With a budget of $${tripDetails.budget}. How many people will be traveling on this trip?`;
           } else if (tripDetails.accommodationType.length === 0) {
-            followUpMessage = 'What type of accommodation would you prefer (hotel, hostel, apartment, etc.)?';
+            const perPerson = tripDetails.numberOfPeople > 1 ? ` (that's about $${Math.round(tripDetails.budget/tripDetails.numberOfPeople)} per person)` : '';
+            followUpMessage = `A ${tripDetails.numberOfPeople}-person trip with a $${tripDetails.budget} budget${perPerson}. What type of accommodation would you prefer (hotel, hostel, apartment, resort, etc.)?`;
           } else if (tripDetails.activityTypes.length === 0) {
-            followUpMessage = 'What kinds of activities are you interested in?';
+            followUpMessage = `I'll look for ${tripDetails.accommodationType.join(', ')} options. What kinds of activities are you interested in for your ${tripDetails.destination} trip? (e.g., sightseeing, museums, beaches, hiking, shopping, food, nightlife, cultural, etc.)`;
           } else if (!collectedDetails.includes('frequency')) {
-            followUpMessage = 'Do you prefer a busy schedule with lots of activities, or a more relaxed pace?';
+            followUpMessage = `Great! You're interested in ${tripDetails.activityTypes.join(', ')} activities. Last question: Do you prefer a busy schedule with lots of activities, a moderate pace, or a more relaxed approach with plenty of free time?`;
           }
           
-          if (followUpMessage) {
+          // Only send a new message if we have a question to ask and we don't already have all required details
+          if (followUpMessage && !hasAllRequiredDetails()) {
             setMessages(prev => [...prev, {
               role: 'assistant',
               content: followUpMessage,
               timestamp: new Date()
             }]);
+          } else if (hasAllRequiredDetails() && !tripDetails.confirmed && !showConfirmation) {
+            // If we have all details but haven't yet confirmed, show confirmation
+            promptForConfirmation();
           }
         }, 1000);
       }
@@ -496,11 +508,56 @@ Is this information correct? I'll create your itinerary once you confirm.
 
   // Handle confirmation of trip details
   const handleConfirmDetails = () => {
+    // Update state to mark details as confirmed
     setTripDetails(prev => ({ ...prev, confirmed: true }));
     setShowConfirmation(false);
     
-    // Send a confirmation message from the user
-    chatWithAI('Yes, that information is correct. Please create my itinerary.');
+    // Send a confirmation message from the user and trigger itinerary generation
+    const confirmMessage = 'Yes, that information is correct. Please create my itinerary.';
+    
+    // Add user confirmation to chat history immediately for better UX
+    setMessages(prev => [...prev, {
+      role: 'user',
+      content: confirmMessage,
+      timestamp: new Date()
+    }]);
+    
+    // Add loading state while waiting for response
+    setLoading(true);
+    
+    // Make API request with confirmed flag to generate itinerary
+    apiRequest('POST', '/api/trips/ai-chat', {
+      message: confirmMessage,
+      messages: [...messages, { role: 'user', content: confirmMessage }],
+      tripDetails: { ...tripDetails, confirmed: true }
+    })
+    .then(async response => {
+      const data = await response.json();
+      
+      // Add AI response to chat
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: data.response,
+        timestamp: new Date()
+      }]);
+      
+      // Store the generated plan if one was provided
+      if (data.plan) {
+        setGeneratedPlan(data.plan);
+        console.log("Received full itinerary from server:", data.plan);
+      }
+      
+      setLoading(false);
+    })
+    .catch(error => {
+      console.error('Error confirming trip details:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate your itinerary. Please try again.',
+        variant: 'destructive'
+      });
+      setLoading(false);
+    });
   };
 
   // Handle editing of trip details
@@ -623,7 +680,7 @@ Is this information correct? I'll create your itinerary once you confirm.
         </div>
       )}
       
-      {/* Save Trip Button */}
+      {/* Generated Itinerary & Save Trip UI */}
       {generatedPlan && (
         <div className="p-4 mb-4 mx-4 bg-green-50 dark:bg-green-900 rounded-lg">
           <div className="flex items-center mb-3">
@@ -631,9 +688,58 @@ Is this information correct? I'll create your itinerary once you confirm.
             <h3 className="font-semibold">Trip Plan Created</h3>
           </div>
           <p className="text-sm mb-3">
-            Your itinerary is ready! Would you like to save this trip to your account?
+            Your itinerary is ready! Here's a summary of your trip plan:
           </p>
-          <div className="flex justify-end">
+          
+          {/* Trip Summary */}
+          <div className="bg-white dark:bg-gray-800 rounded-md p-3 mb-4 max-h-[300px] overflow-y-auto">
+            <h4 className="font-medium mb-2">Trip to {tripDetails.destination}</h4>
+            <div className="text-xs space-y-1 text-muted-foreground">
+              <p>Dates: {tripDetails.startDate ? format(tripDetails.startDate, 'MMM d, yyyy') : 'Not set'} - {tripDetails.endDate ? format(tripDetails.endDate, 'MMM d, yyyy') : 'Not set'}</p>
+              <p>Budget: ${tripDetails.budget}</p>
+              <p>Travelers: {tripDetails.numberOfPeople}</p>
+              <p>Accommodation: {tripDetails.accommodationType.join(', ')}</p>
+              <p>Activities: {tripDetails.activityTypes.join(', ')}</p>
+            </div>
+            
+            {/* Day-by-Day Summary */}
+            <div className="mt-3 space-y-2">
+              <h5 className="text-sm font-medium">Itinerary Highlights:</h5>
+              <div className="space-y-2">
+                {generatedPlan.days.slice(0, 2).map((day: any, index: number) => (
+                  <div key={index} className="p-2 text-xs border border-muted rounded">
+                    <p className="font-medium">{day.date} ({day.dayOfWeek})</p>
+                    <ul className="list-disc pl-4 mt-1">
+                      {day.activities.timeSlots.slice(0, 2).map((activity: any, i: number) => (
+                        <li key={i}>{activity.activity}</li>
+                      ))}
+                      {day.activities.timeSlots.length > 2 && (
+                        <li className="text-muted-foreground">+ {day.activities.timeSlots.length - 2} more activities</li>
+                      )}
+                    </ul>
+                    <p className="mt-1 text-muted-foreground">Stay: {day.accommodation?.name}</p>
+                  </div>
+                ))}
+                {generatedPlan.days.length > 2 && (
+                  <p className="text-muted-foreground text-center">
+                    + {generatedPlan.days.length - 2} more days
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <p className="text-sm mb-3">
+            Would you like to save this complete trip to your account?
+          </p>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => {
+              // Add a request for any adjustment
+              setInput("The plan looks good, but could you make some changes to it?");
+              chatWithAI("The plan looks good, but could you make some changes to it?");
+            }}>
+              Suggest Changes
+            </Button>
             <Button onClick={handleSaveTrip} disabled={createTripMutation.isPending}>
               {createTripMutation.isPending ? (
                 <>

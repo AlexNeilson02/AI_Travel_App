@@ -162,6 +162,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let systemPrompt = "You are Juno AI, a travel planning assistant. Help the user plan their perfect trip by asking questions about their preferences.";
       let plan = null;
       
+      // Special case: Check if this is the confirmation message to generate the plan
+      const isConfirmationRequest = message.toLowerCase().includes("yes") && 
+        (message.toLowerCase().includes("correct") || message.toLowerCase().includes("confirm") || 
+         message.toLowerCase().includes("creat") || message.toLowerCase().includes("generat"));
+      
       // If we have essential trip details, consider generating a full plan
       if (tripDetails) {
         const { destination, startDate, endDate, budget, numberOfPeople, accommodationType, activityTypes, activityFrequency } = tripDetails;
@@ -170,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const hasEssentialDetails = destination && startDate && endDate && budget && 
                                    accommodationType && activityTypes && activityFrequency;
         
-        if (hasEssentialDetails) {
+        if (hasEssentialDetails && (tripDetails.confirmed || isConfirmationRequest)) {
           // Formulate preferences for the AI
           const formattedPreferences = [
             ...(accommodationType || []).map((type: string) => `Accommodation: ${type}`),
@@ -180,6 +185,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Calculate trip duration
           const duration = Math.floor((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1;
+          
+          console.log(`Generating full itinerary for trip to ${destination}, ${duration} days, budget: $${budget}`);
           
           // Generate a full trip plan
           plan = await generateTripSuggestions(
@@ -195,7 +202,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           systemPrompt = `You are Juno AI, a travel planning assistant. 
           The user is planning a trip to ${destination} from ${startDate} to ${endDate} with a budget of $${budget}.
-          I've created a full itinerary for them. Help them understand the plan and answer any questions they have.`;
+          I've created a full itinerary for them. Let them know that their complete itinerary is ready to review and save. 
+          Tell them they can suggest changes or save the trip to their account.`;
         }
       }
       
