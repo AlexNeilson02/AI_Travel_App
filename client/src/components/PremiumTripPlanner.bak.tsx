@@ -98,7 +98,6 @@ export function PremiumTripPlanner() {
   // Create trip mutation
   const createTripMutation = useMutation({
     mutationFn: async (plan: any) => {
-      // The rest of the mutation function remains unchanged
       if (!tripDetails.destination || !tripDetails.startDate || !tripDetails.endDate) {
         throw new Error('Missing required trip details');
       }
@@ -199,7 +198,6 @@ export function PremiumTripPlanner() {
       }, 2000);
     },
     onError: (error: any) => {
-      // Error handling remains unchanged
       // Handle authentication errors
       if (error.message?.includes("401") || error.message?.includes("Unauthorized")) {
         toast({
@@ -260,9 +258,8 @@ export function PremiumTripPlanner() {
     },
   });
 
-  // Extract trip details function
+  // Handle collecting trip details from the AI conversation
   const extractTripDetails = (message: string) => {
-    // Extraction logic remains unchanged
     // Check for destination
     if (!tripDetails.destination && !collectedDetails.includes('destination')) {
       const destinationRegex = /(?:to|in|visit|going to) ([A-Z][a-zA-Z\s]+)(?:\.|\,|\!|\?|$)/;
@@ -307,7 +304,6 @@ export function PremiumTripPlanner() {
       }
     }
     
-    // The rest of the extraction logic remains unchanged
     // Check for number of people
     if (tripDetails.numberOfPeople === 1 && !collectedDetails.includes('people')) {
       const peopleRegex = /(\d+) (?:people|person|travelers|adults|guests)/i;
@@ -399,7 +395,7 @@ export function PremiumTripPlanner() {
     );
   };
 
-  // Function for confirmation dialog
+  // Function to handle showing the confirmation dialog
   const promptForConfirmation = () => {
     if (hasAllRequiredDetails() && !tripDetails.confirmed && !showConfirmation) {
       setShowConfirmation(true);
@@ -428,7 +424,7 @@ Is this information correct? I'll create your itinerary once you confirm.
     }
   };
 
-  // Chat with AI function
+  // Chat with AI to get trip suggestions
   const chatWithAI = async (message: string) => {
     if (!message.trim()) return;
 
@@ -465,7 +461,7 @@ Is this information correct? I'll create your itinerary once you confirm.
           activityFrequency: tripDetails.activityFrequency
         };
       }
-      
+
       // Make API request
       const response = await apiRequest('POST', '/api/trips/ai-chat', {
         message,
@@ -485,16 +481,61 @@ Is this information correct? I'll create your itinerary once you confirm.
         content: data.response,
         timestamp: new Date()
       };
-      
       setMessages(prev => [...prev, aiMessage]);
       
-      // If a plan was provided, store it
-      if (data.plan && tripDetails.confirmed) {
+      // Store the plan if one was generated
+      if (data.plan) {
         setGeneratedPlan(data.plan);
-        console.log("Received full itinerary from server:", data.plan);
+        
+        // Add a plan creation message
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'I\'ve created an itinerary based on your preferences! Would you like to save this trip to your account?',
+          timestamp: new Date()
+        }]);
+      }
+      
+      // Get the next question to ask, one at a time in sequence
+      // Only ask follow-up questions if we found new details AND if we didn't get a response plan
+      if (!hasAllRequiredDetails() && detailsFound && !data.plan) {
+        setTimeout(() => {
+          let followUpMessage = '';
+          
+          // Only ask one question at a time in a specific sequence
+          if (!tripDetails.destination) {
+            followUpMessage = 'Where would you like to go on your trip?';
+          } else if (!tripDetails.startDate || !tripDetails.endDate) {
+            followUpMessage = `Great! I'll help you plan a trip to ${tripDetails.destination}. When are you planning to travel? Please provide start and end dates.`;
+          } else if (tripDetails.budget === 0) {
+            const days = tripDetails.startDate && tripDetails.endDate ? 
+              Math.floor((tripDetails.endDate.getTime() - tripDetails.startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 0;
+            followUpMessage = `A ${days}-day trip to ${tripDetails.destination} from ${tripDetails.startDate ? format(tripDetails.startDate, 'MMM d') : ''} to ${tripDetails.endDate ? format(tripDetails.endDate, 'MMM d') : ''}. What's your total budget for this trip?`;
+          } else if (tripDetails.numberOfPeople === 1 && !collectedDetails.includes('people')) {
+            followUpMessage = `With a budget of $${tripDetails.budget}. How many people will be traveling on this trip?`;
+          } else if (tripDetails.accommodationType.length === 0) {
+            const perPerson = tripDetails.numberOfPeople > 1 ? ` (that's about $${Math.round(tripDetails.budget/tripDetails.numberOfPeople)} per person)` : '';
+            followUpMessage = `A ${tripDetails.numberOfPeople}-person trip with a $${tripDetails.budget} budget${perPerson}. What type of accommodation would you prefer (hotel, hostel, apartment, resort, etc.)?`;
+          } else if (tripDetails.activityTypes.length === 0) {
+            followUpMessage = `I'll look for ${tripDetails.accommodationType.join(', ')} options. What kinds of activities are you interested in for your ${tripDetails.destination} trip? (e.g., sightseeing, museums, beaches, hiking, shopping, food, nightlife, cultural, etc.)`;
+          } else if (!collectedDetails.includes('frequency')) {
+            followUpMessage = `Great! You're interested in ${tripDetails.activityTypes.join(', ')} activities. Last question: Do you prefer a busy schedule with lots of activities, a moderate pace, or a more relaxed approach with plenty of free time?`;
+          }
+          
+          // Only send a new message if we have a question to ask and we don't already have all required details
+          if (followUpMessage && !hasAllRequiredDetails()) {
+            setMessages(prev => [...prev, {
+              role: 'assistant',
+              content: followUpMessage,
+              timestamp: new Date()
+            }]);
+          }
+        }, 1000);
+      } else if (hasAllRequiredDetails() && !tripDetails.confirmed && !showConfirmation) {
+        // If we have all details but haven't yet confirmed, show confirmation
+        promptForConfirmation();
       }
     } catch (error) {
-      console.error('Error in AI chat:', error);
+      console.error('Error getting AI response:', error);
       toast({
         title: 'Error',
         description: 'Failed to get a response from the AI. Please try again.',
@@ -559,270 +600,401 @@ Is this information correct? I'll create your itinerary once you confirm.
             content: 'Would you like to try generating your itinerary again?',
             timestamp: new Date()
           }]);
+          
+          // Set a retry UI
           setShowRetryGeneration(true);
         }, 1000);
       }
+      
+      setLoading(false);
     })
     .catch(error => {
-      console.error('Error generating itinerary:', error);
+      console.error('Error confirming trip details:', error);
       toast({
         title: 'Error',
         description: 'Failed to generate your itinerary. Please try again.',
         variant: 'destructive'
       });
-      setShowRetryGeneration(true);
-    })
-    .finally(() => {
       setLoading(false);
+      
+      // Show retry option
+      setShowRetryGeneration(true);
     });
   };
 
-  // Handle key down event for the input
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (input.trim()) {
-        chatWithAI(input);
-      }
-    }
+  // Handle editing of trip details
+  const handleEditDetails = () => {
+    setShowConfirmation(false);
+    
+    // Send a message asking to edit
+    chatWithAI('I need to change some of these details.');
   };
 
-  // Handle save trip
+  // Handle saving the generated trip
   const handleSaveTrip = () => {
     if (!generatedPlan) {
       toast({
         title: 'Error',
-        description: 'No itinerary to save. Please generate an itinerary first.',
+        description: 'No trip plan has been generated yet.',
         variant: 'destructive'
       });
       return;
     }
     
-    createTripMutation.mutate(generatedPlan);
+    // Verify all required information is present
+    if (!tripDetails.destination || !tripDetails.startDate || !tripDetails.endDate) {
+      toast({
+        title: 'Missing Trip Details',
+        description: 'Please ensure your trip has a destination and dates.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    // Verify the user is logged in
+    if (!user?.id) {
+      toast({
+        title: 'Login Required',
+        description: 'Please log in or register to save your trip',
+        variant: 'default',
+      });
+      
+      // Redirect to auth page after a delay
+      setTimeout(() => {
+        navigate('/auth');
+      }, 1500);
+      return;
+    }
+    
+    toast({
+      title: 'Saving Trip',
+      description: 'Saving your trip to your account...',
+    });
+    
+    // Attempt to save the trip
+    try {
+      createTripMutation.mutate(generatedPlan);
+    } catch (error) {
+      console.error('Error initiating trip save:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save your trip. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      chatWithAI(input);
+    }
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-      {/* Left Side: Chat Interface */}
-      <Card className="flex flex-col h-full">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>AI Travel Planner</CardTitle>
-              <CardDescription>Chat with our AI to create your perfect itinerary</CardDescription>
+    <Card className="flex flex-col h-full">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>AI Travel Planner</CardTitle>
+            <CardDescription>Chat with our AI to create your perfect itinerary</CardDescription>
+          </div>
+          {collectedDetails.length > 0 && (
+            <div className="flex space-x-1">
+              {collectedDetails.includes('destination') && (
+                <Badge variant="outline" className="bg-blue-100 dark:bg-blue-900">
+                  <MapPin className="h-3 w-3 mr-1" />
+                  {tripDetails.destination}
+                </Badge>
+              )}
+              {collectedDetails.includes('dates') && (
+                <Badge variant="outline" className="bg-green-100 dark:bg-green-900">
+                  <CalendarIcon className="h-3 w-3 mr-1" />
+                  {tripDetails.startDate && format(tripDetails.startDate, 'MMM d')} - {tripDetails.endDate && format(tripDetails.endDate, 'MMM d')}
+                </Badge>
+              )}
+              {collectedDetails.includes('budget') && (
+                <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-900">
+                  <DollarSign className="h-3 w-3 mr-1" />
+                  ${tripDetails.budget}
+                </Badge>
+              )}
             </div>
-            {collectedDetails.length > 0 && (
-              <div className="flex space-x-1">
-                {collectedDetails.includes('destination') && (
-                  <Badge variant="outline" className="bg-blue-100 dark:bg-blue-900">
-                    <MapPin className="h-3 w-3 mr-1" />
-                    {tripDetails.destination}
-                  </Badge>
-                )}
-                {collectedDetails.includes('dates') && (
-                  <Badge variant="outline" className="bg-green-100 dark:bg-green-900">
-                    <CalendarIcon className="h-3 w-3 mr-1" />
-                    {tripDetails.startDate && format(tripDetails.startDate, 'MMM d')} - {tripDetails.endDate && format(tripDetails.endDate, 'MMM d')}
-                  </Badge>
-                )}
-                {collectedDetails.includes('budget') && (
-                  <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-900">
-                    <DollarSign className="h-3 w-3 mr-1" />
-                    ${tripDetails.budget}
-                  </Badge>
-                )}
-              </div>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="flex-grow overflow-auto px-4">
-          <div className="space-y-4">
-            {messages.map((message, index) => (
-              <div 
-                key={index} 
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div 
-                  className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                    message.role === 'user' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : message.role === 'system'
-                      ? 'bg-secondary text-secondary-foreground'
-                      : 'bg-muted'
-                  }`}
-                >
-                  {message.role !== 'user' && (
-                    <div className="flex items-center gap-2 mb-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback>AI</AvatarFallback>
-                      </Avatar>
-                      <Badge variant="outline" className="text-xs">Juno AI</Badge>
-                    </div>
-                  )}
-                  <div className="whitespace-pre-wrap">{message.content}</div>
-                </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-            {loading && (
-              <div className="flex justify-center">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            )}
-            
-            {/* Show retry generation button if needed */}
-            {showRetryGeneration && (
-              <div className="flex justify-center mt-4">
-                <Button onClick={() => {
-                  setShowRetryGeneration(false);
-                  handleConfirmDetails(true);
-                }}>
-                  <RefreshCw className="w-4 h-4 mr-1" />
-                  Retry
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardContent>
-        <CardFooter className="border-t pt-3">
-          <div className="flex w-full items-center space-x-2">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask about your trip, e.g., 'I want to go to Paris for a week in June'"
-              className="min-h-10 resize-none flex-1"
-              disabled={loading}
-            />
-            <Button 
-              onClick={() => chatWithAI(input)} 
-              disabled={loading || input.trim() === ''}
-              size="icon"
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="flex-grow overflow-auto px-4">
+        <div className="space-y-4">
+          {messages.map((message, index) => (
+            <div 
+              key={index} 
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <Send className="h-4 w-4" />
+              <div 
+                className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                  message.role === 'user' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : message.role === 'system'
+                    ? 'bg-secondary text-secondary-foreground'
+                    : 'bg-muted'
+                }`}
+              >
+                {message.role !== 'user' && (
+                  <div className="flex items-center gap-2 mb-2">
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback>AI</AvatarFallback>
+                    </Avatar>
+                    <Badge variant="outline" className="text-xs">Juno AI</Badge>
+                  </div>
+                )}
+                <div className="whitespace-pre-wrap">{message.content}</div>
+              </div>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+          {loading && (
+            <div className="flex justify-center">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          )}
+        </div>
+      </CardContent>
+      
+      {/* Confirmation Dialog */}
+      {showConfirmation && (
+        <div className="p-4 mb-4 mx-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
+          <div className="flex items-center mb-3">
+            <AlertCircle className="text-blue-600 dark:text-blue-300 w-5 h-5 mr-2" />
+            <h3 className="font-semibold">Confirm Trip Details</h3>
+          </div>
+          <p className="text-sm mb-3">
+            I'll create an itinerary based on these details. Is this information correct?
+          </p>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" size="sm" onClick={handleEditDetails}>
+              Edit Details
+            </Button>
+            <Button size="sm" onClick={(e) => { e.preventDefault(); handleConfirmDetails(false); }}>
+              <CheckCircle className="w-4 h-4 mr-1" />
+              Confirm
             </Button>
           </div>
-        </CardFooter>
-      </Card>
-
-      {/* Right Side: Itinerary Display - Only shown when a plan is generated */}
+        </div>
+      )}
+      
+      {/* Retry Generation UI */}
+      {showRetryGeneration && (
+        <div className="p-4 mb-4 mx-4 bg-amber-50 dark:bg-amber-900 rounded-lg">
+          <div className="flex items-center mb-3">
+            <RefreshCw className="text-amber-600 dark:text-amber-300 w-5 h-5 mr-2" />
+            <h3 className="font-semibold">Retry Itinerary Generation</h3>
+          </div>
+          <p className="text-sm mb-3">
+            There was an issue generating your itinerary. Would you like to try again?
+          </p>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" size="sm" onClick={() => setShowRetryGeneration(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={() => {
+              setShowRetryGeneration(false);
+              handleConfirmDetails(true);
+            }}>
+              <RefreshCw className="w-4 h-4 mr-1" />
+              Retry
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      {/* Generated Itinerary & Save Trip UI */}
       {generatedPlan && (
-        <Card className="flex flex-col h-full overflow-hidden">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Your Trip Itinerary</CardTitle>
-                <CardDescription>Complete itinerary for your trip to {tripDetails.destination}</CardDescription>
+        <div className="p-4 mb-4 mx-4 bg-green-50 dark:bg-green-900 rounded-lg">
+          <div className="flex items-center mb-3">
+            <CheckCircle className="text-green-600 dark:text-green-300 w-5 h-5 mr-2" />
+            <h3 className="font-semibold">Trip Plan Created</h3>
+          </div>
+          <p className="text-sm mb-3">
+            Your itinerary is ready! Here's your complete trip plan:
+          </p>
+          
+          {/* Trip Summary */}
+          <div className="bg-white dark:bg-gray-800 rounded-md p-3 mb-4 max-h-[400px] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-medium text-lg">Trip to {tripDetails.destination}</h4>
+              <div className="flex space-x-2">
+                <Badge variant="outline" className="bg-blue-100 dark:bg-blue-900">
+                  <CalendarIcon className="h-3 w-3 mr-1" />
+                  {tripDetails.startDate ? format(tripDetails.startDate, 'MMM d') : ''} - {tripDetails.endDate ? format(tripDetails.endDate, 'MMM d') : ''}
+                </Badge>
+                <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-900">
+                  <DollarSign className="h-3 w-3 mr-1" />
+                  ${tripDetails.budget}
+                </Badge>
               </div>
-              <Badge className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Ready
-              </Badge>
             </div>
-          </CardHeader>
-          <CardContent className="flex-grow overflow-auto">
-            <div className="space-y-4">
-              {/* Trip Overview */}
-              <div className="bg-muted/20 rounded-md p-3 mb-4">
-                <div className="flex flex-wrap items-center justify-between mb-2">
-                  <h4 className="font-medium text-lg">Trip to {tripDetails.destination}</h4>
-                  <div className="flex space-x-2 mt-1 sm:mt-0">
-                    <Badge variant="outline" className="bg-blue-100 dark:bg-blue-900">
-                      <CalendarIcon className="h-3 w-3 mr-1" />
-                      {tripDetails.startDate ? format(tripDetails.startDate, 'MMM d') : ''} - {tripDetails.endDate ? format(tripDetails.endDate, 'MMM d') : ''}
-                    </Badge>
-                    <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-900">
-                      <DollarSign className="h-3 w-3 mr-1" />
-                      ${tripDetails.budget}
-                    </Badge>
-                  </div>
-                </div>
-                
-                <div className="grid sm:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="font-medium">Trip Overview</p>
-                    <ul className="mt-1 space-y-1 text-muted-foreground">
-                      <li><span className="font-medium text-foreground">Destination:</span> {tripDetails.destination}</li>
-                      <li><span className="font-medium text-foreground">Dates:</span> {tripDetails.startDate ? format(tripDetails.startDate, 'MMM d, yyyy') : ''} - {tripDetails.endDate ? format(tripDetails.endDate, 'MMM d, yyyy') : ''}</li>
-                      <li><span className="font-medium text-foreground">Budget:</span> ${tripDetails.budget}</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <p className="font-medium">Preferences</p>
-                    <ul className="mt-1 space-y-1 text-muted-foreground">
-                      <li><span className="font-medium text-foreground">Travelers:</span> {tripDetails.numberOfPeople}</li>
-                      <li><span className="font-medium text-foreground">Accommodation:</span> {tripDetails.accommodationType.join(', ')}</li>
-                      <li><span className="font-medium text-foreground">Activity Types:</span> {tripDetails.activityTypes.join(', ')}</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Daily Itinerary */}
+            
+            <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
               <div>
-                <h5 className="text-md font-medium mb-3">Daily Itinerary</h5>
-                <div className="space-y-4">
-                  {generatedPlan.days.map((day: any, dayIndex: number) => (
-                    <div key={dayIndex} className="p-3 border border-muted rounded">
-                      <div className="flex items-center justify-between mb-2">
-                        <h6 className="font-medium">Day {dayIndex + 1}: {day.date} ({day.dayOfWeek})</h6>
-                        {day.aiSuggestions?.weatherContext && (
-                          <Badge className={day.aiSuggestions.weatherContext.is_suitable_for_outdoor 
-                            ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100"
-                            : "bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-100"}>
-                            {day.aiSuggestions.weatherContext.description}, {Math.round(day.aiSuggestions.weatherContext.temperature)}°F
-                          </Badge>
+                <p className="font-medium">Trip Overview</p>
+                <ul className="mt-1 space-y-1 text-muted-foreground">
+                  <li><span className="font-medium text-foreground">Destination:</span> {tripDetails.destination}</li>
+                  <li><span className="font-medium text-foreground">Dates:</span> {tripDetails.startDate ? format(tripDetails.startDate, 'MMM d, yyyy') : ''} - {tripDetails.endDate ? format(tripDetails.endDate, 'MMM d, yyyy') : ''}</li>
+                  <li><span className="font-medium text-foreground">Budget:</span> ${tripDetails.budget}</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-medium">Preferences</p>
+                <ul className="mt-1 space-y-1 text-muted-foreground">
+                  <li><span className="font-medium text-foreground">Travelers:</span> {tripDetails.numberOfPeople}</li>
+                  <li><span className="font-medium text-foreground">Accommodation:</span> {tripDetails.accommodationType.join(', ')}</li>
+                  <li><span className="font-medium text-foreground">Activity Types:</span> {tripDetails.activityTypes.join(', ')}</li>
+                </ul>
+              </div>
+            </div>
+            
+            {/* Complete Day-by-Day Itinerary */}
+            <div className="mt-4">
+              <h5 className="text-md font-medium mb-3">Full Itinerary:</h5>
+              <div className="space-y-4">
+                {generatedPlan.days.map((day: any, dayIndex: number) => (
+                  <div key={dayIndex} className="p-3 border border-muted rounded">
+                    <div className="flex items-center justify-between mb-2">
+                      <h6 className="font-medium">Day {dayIndex + 1}: {day.date} ({day.dayOfWeek})</h6>
+                      {day.aiSuggestions?.weatherContext && (
+                        <Badge className={day.aiSuggestions.weatherContext.is_suitable_for_outdoor 
+                          ? "bg-green-100 dark:bg-green-900"
+                          : "bg-amber-100 dark:bg-amber-900"}>
+                          {day.aiSuggestions.weatherContext.description}, {Math.round(day.aiSuggestions.weatherContext.temperature)}°F
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    {/* Full day's activities with details */}
+                    <div className="space-y-3 mt-2">
+                      {day.activities.timeSlots.map((activity: any, actIndex: number) => (
+                        <div key={actIndex} className="p-2 bg-gray-50 dark:bg-gray-900 rounded">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium">{activity.time} - {activity.activity}</p>
+                              <p className="text-xs text-muted-foreground mt-1">{activity.location}</p>
+                              {activity.notes && (
+                                <p className="text-xs mt-1 italic">{activity.notes}</p>
+                              )}
+                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              {activity.duration}
+                            </Badge>
+                          </div>
+                          {activity.url && (
+                            <a 
+                              href={activity.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs flex items-center mt-2 text-blue-600 hover:underline"
+                            >
+                              <Activity className="h-3 w-3 mr-1" />
+                              More information
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Accommodation for the day */}
+                    {day.accommodation && (
+                      <div className="mt-3 border-t pt-2">
+                        <div className="flex items-center text-sm">
+                          <Home className="h-4 w-4 mr-1 text-muted-foreground" />
+                          <span className="font-medium">Stay: </span>
+                          <span className="ml-1">{day.accommodation.name}</span>
+                        </div>
+                        {day.accommodation.location && (
+                          <p className="text-xs text-muted-foreground ml-5">{day.accommodation.location}</p>
+                        )}
+                        {day.accommodation.url && (
+                          <a 
+                            href={day.accommodation.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-xs flex items-center mt-1 ml-5 text-blue-600 hover:underline"
+                          >
+                            <Activity className="h-3 w-3 mr-1" />
+                            View accommodation details
+                          </a>
                         )}
                       </div>
-                      
-                      {/* Full day's activities with details */}
-                      <div className="space-y-3 mt-2">
-                        {day.activities.timeSlots.map((activity: any, actIndex: number) => (
-                          <div key={actIndex} className="p-2 bg-muted/20 rounded">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <p className="font-medium">{activity.time} - {activity.activity}</p>
-                                <p className="text-xs text-muted-foreground mt-1">{activity.location}</p>
-                                {activity.notes && (
-                                  <p className="text-xs mt-1 italic">{activity.notes}</p>
-                                )}
-                              </div>
-                              <Badge variant="outline" className="text-xs">
-                                {activity.duration}
-                              </Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
-          </CardContent>
-          <CardFooter className="border-t p-4">
-            <div className="w-full flex justify-end">
-              <Button 
-                onClick={handleSaveTrip} 
-                className="bg-green-600 hover:bg-green-700 text-white"
-                disabled={createTripMutation.isPending}
-              >
-                {createTripMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving Trip...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Save Trip
-                  </>
-                )}
-              </Button>
+          </div>
+          
+          <div className="border-t border-green-200 dark:border-green-700 pt-4 mt-4">
+            <div className="bg-blue-50 dark:bg-blue-900/40 p-4 rounded-lg mb-3">
+              <h3 className="text-lg font-semibold mb-2 flex items-center">
+                <CheckCircle className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" />
+                Save Your Complete Itinerary
+              </h3>
+              <p className="text-sm mb-3">
+                This trip plan includes all your activities, accommodations, and details. Save it to your account to access it anytime, share with others, or modify it later.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-between items-center">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    // Add a request for any adjustment
+                    setInput("The plan looks good, but could you make some changes to it?");
+                    chatWithAI("The plan looks good, but could you make some changes to it?");
+                  }}
+                >
+                  Request Changes First
+                </Button>
+                <Button 
+                  size="lg" 
+                  onClick={handleSaveTrip} 
+                  disabled={createTripMutation.isPending}
+                  className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
+                >
+                  {createTripMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Saving Trip...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      Save This Trip
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-          </CardFooter>
-        </Card>
+          </div>
+        </div>
       )}
-    </div>
+      
+      <CardFooter className="border-t pt-3">
+        <div className="flex w-full items-center space-x-2">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask about your trip, e.g., 'I want to go to Paris for a week in June'"
+            className="min-h-10 resize-none flex-1"
+            disabled={loading}
+          />
+          <Button 
+            onClick={() => chatWithAI(input)} 
+            disabled={loading || input.trim() === ''}
+            size="icon"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardFooter>
+    </Card>
   );
 }
