@@ -269,9 +269,11 @@ export function PremiumTripPlanner() {
         break;
         
       case 'confirmation':
-        const confirmationRegex = /^(yes|yeah|sure|ok|okay|generate|create|go ahead|please do)/i;
+        const confirmationRegex = /^(yes|yeah|sure|ok|okay|generate|create|go ahead|please do|that sounds good)/i;
         if (message.toLowerCase().match(confirmationRegex)) {
           setTripDetails(prev => ({ ...prev, confirmed: true }));
+          // Important: Call generateItinerary directly when confirmation is received
+          setTimeout(() => generateItinerary(), 500);
           detailCaptured = true;
         }
         break;
@@ -299,7 +301,8 @@ export function PremiumTripPlanner() {
       const detailCaptured = processUserResponse(message);
       
       // Special case for confirmation
-      if (currentQuestion === 'confirmation' && tripDetails.confirmed) {
+      if (currentQuestion === 'confirmation' && message.toLowerCase().match(/^(yes|yeah|sure|ok|okay|generate|create|go ahead|please do|that sounds good)/i)) {
+        setTripDetails(prev => ({ ...prev, confirmed: true }));
         generateItinerary();
         setLoading(false);
         return;
@@ -650,12 +653,12 @@ export function PremiumTripPlanner() {
                 <CardDescription className="flex items-center text-xs">
                   {day.aiSuggestions.weatherContext.is_suitable_for_outdoor ? (
                     <span className="flex items-center text-green-600 dark:text-green-400">
-                      <Sun className="h-3 w-3 mr-1" /> 
+                      <div className="h-3 w-3 mr-1 bg-green-400 rounded-full" /> 
                       Good weather for outdoor activities
                     </span>
                   ) : (
                     <span className="flex items-center text-amber-600 dark:text-amber-400">
-                      <Cloud className="h-3 w-3 mr-1" /> 
+                      <div className="h-3 w-3 mr-1 bg-amber-400 rounded-full" /> 
                       Consider indoor activities
                     </span>
                   )}
