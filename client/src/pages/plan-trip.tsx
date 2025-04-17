@@ -184,23 +184,37 @@ export default function PlanTrip() {
 
   const suggestMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log("Sending suggestion request with data:", data);
       const res = await apiRequest("POST", "/api/suggest-trip", {
         ...data,
         numberOfPeople,
         chatHistory,
       });
-      return res.json();
+      const responseData = await res.json();
+      console.log("Raw API response:", responseData);
+      return responseData;
     },
     onSuccess: (data) => {
       console.log("Received trip suggestions with weather:", data);
       console.log("Number of days received:", data.days?.length || 0);
-      console.log("Received days:", data.days?.map((d: any) => d.date).join(", "));
+      
+      if (!data.days || data.days.length === 0) {
+        console.error("No days received in the response", data);
+        toast({
+          title: "Error in Trip Generation",
+          description: "The trip itinerary could not be generated. Please try again with different trip details.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log("Received days:", data.days.map((d: any) => d.date).join(", "));
       setSuggestions(data);
       if (!currentQuestion) {
         getQuestionMutation.mutate();
       }
       toast({
-        title: "Budget Calculation",
+        title: "Trip Generated Successfully",
         description: `Total budget: $${form.getValues().budget} ($${(form.getValues().budget / numberOfPeople).toFixed(2)} per person × ${numberOfPeople} people)`,
       });
     },
@@ -777,6 +791,72 @@ export default function PlanTrip() {
                               <li key={index}>{tip}</li>
                             ))}
                           </ul>
+                        </div>
+                      )}
+                      
+                      {/* Daily Itinerary Display */}
+                      {suggestions.days && suggestions.days.length > 0 && (
+                        <div className="space-y-5 mt-4">
+                          <h3 className="font-semibold text-lg">Daily Itinerary</h3>
+                          {suggestions.days.map((day: any, dayIndex: number) => (
+                            <div key={dayIndex} className="border border-border rounded-md p-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <h4 className="font-medium text-base">
+                                  Day {dayIndex + 1}: {day.date} {day.dayOfWeek ? `(${day.dayOfWeek})` : ''}
+                                </h4>
+                                {day.aiSuggestions?.weatherContext && (
+                                  <Badge className={day.aiSuggestions.weatherContext.is_suitable_for_outdoor 
+                                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+                                    : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100"}>
+                                    {day.aiSuggestions.weatherContext.description}, {Math.round(day.aiSuggestions.weatherContext.temperature)}°F
+                                  </Badge>
+                                )}
+                              </div>
+                            
+                              {/* Activities */}
+                              <div className="space-y-3 ml-2">
+                                {day.activities?.timeSlots && day.activities.timeSlots.map((activity: any, actIndex: number) => (
+                                  <div key={actIndex} className="p-2 bg-muted/50 rounded-sm">
+                                    <div className="flex flex-wrap gap-1 items-start">
+                                      <div className="font-medium min-w-20 text-sm">{activity.time}</div>
+                                      <div className="flex-1">
+                                        <div className="font-medium">{activity.activity}</div>
+                                        <div className="text-sm text-muted-foreground">{activity.location}</div>
+                                        <div className="flex items-center gap-2 mt-1 text-xs">
+                                          <span>{activity.duration}</span>
+                                          {activity.cost?.USD && (
+                                            <span className="text-muted-foreground">${activity.cost.USD}</span>
+                                          )}
+                                          {activity.url && (
+                                            <a 
+                                              href={activity.url} 
+                                              target="_blank"
+                                              rel="noopener noreferrer" 
+                                              className="text-primary hover:underline flex items-center"
+                                            >
+                                              <ExternalLink className="h-3 w-3 mr-1" />
+                                              Website
+                                            </a>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              
+                              {/* Accommodation */}
+                              {day.accommodation && day.accommodation.name !== "TBD" && (
+                                <div className="mt-4 p-3 border border-border rounded-sm">
+                                  <h5 className="font-medium text-sm mb-1">Accommodation</h5>
+                                  <div className="text-sm">{day.accommodation.name}</div>
+                                  {day.accommodation.location && (
+                                    <div className="text-xs text-muted-foreground">{day.accommodation.location}</div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       )}
 
