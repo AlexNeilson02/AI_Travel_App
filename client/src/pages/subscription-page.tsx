@@ -77,13 +77,53 @@ export default function SubscriptionPage() {
     setCheckoutOpen(true);
   };
   
+  // Demo activate subscription (without Stripe)
+  const activateDemoSubscription = async (planId: number) => {
+    try {
+      const response = await apiRequest('POST', '/api/subscriptions/demo-activate', {
+        planId: planId
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to activate subscription');
+      }
+      
+      // Refresh subscription data
+      await refreshSubscription();
+      
+      toast({
+        title: 'Subscription Activated',
+        description: 'Your subscription has been activated successfully!',
+      });
+      
+      // Close dialog
+      setCheckoutOpen(false);
+    } catch (error) {
+      console.error('Error activating subscription:', error);
+      toast({
+        title: 'Activation Failed',
+        description: 'Could not activate the subscription',
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Process the actual subscription checkout
   const processCheckout = async () => {
     if (!selectedPlan || !user) return;
     
     setSubscribing(true);
     try {
-      // Get checkout URL from server
+      // USE DEMO MODE (for testing)
+      const useDemoMode = true;
+      
+      if (useDemoMode) {
+        await activateDemoSubscription(selectedPlan.id);
+        setSubscribing(false);
+        return;
+      }
+      
+      // Regular Stripe checkout flow
       const response = await apiRequest('POST', '/api/subscriptions/checkout', { 
         planId: selectedPlan.id,
         successUrl: `${window.location.origin}/subscription-success?planId=${selectedPlan.id}`,
