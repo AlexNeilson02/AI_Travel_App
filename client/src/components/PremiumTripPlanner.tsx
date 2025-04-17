@@ -304,7 +304,7 @@ export function PremiumTripPlanner() {
         'food', 'nightlife', 'cultural', 'historical', 'adventure',
         'relaxation', 'nature', 'sports'
       ];
-      const mentionedActivities = [];
+      const mentionedActivities: string[] = [];
       
       for (const type of activityTypes) {
         if (message.toLowerCase().includes(type)) {
