@@ -141,11 +141,84 @@ Your response must be structured as a JSON object. Return only the JSON object w
 
     let itinerary;
     try {
-      itinerary = JSON.parse(content);
+      // First, try to parse it directly
+      try {
+        itinerary = JSON.parse(content);
+      } catch (initialParseError) {
+        // If direct parsing fails, try to extract JSON from the content
+        console.log('Initial parsing failed, attempting to extract JSON from content');
+        
+        // Look for content between curly braces
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            itinerary = JSON.parse(jsonMatch[0]);
+            console.log('Successfully extracted and parsed JSON from content');
+          } catch (extractionError) {
+            console.error('Failed to parse extracted JSON:', extractionError);
+            throw new Error('Failed to parse extracted JSON content');
+          }
+        } else {
+          console.error('No JSON object found in the response');
+          throw new Error('No valid JSON found in the response');
+        }
+      }
+      
+      // Verify we have the minimum required structure
+      if (!itinerary.days || !Array.isArray(itinerary.days) || itinerary.days.length === 0) {
+        console.error('Invalid itinerary structure:', itinerary);
+        throw new Error('Invalid itinerary structure: missing days array');
+      }
+      
     } catch (parseError) {
       console.error('Failed to parse OpenAI response:', parseError);
       console.log('Raw response:', content);
-      throw new Error('Failed to parse trip suggestions');
+      
+      // Create a simple default itinerary as fallback
+      const startDateObj = new Date(startDate);
+      const endDateObj = new Date(endDate);
+      let fallbackDays = [];
+      
+      for (let i = 0; i < duration; i++) {
+        const currentDate = new Date(startDateObj);
+        currentDate.setDate(startDateObj.getDate() + i);
+        
+        fallbackDays.push({
+          date: format(currentDate, 'MMM d, yyyy'),
+          dayOfWeek: format(currentDate, 'EEEE'),
+          activities: {
+            timeSlots: [
+              {
+                time: "09:00",
+                activity: `Day ${i+1} in ${destination}`,
+                location: destination,
+                duration: "All day",
+                cost: { USD: 0, local: 0 },
+                notes: "This is a placeholder itinerary. Please try again with different search terms.",
+                isOutdoor: false
+              }
+            ]
+          },
+          accommodation: {
+            name: "Accommodation TBD",
+            cost: { USD: 100, local: 100 },
+            location: destination
+          },
+          meals: {
+            budget: { USD: 50, local: 50 }
+          }
+        });
+      }
+      
+      itinerary = {
+        days: fallbackDays,
+        totalCost: budget,
+        perPersonCost: budget / numberOfPeople,
+        tips: ["This is a placeholder itinerary due to generation errors", "Try again with more specific details"],
+        personalizedSuggestions: ["Consider searching for a different destination or date range"]
+      };
+      
+      console.log('Using fallback itinerary structure due to parsing error');
     }
 
     // Validate we got the expected number of days

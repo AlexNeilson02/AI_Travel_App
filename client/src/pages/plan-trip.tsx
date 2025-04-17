@@ -219,11 +219,19 @@ export default function PlanTrip() {
       });
     },
     onError: (error: Error) => {
+      console.error("Trip generation error:", error);
+      
+      // Show a more user-friendly error message
       toast({
-        title: "Error getting suggestions",
-        description: error.message,
+        title: "Trip Generation Error",
+        description: "We encountered an issue while creating your trip itinerary. Please try again with different trip details or a different destination.",
         variant: "destructive",
       });
+      
+      // Log additional details for debugging
+      if (error.message.includes("parse")) {
+        console.error("This appears to be a JSON parsing error. The AI response wasn't in the expected format.");
+      }
     },
   });
 

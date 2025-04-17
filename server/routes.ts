@@ -160,9 +160,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(response);
     } catch (error: any) {
       console.error('Error generating suggestions:', error);
+      
+      // Log more detailed information for debugging
+      if (error.message.includes('parse')) {
+        console.error('This appears to be a JSON parsing error from OpenAI');
+      }
+      
+      // Create a more user-friendly error response
       res.status(500).json({
         message: error.message || 'Failed to generate trip suggestions',
-        error: error.toString()
+        error: error.toString(),
+        suggestion: "Please try with a different destination or date range"
       });
     }
   });
