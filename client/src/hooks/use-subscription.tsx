@@ -74,12 +74,23 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           if (!subscriptionRes.ok) {
             throw new Error('Failed to fetch user subscription');
           }
-          const subscription = await subscriptionRes.json() as UserSubscription;
-          setActiveSubscription(subscription);
-
-          // Find the matching plan
-          const userPlan = plans.find(p => p.id === subscription.planId);
-          setActivePlan(userPlan || null);
+          
+          const subData = await subscriptionRes.json();
+          console.log("Subscription data:", subData);
+          
+          // Check if we have a valid subscription
+          if (subData?.subscription) {
+            setActiveSubscription(subData.subscription);
+            
+            // Get the plan from the response or find it
+            const userPlan = subData.plan || plans.find(p => p.id === subData.subscription.planId);
+            setActivePlan(userPlan || null);
+          } else {
+            // No active subscription
+            const freePlan = plans.find(p => p.name.toLowerCase() === 'free');
+            setActivePlan(freePlan || null);
+            setActiveSubscription(null);
+          }
         } catch (error) {
           // User might not have a subscription - find the free plan instead
           const freePlan = plans.find(p => p.name.toLowerCase() === 'free');
@@ -107,6 +118,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const getSubscriptionStatus = (): 'free' | 'premium' | 'business' | 'none' => {
     if (!activePlan) return 'none';
     
+    // Check if we have an active subscription
+    const isActive = activeSubscription?.status === 'active';
+    if (!isActive && activePlan.name.toLowerCase() !== 'free') {
+      return 'free'; // Default to free if subscription is not active
+    }
+    
     const planName = activePlan.name.toLowerCase();
     if (planName === 'free') return 'free';
     if (planName === 'premium') return 'premium';
@@ -123,7 +140,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   
   // Trip limits based on plan
   const maxTrips = activePlan?.maxTrips || 3; // Default to free plan limit if no plan
-  const hasUnlimitedTrips = activePlan?.maxTrips === 999; // Using 999 as unlimited indicator
+  const hasUnlimitedTrips = status !== 'free'; // Premium and above have unlimited trips
   
   // Premium features
   const hasPdfExport = status === 'premium' || status === 'business';
