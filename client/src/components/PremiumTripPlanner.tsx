@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Loader2, 
@@ -13,25 +12,21 @@ import {
   MapPin, 
   Home, 
   Activity, 
-  Clock,
-  AlertCircle,
-  CheckCircle,
-  RefreshCw
+  RefreshCw,
+  Save,
+  Clock
 } from 'lucide-react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
+import { useSubscription } from '@/hooks/use-subscription';
 import { useMutation } from '@tanstack/react-query';
+import { TravelLoadingAnimation } from './TravelLoadingAnimation';
 
+// Define types for our component
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -117,7 +112,7 @@ export function PremiumTripPlanner() {
       },
       {
         role: 'assistant',
-        content: 'Hi there! To start planning your perfect trip, I\'ll need to ask you a few questions one by one. First, where would you like to travel to?',
+        content: questionText['destination'],
         timestamp: new Date()
       }
     ]);
@@ -461,53 +456,6 @@ Is this information correct? I'll create your itinerary once you confirm.
     }
   };
 
-  // Ask specific questions based on what information we're still missing
-  const askNextQuestion = () => {
-    // Skip if we're still loading or if we have all details and confirmation
-    if (loading || (hasAllRequiredDetails() && tripDetails.confirmed)) return;
-    
-    // Define questions for each missing piece of information
-    const questions = {
-      destination: "Where would you like to travel to?",
-      dates: "When are you planning to travel? Please provide start and end dates.",
-      budget: "What's your total budget for this trip?",
-      people: "How many people will be traveling?",
-      accommodation: "What type of accommodation do you prefer? (hotel, hostel, apartment, etc.)",
-      activities: "What types of activities are you interested in? (sightseeing, museums, beaches, hiking, etc.)",
-      frequency: "Would you prefer a busy itinerary with many activities each day, or a more relaxed pace with free time?"
-    };
-    
-    // Check which details we're missing and ask the next question
-    for (const [key, question] of Object.entries(questions)) {
-      if (!collectedDetails.includes(key)) {
-        setTimeout(() => {
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: question,
-            timestamp: new Date()
-          }]);
-        }, 1000);
-        return;
-      }
-    }
-    
-    // If we have all required details but haven't asked for confirmation yet
-    if (hasAllRequiredDetails() && !tripDetails.confirmed && !showConfirmation) {
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: "Would you like me to generate your itinerary now?",
-          timestamp: new Date()
-        }]);
-      }, 1000);
-    }
-  };
-  
-  // Effect to ask the next question when details are collected
-  useEffect(() => {
-    askNextQuestion();
-  }, [collectedDetails, tripDetails.confirmed, showConfirmation]);
-
   // Question sequence management
   const moveToNextQuestion = () => {
     const currentIndex = questionSequence.indexOf(currentQuestion);
@@ -519,10 +467,10 @@ Is this information correct? I'll create your itinerary once you confirm.
       setTimeout(() => {
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: questionText[nextQuestion as keyof typeof questionText],
+          content: questionText[nextQuestion],
           timestamp: new Date()
         }]);
-      }, 500);
+      }, 600);
     }
   };
 
