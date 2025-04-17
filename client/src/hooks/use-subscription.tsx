@@ -17,7 +17,7 @@ interface SubscriptionContextType {
   hasAdjustableCalendar: boolean;
   hasAiChatbot: boolean;
   // Gets the subscription status for UI display
-  getSubscriptionStatus: () => 'free' | 'premium' | 'business' | 'none';
+  getSubscriptionStatus: () => 'free' | 'premium' | 'none';
   // Force refresh the subscription data
   refreshSubscription: () => Promise<void>;
 }
@@ -115,7 +115,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   // Helper function to get subscription status
-  const getSubscriptionStatus = (): 'free' | 'premium' | 'business' | 'none' => {
+  const getSubscriptionStatus = (): 'free' | 'premium' | 'none' => {
     if (!activePlan) return 'none';
     
     // Check if we have an active subscription
@@ -127,7 +127,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     const planName = activePlan.name.toLowerCase();
     if (planName === 'free') return 'free';
     if (planName === 'premium') return 'premium';
-    if (planName === 'business') return 'business';
     
     return 'none';
   };
@@ -143,13 +142,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const hasUnlimitedTrips = status !== 'free'; // Premium and above have unlimited trips
   
   // Premium features
-  const hasPdfExport = status === 'premium' || status === 'business';
-  const hasAdvancedAi = status === 'business';
+  const hasPdfExport = status === 'premium';
+  const hasAdvancedAi = false; // No longer available as Business tier is removed
   
   // New premium features
-  const hasMapsFeature = status === 'premium' || status === 'business';
-  const hasAdjustableCalendar = status === 'premium' || status === 'business';
-  const hasAiChatbot = status === 'premium' || status === 'business';
+  const hasMapsFeature = status === 'premium';
+  const hasAdjustableCalendar = status === 'premium';
+  const hasAiChatbot = status === 'premium';
 
   // Provide the context value
   const contextValue: SubscriptionContextType = {
