@@ -373,8 +373,16 @@ export default function MyTrips() {
                         <AlertDialogAction
                           onClick={() => deleteMutation.mutate(trip.id)}
                           className="bg-destructive hover:bg-destructive/90"
+                          disabled={deleteMutation.isPending}
                         >
-                          Delete
+                          {deleteMutation.isPending ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Deleting...
+                            </>
+                          ) : (
+                            "Delete"
+                          )}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
