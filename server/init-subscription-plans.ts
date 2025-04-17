@@ -55,7 +55,7 @@ const plans: (FreePlan | PaidPlan)[] = [
     name: 'Free',
     description: 'Basic travel planning features',
     monthlyPrice: 0,
-    features: ['Up to 3 trips', 'Basic trip planning', 'Standard recommendations'],
+    features: ['Up to 3 trips', 'Basic trip planning', 'Standard recommendations', 'PDF exports'],
     maxTrips: 3,
     stripePriceId: 'free_tier', // No real Stripe price ID for free plan
     isActive: true
@@ -64,20 +64,11 @@ const plans: (FreePlan | PaidPlan)[] = [
     name: 'Premium',
     description: 'Enhanced travel planning with advanced features',
     monthlyPrice: 999, // $9.99 in cents
-    features: ['Unlimited trips', 'Advanced AI recommendations', 'PDF exports', 'Premium support'],
+    features: ['Unlimited trips', 'Advanced AI recommendations', 'Real-time trip chatbot', 'Interactive Maps', 'Premium support'],
     maxTrips: -1, // Unlimited
     interval: 'month',
     isActive: true
-  },
-  {
-    name: 'Business',
-    description: 'Complete travel planning solution for businesses',
-    monthlyPrice: 1999, // $19.99 in cents
-    features: ['Unlimited trips', 'Advanced AI recommendations', 'PDF exports', 'Premium support', 'Team collaboration', 'Expense tracking'],
-    maxTrips: -1, // Unlimited
-    interval: 'month',
-    isActive: true
-  },
+  }
 ];
 
 /**

@@ -152,8 +152,16 @@ router.post('/cancel', async (req: Request, res: Response) => {
 
     const userId = (req.user as any).id;
     
-    // Cancel the subscription
-    await stripeService.cancelSubscription(userId);
+    // Get the user's subscription directly
+    const userSubscription = await storage.getUserActiveSubscription(userId);
+    if (!userSubscription) {
+      return res.status(404).json({ error: 'No active subscription found' });
+    }
+    
+    // For all subscriptions, just update our database directly
+    await storage.updateUserSubscription(userSubscription.id, {
+      cancelAtPeriodEnd: true
+    });
     
     return res.status(200).json({ message: 'Subscription has been canceled' });
   } catch (error) {
