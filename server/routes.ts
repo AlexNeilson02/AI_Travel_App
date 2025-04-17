@@ -142,6 +142,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // AI Chat for trip planning
+  app.post("/api/trips/ai-chat", async (req, res) => {
+    // Verify subscription status for premium features
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const { message, messages, tripDetails } = req.body;
+    console.log('Received AI chat request:', { message });
+    
+    try {
+      // Process the chat history
+      const chatHistory = messages || [];
+      
+      // Format trip details if they exist
+      let systemPrompt = "You are Juno AI, a travel planning assistant. Help the user plan their perfect trip by asking questions about their preferences.";
+      let plan = null;
+      
+      // If we have essential trip details, consider generating a full plan
+      if (tripDetails) {
+        const { destination, startDate, endDate, budget, numberOfPeople, accommodationType, activityTypes, activityFrequency } = tripDetails;
+        
+        // Check if we have all required details to create a plan
+        const hasEssentialDetails = destination && startDate && endDate && budget && 
+                                   accommodationType && activityTypes && activityFrequency;
+        
+        if (hasEssentialDetails) {
+          // Formulate preferences for the AI
+          const formattedPreferences = [
+            ...(accommodationType || []).map((type: string) => `Accommodation: ${type}`),
+            ...(activityTypes || []).map((type: string) => `Activity: ${type}`),
+            `Activity Frequency: ${activityFrequency || 'moderate'}`
+          ];
+          
+          // Calculate trip duration
+          const duration = Math.floor((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1;
+          
+          // Generate a full trip plan
+          plan = await generateTripSuggestions(
+            destination,
+            formattedPreferences,
+            budget,
+            duration,
+            startDate,
+            endDate,
+            numberOfPeople || 1,
+            chatHistory
+          );
+          
+          systemPrompt = `You are Juno AI, a travel planning assistant. 
+          The user is planning a trip to ${destination} from ${startDate} to ${endDate} with a budget of $${budget}.
+          I've created a full itinerary for them. Help them understand the plan and answer any questions they have.`;
+        }
+      }
+      
+      // Generate a response using OpenAI
+      const response = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...chatHistory,
+          { role: "user", content: message }
+        ],
+        temperature: 0.7,
+      });
+      
+      const responseText = response.choices[0].message.content || "I'm having trouble understanding. Could you try rephrasing your question?";
+      
+      // Return the AI response and the plan if generated
+      res.json({
+        response: responseText,
+        plan: plan
+      });
+    } catch (error: any) {
+      console.error('Error in AI chat:', error);
+      res.status(500).json({
+        message: error.message || 'Failed to process your request',
+        error: error.toString()
+      });
+    }
+  });
 
   app.post("/api/trip-questions", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
