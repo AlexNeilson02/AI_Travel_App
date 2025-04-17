@@ -74,7 +74,7 @@ export function PremiumTripPlanner() {
   const [location, navigate] = useLocation();
   const { user } = useAuth();
 
-  // Initialize conversation when component mounts and create demo plan for UI demonstration
+  // Initialize conversation when component mounts
   useEffect(() => {
     setMessages([
       {
@@ -88,244 +88,6 @@ export function PremiumTripPlanner() {
         timestamp: new Date()
       }
     ]);
-
-    // Create a demo plan for UI visualization purposes
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    const dayAfterTomorrow = new Date(today);
-    dayAfterTomorrow.setDate(today.getDate() + 2);
-    const lastDay = new Date(today);
-    lastDay.setDate(today.getDate() + 3);
-
-    // Update trip details with demo data
-    setTripDetails({
-      destination: 'Washington D.C.',
-      startDate: today,
-      endDate: lastDay,
-      budget: 500,
-      numberOfPeople: 2,
-      accommodationType: ['hotel'],
-      activityTypes: ['cultural', 'outdoor', 'adventure'],
-      activityFrequency: 'relaxed',
-      confirmed: true
-    });
-    
-    // Add these to collected details
-    setCollectedDetails(['destination', 'dates', 'budget', 'people', 'accommodation', 'activities', 'frequency']);
-
-    // Set demo generated plan
-    const demoPlan = {
-      destination: "Washington D.C.",
-      days: [
-        {
-          date: format(today, "MMM dd, yyyy"),
-          dayOfWeek: format(today, "EEEE"),
-          activities: {
-            timeSlots: [
-              {
-                time: "09:30",
-                activity: "Visit to National Mall and Memorial Parks",
-                location: "900 Ohio Dr SW, Washington, DC 20024, United States",
-                duration: "2.5 hours",
-                notes: "Don't miss the Lincoln Memorial and Washington Monument",
-                isEdited: false
-              },
-              {
-                time: "12:30",
-                activity: "Lunch at Founding Farmers",
-                location: "1924 Pennsylvania Ave NW, Washington, DC 20006, United States",
-                duration: "1 hour",
-                notes: "Popular farm-to-table restaurant with local ingredients",
-                isEdited: false
-              },
-              {
-                time: "14:00",
-                activity: "Tour of U.S. Capitol",
-                location: "First St SE, Washington, DC 20004, United States",
-                duration: "2 hours",
-                notes: "Book the tour in advance for best experience",
-                isEdited: false
-              },
-              {
-                time: "16:30",
-                activity: "Stroll through Georgetown",
-                location: "Georgetown, Washington, DC, USA",
-                duration: "1.5 hours",
-                notes: "Historic neighborhood with shopping and dining",
-                isEdited: false
-              }
-            ]
-          },
-          aiSuggestions: {
-            weatherContext: {
-              description: "Mainly clear",
-              temperature: 67,
-              humidity: 40,
-              wind_speed: 5,
-              precipitation_probability: 10,
-              is_suitable_for_outdoor: true
-            },
-            alternativeActivities: []
-          }
-        },
-        {
-          date: format(tomorrow, "MMM dd, yyyy"),
-          dayOfWeek: format(tomorrow, "EEEE"),
-          activities: {
-            timeSlots: [
-              {
-                time: "09:00",
-                activity: "Smithsonian National Museum of Natural History",
-                location: "10th St. & Constitution Ave. NW, Washington, DC 20560",
-                duration: "3 hours",
-                notes: "Free admission. Check out the Hope Diamond and dinosaur exhibits.",
-                isEdited: false
-              },
-              {
-                time: "12:30",
-                activity: "Lunch at District Taco",
-                location: "1309 F St NW, Washington, DC 20004",
-                duration: "1 hour",
-                notes: "Casual Mexican food",
-                isEdited: false
-              },
-              {
-                time: "14:00",
-                activity: "Visit to National Air and Space Museum",
-                location: "600 Independence Ave SW, Washington, DC 20560",
-                duration: "2.5 hours",
-                notes: "Don't miss the Wright Brothers exhibit",
-                isEdited: false
-              },
-              {
-                time: "17:00",
-                activity: "Washington Monument Sunset View",
-                location: "2 15th St NW, Washington, DC 20024",
-                duration: "1 hour",
-                notes: "Reserve tickets in advance",
-                isEdited: false
-              }
-            ]
-          },
-          aiSuggestions: {
-            weatherContext: {
-              description: "Partly cloudy",
-              temperature: 70,
-              humidity: 45,
-              wind_speed: 6,
-              precipitation_probability: 5,
-              is_suitable_for_outdoor: true
-            },
-            alternativeActivities: []
-          }
-        },
-        {
-          date: format(dayAfterTomorrow, "MMM dd, yyyy"),
-          dayOfWeek: format(dayAfterTomorrow, "EEEE"),
-          activities: {
-            timeSlots: [
-              {
-                time: "09:30",
-                activity: "Arlington National Cemetery Tour",
-                location: "Arlington, VA 22211",
-                duration: "2 hours",
-                notes: "Pay respects at the Tomb of the Unknown Soldier",
-                isEdited: false
-              },
-              {
-                time: "12:00",
-                activity: "Lunch at Ben's Chili Bowl",
-                location: "1213 U St NW, Washington, DC 20009",
-                duration: "1 hour",
-                notes: "Historic DC restaurant famous for half-smokes",
-                isEdited: false
-              },
-              {
-                time: "13:30",
-                activity: "National Gallery of Art",
-                location: "Constitution Ave. NW, Washington, DC 20565",
-                duration: "2.5 hours",
-                notes: "World-class art collection",
-                isEdited: false
-              },
-              {
-                time: "16:30",
-                activity: "Tidal Basin Walk",
-                location: "Tidal Basin, Washington, DC",
-                duration: "1.5 hours",
-                notes: "Beautiful views of Jefferson Memorial",
-                isEdited: false
-              }
-            ]
-          },
-          aiSuggestions: {
-            weatherContext: {
-              description: "Sunny",
-              temperature: 72,
-              humidity: 42,
-              wind_speed: 4,
-              precipitation_probability: 0,
-              is_suitable_for_outdoor: true
-            },
-            alternativeActivities: []
-          }
-        },
-        {
-          date: format(lastDay, "MMM dd, yyyy"),
-          dayOfWeek: format(lastDay, "EEEE"),
-          activities: {
-            timeSlots: [
-              {
-                time: "09:00",
-                activity: "White House Photo Stop",
-                location: "1600 Pennsylvania Avenue NW, Washington, DC 20500",
-                duration: "1 hour",
-                notes: "Great photo opportunity",
-                isEdited: false
-              },
-              {
-                time: "10:30",
-                activity: "United States Holocaust Memorial Museum",
-                location: "100 Raoul Wallenberg Pl SW, Washington, DC 20024",
-                duration: "2 hours",
-                notes: "Reserve timed entry passes in advance",
-                isEdited: false
-              },
-              {
-                time: "13:00",
-                activity: "Lunch at Old Ebbitt Grill",
-                location: "675 15th St NW, Washington, DC 20005",
-                duration: "1.5 hours",
-                notes: "Historic restaurant near the White House",
-                isEdited: false
-              },
-              {
-                time: "15:00",
-                activity: "National Archives Museum",
-                location: "701 Constitution Ave NW, Washington, DC 20408",
-                duration: "1.5 hours",
-                notes: "See the original Declaration of Independence",
-                isEdited: false
-              }
-            ]
-          },
-          aiSuggestions: {
-            weatherContext: {
-              description: "Clear sky",
-              temperature: 69,
-              humidity: 38,
-              wind_speed: 5,
-              precipitation_probability: 0,
-              is_suitable_for_outdoor: true
-            },
-            alternativeActivities: []
-          }
-        }
-      ]
-    };
-    
-    setGeneratedPlan(demoPlan);
   }, []);
 
   // Scroll to bottom whenever messages change
@@ -666,6 +428,53 @@ Is this information correct? I'll create your itinerary once you confirm.
     }
   };
 
+  // Ask specific questions based on what information we're still missing
+  const askNextQuestion = () => {
+    // Skip if we're still loading or if we have all details and confirmation
+    if (loading || (hasAllRequiredDetails() && tripDetails.confirmed)) return;
+    
+    // Define questions for each missing piece of information
+    const questions = {
+      destination: "Where would you like to travel to?",
+      dates: "When are you planning to travel? Please provide start and end dates.",
+      budget: "What's your total budget for this trip?",
+      people: "How many people will be traveling?",
+      accommodation: "What type of accommodation do you prefer? (hotel, hostel, apartment, etc.)",
+      activities: "What types of activities are you interested in? (sightseeing, museums, beaches, hiking, etc.)",
+      frequency: "Would you prefer a busy itinerary with many activities each day, or a more relaxed pace with free time?"
+    };
+    
+    // Check which details we're missing and ask the next question
+    for (const [key, question] of Object.entries(questions)) {
+      if (!collectedDetails.includes(key)) {
+        setTimeout(() => {
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: question,
+            timestamp: new Date()
+          }]);
+        }, 1000);
+        return;
+      }
+    }
+    
+    // If we have all required details but haven't asked for confirmation yet
+    if (hasAllRequiredDetails() && !tripDetails.confirmed && !showConfirmation) {
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: "Would you like me to generate your itinerary now?",
+          timestamp: new Date()
+        }]);
+      }, 1000);
+    }
+  };
+  
+  // Effect to ask the next question when details are collected
+  useEffect(() => {
+    askNextQuestion();
+  }, [collectedDetails, tripDetails.confirmed, showConfirmation]);
+
   // Chat with AI function
   const chatWithAI = async (message: string) => {
     if (!message.trim()) return;
@@ -684,9 +493,14 @@ Is this information correct? I'll create your itinerary once you confirm.
       // Extract trip details from the user message
       const detailsFound = extractTripDetails(message);
       
-      // Check if we should show confirmation
-      if (hasAllRequiredDetails()) {
-        promptForConfirmation();
+      // Check for generation confirmation
+      if (hasAllRequiredDetails() && !tripDetails.confirmed) {
+        // Check if the user is confirming to generate the itinerary
+        if (message.toLowerCase().match(/^(yes|yeah|sure|ok|okay|generate|create|go ahead|please do)/)) {
+          promptForConfirmation();
+          setLoading(false);
+          return;
+        }
       }
 
       // Prepare trip details to send to the API
@@ -840,7 +654,7 @@ Is this information correct? I'll create your itinerary once you confirm.
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+    <div className={`h-full ${generatedPlan ? "grid grid-cols-1 lg:grid-cols-2 gap-6" : ""}`}>
       {/* Left Side: Chat Interface */}
       <Card className="flex flex-col h-full">
         <CardHeader>
