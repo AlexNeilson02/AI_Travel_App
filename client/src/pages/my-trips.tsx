@@ -356,8 +356,9 @@ export default function MyTrips() {
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                      <Button variant="destructive" size="sm" className="flex gap-2">
+                        <Trash2 className="h-4 w-4" />
+                        Delete
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
