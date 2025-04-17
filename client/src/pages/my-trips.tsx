@@ -93,6 +93,13 @@ export default function MyTrips() {
         description: "Trip deleted successfully",
       });
     },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete trip",
+        variant: "destructive",
+      });
+    }
   });
 
   const updateActivityMutation = useMutation({
@@ -350,7 +357,7 @@ export default function MyTrips() {
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="icon">
-                        <Trash2 className="h-4 w-4 text-muted-foreground" />
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -364,7 +371,7 @@ export default function MyTrips() {
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => deleteMutation.mutate(trip.id)}
-                          className="bg-red-600 hover:bg-red-700"
+                          className="bg-destructive hover:bg-destructive/90"
                         >
                           Delete
                         </AlertDialogAction>
