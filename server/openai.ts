@@ -54,21 +54,24 @@ export async function generateTripSuggestions(
     .map(msg => msg.content)
     .join("\n");
 
-  // Create a more explicit prompt that emphasizes the need for ALL days in the date range and realistic pricing
+  // Create a more explicit prompt that emphasizes the need for ALL days in the date range, URLs for activities, and realistic pricing
   const systemPrompt = `You are an expert travel planner creating a personalized itinerary for ${numberOfPeople} person(s) to ${destination} from ${startDate} to ${endDate}. 
 Budget: $${budget} total ($${budgetPerPerson.toFixed(2)} per person).
 Known preferences: ${preferences.join(", ")}
 Additional context from conversation:
 ${userInterests}
 
-IMPORTANT:
+CRITICALLY IMPORTANT:
 1. Your itinerary MUST include ALL ${duration} days from ${startDate} to ${endDate}. Create an entry for each day in the specified date range.
-2. Always use REALISTIC pricing for accommodations, activities, and meals. Never use unrealistically low prices.
-3. For accommodations (hotels/motels/hostels), the minimum cost should be $50-70 per night for budget options, $100-150 for mid-range, and $200+ for luxury.
-4. ACCOMMODATION MUST BE A PLACE TO STAY (hotel, motel, hostel, inn, Airbnb, etc.) NOT a restaurant, attraction, or activity.
-5. If the user's budget is very low, prioritize budget accommodations, free activities, and affordable meals.
-6. If you cannot stay within budget with realistic prices, get as close as possible and note this in the tips section.
-7. Each day should have a proper accommodation listing where the traveler will stay overnight.
+2. EVERY activity must include a REAL AND WORKING URL to the attraction, restaurant, or place.
+3. Always use REALISTIC pricing for accommodations, activities, and meals. Never use unrealistically low prices.
+4. For accommodations (hotels/motels/hostels), the minimum cost should be $50-70 per night for budget options, $100-150 for mid-range, and $200+ for luxury.
+5. ACCOMMODATION MUST BE A PLACE TO STAY (hotel, motel, hostel, inn, Airbnb, etc.) NOT a restaurant, attraction, or activity.
+6. Each activity must have its own specific time slot and duration.
+7. Each day should have 5-8 different activities properly scheduled throughout the day from morning to evening.
+8. Include a mix of popular attractions and local experiences.
+9. For each day, include at least one URL for a restaurant, one URL for a cultural attraction, and one URL for a local experience.
+10. Each day should have a proper accommodation listing where the traveler will stay overnight.
 
 Your response must be structured as a JSON object. Return only the JSON object with this structure, no additional text:
 {
@@ -81,14 +84,14 @@ Your response must be structured as a JSON object. Return only the JSON object w
           {
             "time": "HH:MM",
             "activity": "Activity name",
-            "location": "Location name",
+            "location": "Location name with specific address",
             "duration": "Duration in hours",
             "cost": {
               "USD": number,
               "local": number
             },
-            "notes": "Additional details",
-            "url": "Optional website URL",
+            "notes": "Detailed description with useful tips",
+            "url": "REAL AND WORKING WEBSITE URL (REQUIRED)",
             "isOutdoor": boolean
           }
         ]
@@ -99,7 +102,8 @@ Your response must be structured as a JSON object. Return only the JSON object w
           "USD": number,
           "local": number
         },
-        "location": "Address"
+        "location": "Specific address",
+        "url": "Hotel website URL (if available)"
       },
       "meals": {
         "budget": {
@@ -122,11 +126,12 @@ Your response must be structured as a JSON object. Return only the JSON object w
       messages: [
         { 
           role: "system", 
-          content: "You are an expert travel planner. Include both local currency and USD. Respond only with valid JSON objects. Always ensure accommodations are actual places to stay (hotels, motels, hostels, inns, Airbnb) and never restaurants, attractions, or other non-accommodation venues." 
+          content: "You are an expert travel planner who creates extremely detailed, complete itineraries with links to real attractions and activities. Include both local currency and USD. Respond only with valid JSON objects. Always ensure accommodations are actual places to stay (hotels, motels, hostels, inns, Airbnb) and never restaurants, attractions, or other non-accommodation venues. EVERY activity must include a real, working URL. Each day should have 5-8 different activities throughout the day."
         },
-        { role: "user", content: `${systemPrompt}\nPlease provide costs in both local currency and USD.` }
+        { role: "user", content: `${systemPrompt}\nPlease provide costs in both local currency and USD. Remember to include REAL AND WORKING URLs for EVERY activity - this is critically important!` }
       ],
-      temperature: 0.7,
+      temperature: 0.8,
+      max_tokens: 4000,
     });
 
     const content = aiResponse.choices[0].message.content;
@@ -299,7 +304,8 @@ Your response must be structured as a JSON object. Return only the JSON object w
           totalCost: typeof day.accommodation?.cost === 'object' 
             ? day.accommodation?.cost 
             : { USD: typeof day.accommodation?.cost === 'number' ? day.accommodation?.cost : 0, local: typeof day.accommodation?.cost === 'number' ? day.accommodation?.cost : 0 },
-          location: day.accommodation?.location || ""
+          location: day.accommodation?.location || "",
+          url: day.accommodation?.url || ""
         },
         meals: {
           budget: typeof day.meals?.budget === 'object' 

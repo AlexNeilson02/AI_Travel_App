@@ -738,71 +738,148 @@ Is this information correct? I'll create your itinerary once you confirm.
             <h3 className="font-semibold">Trip Plan Created</h3>
           </div>
           <p className="text-sm mb-3">
-            Your itinerary is ready! Here's a summary of your trip plan:
+            Your itinerary is ready! Here's your complete trip plan:
           </p>
           
           {/* Trip Summary */}
-          <div className="bg-white dark:bg-gray-800 rounded-md p-3 mb-4 max-h-[300px] overflow-y-auto">
-            <h4 className="font-medium mb-2">Trip to {tripDetails.destination}</h4>
-            <div className="text-xs space-y-1 text-muted-foreground">
-              <p>Dates: {tripDetails.startDate ? format(tripDetails.startDate, 'MMM d, yyyy') : 'Not set'} - {tripDetails.endDate ? format(tripDetails.endDate, 'MMM d, yyyy') : 'Not set'}</p>
-              <p>Budget: ${tripDetails.budget}</p>
-              <p>Travelers: {tripDetails.numberOfPeople}</p>
-              <p>Accommodation: {tripDetails.accommodationType.join(', ')}</p>
-              <p>Activities: {tripDetails.activityTypes.join(', ')}</p>
+          <div className="bg-white dark:bg-gray-800 rounded-md p-3 mb-4 max-h-[400px] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-medium text-lg">Trip to {tripDetails.destination}</h4>
+              <div className="flex space-x-2">
+                <Badge variant="outline" className="bg-blue-100 dark:bg-blue-900">
+                  <CalendarIcon className="h-3 w-3 mr-1" />
+                  {tripDetails.startDate ? format(tripDetails.startDate, 'MMM d') : ''} - {tripDetails.endDate ? format(tripDetails.endDate, 'MMM d') : ''}
+                </Badge>
+                <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-900">
+                  <DollarSign className="h-3 w-3 mr-1" />
+                  ${tripDetails.budget}
+                </Badge>
+              </div>
             </div>
             
-            {/* Day-by-Day Summary */}
-            <div className="mt-3 space-y-2">
-              <h5 className="text-sm font-medium">Itinerary Highlights:</h5>
-              <div className="space-y-2">
-                {generatedPlan.days.slice(0, 2).map((day: any, index: number) => (
-                  <div key={index} className="p-2 text-xs border border-muted rounded">
-                    <p className="font-medium">{day.date} ({day.dayOfWeek})</p>
-                    <ul className="list-disc pl-4 mt-1">
-                      {day.activities.timeSlots.slice(0, 2).map((activity: any, i: number) => (
-                        <li key={i}>{activity.activity}</li>
-                      ))}
-                      {day.activities.timeSlots.length > 2 && (
-                        <li className="text-muted-foreground">+ {day.activities.timeSlots.length - 2} more activities</li>
+            <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+              <div>
+                <p className="font-medium">Trip Overview</p>
+                <ul className="mt-1 space-y-1 text-muted-foreground">
+                  <li><span className="font-medium text-foreground">Destination:</span> {tripDetails.destination}</li>
+                  <li><span className="font-medium text-foreground">Dates:</span> {tripDetails.startDate ? format(tripDetails.startDate, 'MMM d, yyyy') : ''} - {tripDetails.endDate ? format(tripDetails.endDate, 'MMM d, yyyy') : ''}</li>
+                  <li><span className="font-medium text-foreground">Budget:</span> ${tripDetails.budget}</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-medium">Preferences</p>
+                <ul className="mt-1 space-y-1 text-muted-foreground">
+                  <li><span className="font-medium text-foreground">Travelers:</span> {tripDetails.numberOfPeople}</li>
+                  <li><span className="font-medium text-foreground">Accommodation:</span> {tripDetails.accommodationType.join(', ')}</li>
+                  <li><span className="font-medium text-foreground">Activity Types:</span> {tripDetails.activityTypes.join(', ')}</li>
+                </ul>
+              </div>
+            </div>
+            
+            {/* Complete Day-by-Day Itinerary */}
+            <div className="mt-4">
+              <h5 className="text-md font-medium mb-3">Full Itinerary:</h5>
+              <div className="space-y-4">
+                {generatedPlan.days.map((day: any, dayIndex: number) => (
+                  <div key={dayIndex} className="p-3 border border-muted rounded">
+                    <div className="flex items-center justify-between mb-2">
+                      <h6 className="font-medium">Day {dayIndex + 1}: {day.date} ({day.dayOfWeek})</h6>
+                      {day.aiSuggestions?.weatherContext && (
+                        <Badge className={day.aiSuggestions.weatherContext.is_suitable_for_outdoor 
+                          ? "bg-green-100 dark:bg-green-900"
+                          : "bg-amber-100 dark:bg-amber-900"}>
+                          {day.aiSuggestions.weatherContext.description}, {Math.round(day.aiSuggestions.weatherContext.temperature)}°F
+                        </Badge>
                       )}
-                    </ul>
-                    <p className="mt-1 text-muted-foreground">Stay: {day.accommodation?.name}</p>
+                    </div>
+                    
+                    {/* Full day's activities with details */}
+                    <div className="space-y-3 mt-2">
+                      {day.activities.timeSlots.map((activity: any, actIndex: number) => (
+                        <div key={actIndex} className="p-2 bg-gray-50 dark:bg-gray-900 rounded">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium">{activity.time} - {activity.activity}</p>
+                              <p className="text-xs text-muted-foreground mt-1">{activity.location}</p>
+                              {activity.notes && (
+                                <p className="text-xs mt-1 italic">{activity.notes}</p>
+                              )}
+                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              {activity.duration}
+                            </Badge>
+                          </div>
+                          {activity.url && (
+                            <a 
+                              href={activity.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs flex items-center mt-2 text-blue-600 hover:underline"
+                            >
+                              <Activity className="h-3 w-3 mr-1" />
+                              More information
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Accommodation for the day */}
+                    {day.accommodation && (
+                      <div className="mt-3 border-t pt-2">
+                        <div className="flex items-center text-sm">
+                          <Home className="h-4 w-4 mr-1 text-muted-foreground" />
+                          <span className="font-medium">Stay: </span>
+                          <span className="ml-1">{day.accommodation.name}</span>
+                        </div>
+                        {day.accommodation.location && (
+                          <p className="text-xs text-muted-foreground ml-5">{day.accommodation.location}</p>
+                        )}
+                        {day.accommodation.url && (
+                          <a 
+                            href={day.accommodation.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-xs flex items-center mt-1 ml-5 text-blue-600 hover:underline"
+                          >
+                            <Activity className="h-3 w-3 mr-1" />
+                            View accommodation details
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
-                {generatedPlan.days.length > 2 && (
-                  <p className="text-muted-foreground text-center">
-                    + {generatedPlan.days.length - 2} more days
-                  </p>
-                )}
               </div>
             </div>
           </div>
           
-          <p className="text-sm mb-3">
-            Would you like to save this complete trip to your account?
-          </p>
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => {
-              // Add a request for any adjustment
-              setInput("The plan looks good, but could you make some changes to it?");
-              chatWithAI("The plan looks good, but could you make some changes to it?");
-            }}>
-              Suggest Changes
-            </Button>
-            <Button onClick={handleSaveTrip} disabled={createTripMutation.isPending}>
-              {createTripMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  Save Trip
-                </>
-              )}
-            </Button>
+          <div className="flex justify-between items-center mb-3">
+            <p className="text-sm">
+              Would you like to save this complete trip to your account?
+            </p>
+            <div className="flex space-x-2">
+              <Button variant="outline" onClick={() => {
+                // Add a request for any adjustment
+                setInput("The plan looks good, but could you make some changes to it?");
+                chatWithAI("The plan looks good, but could you make some changes to it?");
+              }}>
+                Suggest Changes
+              </Button>
+              <Button onClick={handleSaveTrip} disabled={createTripMutation.isPending}>
+                {createTripMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    Save Trip
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       )}
