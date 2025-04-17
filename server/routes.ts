@@ -176,34 +176,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
                                    accommodationType && activityTypes && activityFrequency;
         
         if (hasEssentialDetails && (tripDetails.confirmed || isConfirmationRequest)) {
-          // Formulate preferences for the AI
-          const formattedPreferences = [
-            ...(accommodationType || []).map((type: string) => `Accommodation: ${type}`),
-            ...(activityTypes || []).map((type: string) => `Activity: ${type}`),
-            `Activity Frequency: ${activityFrequency || 'moderate'}`
-          ];
-          
-          // Calculate trip duration
-          const duration = Math.floor((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1;
-          
-          console.log(`Generating full itinerary for trip to ${destination}, ${duration} days, budget: $${budget}`);
-          
-          // Generate a full trip plan
-          plan = await generateTripSuggestions(
-            destination,
-            formattedPreferences,
-            budget,
-            duration,
-            startDate,
-            endDate,
-            numberOfPeople || 1,
-            chatHistory
-          );
-          
-          systemPrompt = `You are Juno AI, a travel planning assistant. 
-          The user is planning a trip to ${destination} from ${startDate} to ${endDate} with a budget of $${budget}.
-          I've created a full itinerary for them. Let them know that their complete itinerary is ready to review and save. 
-          Tell them they can suggest changes or save the trip to their account.`;
+          try {
+            // Formulate preferences for the AI
+            const formattedPreferences = [
+              ...(accommodationType || []).map((type: string) => `Accommodation: ${type}`),
+              ...(activityTypes || []).map((type: string) => `Activity: ${type}`),
+              `Activity Frequency: ${activityFrequency || 'moderate'}`
+            ];
+            
+            // Calculate trip duration
+            const duration = Math.floor((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            
+            console.log(`Generating full itinerary for trip to ${destination}, ${duration} days, budget: $${budget}`);
+            
+            // Generate a full trip plan
+            try {
+              plan = await generateTripSuggestions(
+                destination,
+                formattedPreferences,
+                budget,
+                duration,
+                startDate,
+                endDate,
+                numberOfPeople || 1,
+                chatHistory
+              );
+              
+              console.log("Successfully generated plan:", !!plan);
+              
+              systemPrompt = `You are Juno AI, a travel planning assistant. 
+              The user is planning a trip to ${destination} from ${startDate} to ${endDate} with a budget of $${budget}.
+              I've created a full itinerary for them. Let them know that their complete itinerary is ready to review and save. 
+              Tell them they can suggest changes or save the trip to their account.`;
+            } catch (tripGenError) {
+              console.error("Error generating trip suggestions:", tripGenError);
+              // Fallback to using OpenAI to generate a response indicating there was an error
+              systemPrompt = `You are Juno AI, a travel planning assistant. 
+              The user is planning a trip to ${destination} from ${startDate} to ${endDate} with a budget of $${budget}.
+              There was an issue generating their complete itinerary. Apologize for the problem and ask them if they'd 
+              like to try again. Let them know this shouldn't normally happen.`;
+            }
+          } catch (error) {
+            console.error("Error in AI chat itinerary generation:", error);
+            systemPrompt = "You are Juno AI, a travel planning assistant. There was an error generating the itinerary. Apologize and ask if they'd like to try again with their request.";
+          }
         }
       }
       

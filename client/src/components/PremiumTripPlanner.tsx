@@ -66,6 +66,7 @@ export function PremiumTripPlanner() {
   });
   const [collectedDetails, setCollectedDetails] = useState<string[]>([]);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showRetryGeneration, setShowRetryGeneration] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -457,7 +458,8 @@ Is this information correct? I'll create your itinerary once you confirm.
       }
       
       // Get the next question to ask, one at a time in sequence
-      if (!hasAllRequiredDetails()) {
+      // Only ask follow-up questions if we found new details AND if we didn't get a response plan
+      if (!hasAllRequiredDetails() && detailsFound && !data.plan) {
         setTimeout(() => {
           let followUpMessage = '';
           
@@ -488,11 +490,11 @@ Is this information correct? I'll create your itinerary once you confirm.
               content: followUpMessage,
               timestamp: new Date()
             }]);
-          } else if (hasAllRequiredDetails() && !tripDetails.confirmed && !showConfirmation) {
-            // If we have all details but haven't yet confirmed, show confirmation
-            promptForConfirmation();
           }
         }, 1000);
+      } else if (hasAllRequiredDetails() && !tripDetails.confirmed && !showConfirmation) {
+        // If we have all details but haven't yet confirmed, show confirmation
+        promptForConfirmation();
       }
     } catch (error) {
       console.error('Error getting AI response:', error);
@@ -507,20 +509,24 @@ Is this information correct? I'll create your itinerary once you confirm.
   };
 
   // Handle confirmation of trip details
-  const handleConfirmDetails = () => {
+  const handleConfirmDetails = (retry = false) => {
     // Update state to mark details as confirmed
     setTripDetails(prev => ({ ...prev, confirmed: true }));
     setShowConfirmation(false);
     
     // Send a confirmation message from the user and trigger itinerary generation
-    const confirmMessage = 'Yes, that information is correct. Please create my itinerary.';
+    const confirmMessage = retry 
+      ? 'Yes, please try again to generate my itinerary.' 
+      : 'Yes, that information is correct. Please create my itinerary.';
     
     // Add user confirmation to chat history immediately for better UX
-    setMessages(prev => [...prev, {
-      role: 'user',
-      content: confirmMessage,
-      timestamp: new Date()
-    }]);
+    if (!retry) {
+      setMessages(prev => [...prev, {
+        role: 'user',
+        content: confirmMessage,
+        timestamp: new Date()
+      }]);
+    }
     
     // Add loading state while waiting for response
     setLoading(true);
@@ -545,6 +551,21 @@ Is this information correct? I'll create your itinerary once you confirm.
       if (data.plan) {
         setGeneratedPlan(data.plan);
         console.log("Received full itinerary from server:", data.plan);
+      } else if (data.response.toLowerCase().includes("error") || 
+                data.response.toLowerCase().includes("issue") || 
+                data.response.toLowerCase().includes("problem") ||
+                data.response.toLowerCase().includes("apologize")) {
+        // If AI apologizes or mentions an error but no plan was returned, add a retry button
+        setTimeout(() => {
+          setMessages(prev => [...prev, {
+            role: 'system',
+            content: 'Would you like to try generating your itinerary again?',
+            timestamp: new Date()
+          }]);
+          
+          // Set a retry UI
+          setShowRetryGeneration(true);
+        }, 1000);
       }
       
       setLoading(false);
@@ -557,6 +578,9 @@ Is this information correct? I'll create your itinerary once you confirm.
         variant: 'destructive'
       });
       setLoading(false);
+      
+      // Show retry option
+      setShowRetryGeneration(true);
     });
   };
 
@@ -672,9 +696,34 @@ Is this information correct? I'll create your itinerary once you confirm.
             <Button variant="outline" size="sm" onClick={handleEditDetails}>
               Edit Details
             </Button>
-            <Button size="sm" onClick={handleConfirmDetails}>
+            <Button size="sm" onClick={(e) => { e.preventDefault(); handleConfirmDetails(false); }}>
               <CheckCircle className="w-4 h-4 mr-1" />
               Confirm
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      {/* Retry Generation UI */}
+      {showRetryGeneration && (
+        <div className="p-4 mb-4 mx-4 bg-amber-50 dark:bg-amber-900 rounded-lg">
+          <div className="flex items-center mb-3">
+            <RefreshCw className="text-amber-600 dark:text-amber-300 w-5 h-5 mr-2" />
+            <h3 className="font-semibold">Retry Itinerary Generation</h3>
+          </div>
+          <p className="text-sm mb-3">
+            There was an issue generating your itinerary. Would you like to try again?
+          </p>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" size="sm" onClick={() => setShowRetryGeneration(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={() => {
+              setShowRetryGeneration(false);
+              handleConfirmDetails(true);
+            }}>
+              <RefreshCw className="w-4 h-4 mr-1" />
+              Retry
             </Button>
           </div>
         </div>
