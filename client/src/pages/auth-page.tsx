@@ -30,11 +30,11 @@ export default function AuthPage() {
     if (user) {
       // Check if there's a pending trip in localStorage
       const pendingTripData = localStorage.getItem("pendingTripData");
-
+      
       if (pendingTripData) {
         // Clear the pending trip data from localStorage
         localStorage.removeItem("pendingTripData");
-
+        
         // Redirect to the plan trip page
         setLocation("/plan?restore=true");
       } else {
@@ -57,7 +57,7 @@ export default function AuthPage() {
       <div className="w-full max-w-[1200px] grid md:grid-cols-2 gap-4">
         <div className="flex flex-col justify-center">
           <div className="mb-8 flex justify-center">
-            <img src="./j2.webp" alt="Juno" className="h-48 w-auto" />
+            <img src="/juno_logo.webp" alt="Juno" className="h-48 w-auto" />
           </div>
           <div className="md:hidden">
             <h1 className="text-4xl font-bold mb-4 text-center">AI Travel Planner</h1>
