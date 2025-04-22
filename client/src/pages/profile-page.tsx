@@ -62,6 +62,34 @@ export default function ProfilePage() {
     isLoading: subscriptionLoading 
   } = useSubscription();
   
+  // Get archived trips
+  const { data: archivedTrips, isLoading: archivedTripsLoading } = useQuery<Trip[]>({
+    queryKey: ["/api/trips/archived"],
+    enabled: !!user,
+  });
+  
+  // Unarchive a trip
+  const unarchiveMutation = useMutation({
+    mutationFn: async (tripId: number) => {
+      await apiRequest("POST", `/api/trips/${tripId}/unarchive`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trips/archived"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+      toast({
+        title: "Success",
+        description: "Trip unarchived successfully and moved back to My Trips.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to unarchive trip",
+        variant: "destructive",
+      });
+    }
+  });
+  
   const [loading, setLoading] = useState(false);
   const [profileData, setProfileData] = useState({
     firstName: '',
@@ -372,6 +400,71 @@ export default function ProfilePage() {
     if (!activeSubscription?.currentPeriodEnd) return '';
     
     return formatSubscriptionDate(activeSubscription.currentPeriodEnd);
+  };
+  
+  // Generate PDF for archived trips
+  const generatePDF = async (trip: Trip) => {
+    const pdf = new jsPDF();
+    let yPos = 20;
+    const lineHeight = 10;
+
+    // Title and Basic Info
+    pdf.setFontSize(20);
+    pdf.text(trip.title, 20, yPos);
+    yPos += lineHeight * 2;
+
+    pdf.setFontSize(12);
+    pdf.text(`Destination: ${trip.destination}`, 20, yPos);
+    yPos += lineHeight;
+
+    // Fix date display in PDF
+    const startDate = parseISO(trip.startDate);
+    const endDate = parseISO(trip.endDate);
+    pdf.text(`Dates: ${format(startDate, "MMM d, yyyy")} - ${format(endDate, "MMM d, yyyy")}`, 20, yPos);
+    yPos += lineHeight;
+    pdf.text(`Budget: $${trip.budget}`, 20, yPos);
+    yPos += lineHeight * 2;
+
+    // Itinerary
+    if (trip.itinerary?.days) {
+      pdf.setFontSize(16);
+      pdf.text("Daily Itinerary", 20, yPos);
+      yPos += lineHeight;
+      pdf.setFontSize(12);
+
+      trip.itinerary.days.forEach((day: any) => {
+        if (yPos > 270) {
+          pdf.addPage();
+          yPos = 20;
+        }
+
+        pdf.setFontSize(14);
+        const dayDate = parseISO(day.date);
+        pdf.text(format(dayDate, "EEEE, MMMM d, yyyy"), 20, yPos);
+        yPos += lineHeight;
+        pdf.setFontSize(12);
+
+        day.activities.timeSlots.forEach((slot: any) => {
+          if (yPos > 270) {
+            pdf.addPage();
+            yPos = 20;
+          }
+          pdf.text(`• ${slot.time} - ${slot.activity}`, 30, yPos);
+          yPos += lineHeight;
+          if (slot.location) {
+            pdf.text(`  Location: ${slot.location}`, 35, yPos);
+            yPos += lineHeight;
+          }
+        });
+        yPos += lineHeight;
+      });
+    }
+
+    pdf.save(`${trip.title.replace(/\s+/g, '_')}_itinerary.pdf`);
+    toast({
+      title: "Success",
+      description: "Trip details downloaded as PDF",
+    });
   };
 
   // Show loading state while data is loading
@@ -698,6 +791,89 @@ export default function ProfilePage() {
                       </div>
                       <Badge variant="outline" className="bg-green-50">Active</Badge>
                     </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="archive" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Archived Trips</CardTitle>
+                    <CardDescription>
+                      Access and manage your archived trips
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {archivedTripsLoading ? (
+                      <div className="py-8 text-center">
+                        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                        <p className="text-muted-foreground">Loading archived trips...</p>
+                      </div>
+                    ) : !archivedTrips?.length ? (
+                      <div className="py-8 text-center">
+                        <Archive className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                        <h3 className="text-lg font-medium mb-2">No archived trips</h3>
+                        <p className="text-muted-foreground mb-4">
+                          You haven't archived any trips yet. Archived trips will appear here.
+                        </p>
+                        <Button asChild variant="outline">
+                          <Link href="/my-trips">Go to My Trips</Link>
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {archivedTrips.map((trip) => (
+                          <div key={trip.id} className="border rounded-lg p-4 transition-colors hover:bg-accent/5">
+                            <div className="flex justify-between items-start mb-3">
+                              <div>
+                                <h3 className="font-medium text-lg">{trip.title}</h3>
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                  <span className="flex items-center text-sm text-muted-foreground">
+                                    <MapPin className="h-3.5 w-3.5 mr-1" />
+                                    {trip.destination}
+                                  </span>
+                                  <span className="flex items-center text-sm text-muted-foreground">
+                                    <Calendar className="h-3.5 w-3.5 mr-1" />
+                                    {format(parseISO(trip.startDate), "MMM d")} - {format(parseISO(trip.endDate), "MMM d, yyyy")}
+                                  </span>
+                                  <span className="flex items-center text-sm text-muted-foreground">
+                                    <DollarSign className="h-3.5 w-3.5 mr-1" />
+                                    ${trip.budget}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => generatePDF(trip)}
+                                  title="Download PDF"
+                                  className="flex gap-2 items-center"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  PDF
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => unarchiveMutation.mutate(trip.id)}
+                                  disabled={unarchiveMutation.isPending}
+                                  title="Restore trip to My Trips"
+                                  className="flex gap-2 items-center"
+                                >
+                                  {unarchiveMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="h-4 w-4" />
+                                  )}
+                                  Restore
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
