@@ -102,6 +102,27 @@ export default function MyTrips() {
       });
     }
   });
+  
+  const archiveMutation = useMutation({
+    mutationFn: async (tripId: number) => {
+      await apiRequest("POST", `/api/trips/${tripId}/archive`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+      setShowSettingsMenu(null);
+      toast({
+        title: "Success",
+        description: "Trip archived successfully. View archived trips in your profile.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to archive trip",
+        variant: "destructive",
+      });
+    }
+  });
 
   const updateActivityMutation = useMutation({
     mutationFn: async ({
@@ -355,39 +376,85 @@ export default function MyTrips() {
                   >
                     <Download className="h-4 w-4 text-muted-foreground" />
                   </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm" className="flex gap-2">
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Trip</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete this trip? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => deleteMutation.mutate(trip.id)}
-                          className="bg-destructive hover:bg-destructive/90"
-                          disabled={deleteMutation.isPending}
-                        >
-                          {deleteMutation.isPending ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Deleting...
-                            </>
-                          ) : (
-                            "Delete"
-                          )}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowSettingsMenu(showSettingsMenu === trip.id ? null : trip.id);
+                      }}
+                      title="Trip Settings"
+                    >
+                      <Settings className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                    
+                    {showSettingsMenu === trip.id && (
+                      <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-background border border-border z-10">
+                        <div className="py-1 rounded-md bg-background" role="menu" aria-orientation="vertical">
+                          <button
+                            className="flex items-center w-full px-4 py-2 text-sm hover:bg-accent"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              archiveMutation.mutate(trip.id);
+                            }}
+                            disabled={archiveMutation.isPending}
+                          >
+                            {archiveMutation.isPending ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Archiving...
+                              </>
+                            ) : (
+                              <>
+                                <Archive className="h-4 w-4 mr-2" />
+                                Archive Trip
+                              </>
+                            )}
+                          </button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button
+                                className="flex items-center w-full px-4 py-2 text-sm text-destructive hover:bg-accent"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete Trip
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Trip</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this trip? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => {
+                                    deleteMutation.mutate(trip.id);
+                                    setShowSettingsMenu(null);
+                                  }}
+                                  className="bg-destructive hover:bg-destructive/90"
+                                  disabled={deleteMutation.isPending}
+                                >
+                                  {deleteMutation.isPending ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Deleting...
+                                    </>
+                                  ) : (
+                                    "Delete"
+                                  )}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <CardHeader className="cursor-pointer" onClick={() => setExpandedTrip(expandedTrip === trip.id ? null : trip.id)}>

@@ -2,7 +2,7 @@ import { useState, useEffect, ChangeEvent } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useSubscription } from '@/hooks/use-subscription';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Layout, ContentContainer } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,8 +37,18 @@ import {
   Lock, 
   Mail, 
   UserCircle,
-  Home
+  Home,
+  Archive,
+  Download,
+  RefreshCw,
+  Loader2,
+  MapPin,
+  DollarSign
 } from 'lucide-react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Trip } from '@shared/schema';
+import { format, parseISO } from 'date-fns';
+import jsPDF from 'jspdf';
 import { Link } from 'wouter';
 
 export default function ProfilePage() {
@@ -487,6 +497,10 @@ export default function ProfilePage() {
                 <TabsTrigger value="security">
                   <Lock className="h-4 w-4 mr-2" />
                   Security
+                </TabsTrigger>
+                <TabsTrigger value="archive">
+                  <Archive className="h-4 w-4 mr-2" />
+                  Archive
                 </TabsTrigger>
               </TabsList>
               
