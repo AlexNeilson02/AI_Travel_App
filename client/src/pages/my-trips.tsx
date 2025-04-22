@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Trip } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, DollarSign, MapPin, Trash2, Download, Edit2, ExternalLink, ChevronRight, Plus } from "lucide-react";
+import { Loader2, Calendar, DollarSign, MapPin, Trash2, Download, Edit2, ExternalLink, ChevronRight, Plus, Settings, Archive, MoreHorizontal } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import {
   AlertDialog,
@@ -69,6 +69,7 @@ export default function MyTrips() {
   const [showAddActivityDialog, setShowAddActivityDialog] = useState(false);
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
+  const [showSettingsMenu, setShowSettingsMenu] = useState<number | null>(null);
   const [newActivity, setNewActivity] = useState<Partial<TimeSlot>>({
     time: "",
     activity: "",
