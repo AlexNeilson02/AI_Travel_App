@@ -28,8 +28,11 @@ export interface IStorage {
   createTrip(userId: number, trip: InsertTrip): Promise<Trip>;
   getTrip(id: number): Promise<Trip | undefined>;
   getUserTrips(userId: number): Promise<Trip[]>;
+  getUserArchivedTrips(userId: number): Promise<Trip[]>;
   updateTrip(id: number, trip: Partial<Trip>): Promise<Trip>;
   deleteTrip(id: number): Promise<void>;
+  archiveTrip(id: number): Promise<Trip>;
+  unarchiveTrip(id: number): Promise<Trip>;
   getPopularDestinations(): Promise<string[]>;
   
   // Subscription Plan Methods
@@ -152,7 +155,34 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(trips)
-      .where(and(eq(trips.userId, userId), eq(trips.isActive, true)));
+      .where(
+        and(
+          eq(trips.userId, userId), 
+          eq(trips.isActive, true),
+          eq(trips.isArchived, false)
+        )
+      );
+  }
+  
+  async getUserArchivedTrips(userId: number): Promise<Trip[]> {
+    return await db
+      .select()
+      .from(trips)
+      .where(
+        and(
+          eq(trips.userId, userId), 
+          eq(trips.isActive, true),
+          eq(trips.isArchived, true)
+        )
+      );
+  }
+  
+  async archiveTrip(id: number): Promise<Trip> {
+    return await this.updateTrip(id, { isArchived: true });
+  }
+  
+  async unarchiveTrip(id: number): Promise<Trip> {
+    return await this.updateTrip(id, { isArchived: false });
   }
 
   async updateTrip(id: number, tripUpdate: Partial<Trip>): Promise<Trip> {

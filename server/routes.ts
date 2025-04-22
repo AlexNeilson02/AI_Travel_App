@@ -129,6 +129,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await storage.deleteTrip(trip.id);
     res.sendStatus(204);
   });
+  
+  app.post("/api/trips/:id/archive", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const tripId = parseInt(req.params.id);
+    const trip = await storage.getTrip(tripId);
+    if (!trip || trip.userId !== req.user.id) {
+      return res.sendStatus(404);
+    }
+    const archivedTrip = await storage.archiveTrip(tripId);
+    res.json(archivedTrip);
+  });
+  
+  app.post("/api/trips/:id/unarchive", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const tripId = parseInt(req.params.id);
+    const trip = await storage.getTrip(tripId);
+    if (!trip || trip.userId !== req.user.id) {
+      return res.sendStatus(404);
+    }
+    const unarchivedTrip = await storage.unarchiveTrip(tripId);
+    res.json(unarchivedTrip);
+  });
+  
+  app.get("/api/trips/archived", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const archivedTrips = await storage.getUserArchivedTrips(req.user.id);
+    res.json(archivedTrips);
+  });
 
   app.post("/api/suggest-trip", async (req, res) => {
     // Allow non-authenticated users to get trip suggestions

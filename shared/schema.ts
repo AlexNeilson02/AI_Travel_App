@@ -81,6 +81,7 @@ export const trips = pgTable("trips", {
     }[];
   }>(),
   isActive: boolean("is_active").notNull().default(true),
+  isArchived: boolean("is_archived").notNull().default(false),
 });
 
 export const locations = pgTable("locations", {
