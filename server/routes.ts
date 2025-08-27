@@ -82,6 +82,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(trips);
   });
 
+  app.get("/api/trips/archived", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const archivedTrips = await storage.getUserArchivedTrips(req.user.id);
+    res.json(archivedTrips);
+  });
+
   app.get("/api/trips/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
@@ -152,13 +159,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const unarchivedTrip = await storage.unarchiveTrip(tripId);
     res.json(unarchivedTrip);
-  });
-  
-  app.get("/api/trips/archived", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    const archivedTrips = await storage.getUserArchivedTrips(req.user.id);
-    res.json(archivedTrips);
   });
 
   app.post("/api/suggest-trip", async (req, res) => {

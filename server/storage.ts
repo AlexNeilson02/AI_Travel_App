@@ -130,7 +130,7 @@ export class DatabaseStorage implements IStorage {
       budget: trip.budget,
       currency: 'USD', // Default currency
       preferences: trip.preferences,
-      itinerary,
+      itinerary: itinerary || { days: [] }, // Ensure itinerary is never undefined
       isActive: true
     };
 
@@ -254,7 +254,7 @@ export class DatabaseStorage implements IStorage {
       description: plan.description,
       stripePriceId: plan.stripePriceId,
       monthlyPrice: plan.monthlyPrice,
-      features: plan.features,
+      features: Array.isArray(plan.features) ? plan.features : [], // Ensure features is array
       maxTrips: plan.maxTrips,
       isActive: plan.isActive !== undefined ? plan.isActive : true
     };
