@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Trip } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, DollarSign, MapPin, Trash2, Download, Edit2, ExternalLink, ChevronRight, Plus, Settings, Archive, MoreHorizontal } from "lucide-react";
+import { Loader2, Calendar, DollarSign, MapPin, Trash2, Download, Edit2, ExternalLink, ChevronRight, Plus, Settings, Archive, MoreHorizontal, ArchiveRestore } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import {
   AlertDialog,
@@ -26,6 +26,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { PremiumFeature } from "@/components/PremiumFeature";
 
@@ -70,6 +71,7 @@ export default function MyTrips() {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
   const [showSettingsMenu, setShowSettingsMenu] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState("active");
   const [newActivity, setNewActivity] = useState<Partial<TimeSlot>>({
     time: "",
     activity: "",
@@ -81,6 +83,10 @@ export default function MyTrips() {
 
   const { data: trips, isLoading } = useQuery<Trip[]>({
     queryKey: ["/api/trips"],
+  });
+
+  const { data: archivedTrips, isLoading: isLoadingArchived } = useQuery<Trip[]>({
+    queryKey: ["/api/trips/archived"],
   });
 
   const deleteMutation = useMutation({
@@ -109,16 +115,39 @@ export default function MyTrips() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trips/archived"] });
       setShowSettingsMenu(null);
       toast({
         title: "Success",
-        description: "Trip archived successfully. View archived trips in your profile.",
+        description: "Trip archived successfully.",
       });
     },
     onError: (error) => {
       toast({
         title: "Error",
         description: "Failed to archive trip",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const unarchiveMutation = useMutation({
+    mutationFn: async (tripId: number) => {
+      await apiRequest("POST", `/api/trips/${tripId}/unarchive`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trips/archived"] });
+      setShowSettingsMenu(null);
+      toast({
+        title: "Success",
+        description: "Trip restored successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to restore trip",
         variant: "destructive",
       });
     }
@@ -258,8 +287,8 @@ export default function MyTrips() {
     yPos += lineHeight;
 
     // Fix date display in PDF
-    const startDate = parseISO(trip.startDate);
-    const endDate = parseISO(trip.endDate);
+    const startDate = parseISO(trip.startDate.toString());
+    const endDate = parseISO(trip.endDate.toString());
     pdf.text(`Dates: ${format(startDate, "MMM d, yyyy")} - ${format(endDate, "MMM d, yyyy")}`, 20, yPos);
     yPos += lineHeight;
     pdf.text(`Budget: $${trip.budget}`, 20, yPos);
@@ -272,7 +301,7 @@ export default function MyTrips() {
       yPos += lineHeight;
       pdf.setFontSize(12);
 
-      trip.itinerary.days.forEach((day: TripDay) => {
+      trip.itinerary.days.forEach((day: any) => {
         if (yPos > 270) {
           pdf.addPage();
           yPos = 20;
@@ -350,22 +379,29 @@ export default function MyTrips() {
           </div>
         </div>
 
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        ) : !trips?.length ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center h-64">
-              <p className="text-muted-foreground mb-4">No trips planned yet</p>
-              <Button variant="outline" asChild>
-                <Link href="/plan-trip">Plan Your First Trip</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {trips.map((trip) => (
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="active">Active Trips</TabsTrigger>
+            <TabsTrigger value="archived">Archived Trips</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="active" className="mt-8">
+            {isLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : !trips?.length ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center h-64">
+                  <p className="text-muted-foreground mb-4">No trips planned yet</p>
+                  <Button variant="outline" asChild>
+                    <Link href="/plan-trip">Plan Your First Trip</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {trips.map((trip) => (
               <Card key={trip.id} className="relative">
                 <div className="absolute top-4 right-4 flex gap-2">
                   <Button
@@ -476,8 +512,8 @@ export default function MyTrips() {
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
                       <Calendar className="h-4 w-4 mr-2" />
-                      {format(parseISO(trip.itinerary?.days[0]?.date), "MMM d, yyyy")} to{" "}
-                      {format(parseISO(trip.itinerary?.days[trip.itinerary.days.length - 1]?.date), "MMM d, yyyy")}
+                      {trip.itinerary?.days?.[0]?.date && format(parseISO(trip.itinerary.days[0].date), "MMM d, yyyy")} to{" "}
+                      {trip.itinerary?.days?.[trip.itinerary.days.length - 1]?.date && format(parseISO(trip.itinerary.days[trip.itinerary.days.length - 1].date), "MMM d, yyyy")}
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
                       <DollarSign className="h-4 w-4 mr-2" />
@@ -551,9 +587,201 @@ export default function MyTrips() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+                ))}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="archived" className="mt-8">
+            {isLoadingArchived ? (
+              <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : !archivedTrips?.length ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center h-64">
+                  <p className="text-muted-foreground mb-4">No archived trips</p>
+                  <p className="text-sm text-muted-foreground">Trips that have passed their dates can be archived to keep your active trips organized.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {archivedTrips.map((trip) => (
+                  <Card key={trip.id} className="relative opacity-75">
+                    <div className="absolute top-4 right-4 flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => generatePDF(trip)}
+                        title="Download PDF"
+                      >
+                        <Download className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                      <div className="relative">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowSettingsMenu(showSettingsMenu === trip.id ? null : trip.id);
+                          }}
+                          title="Trip Settings"
+                        >
+                          <Settings className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                        
+                        {showSettingsMenu === trip.id && (
+                          <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-background border border-border z-10">
+                            <div className="py-1 rounded-md bg-background" role="menu" aria-orientation="vertical">
+                              <button
+                                className="flex items-center w-full px-4 py-2 text-sm hover:bg-accent"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  unarchiveMutation.mutate(trip.id);
+                                }}
+                                disabled={unarchiveMutation.isPending}
+                              >
+                                {unarchiveMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Restoring...
+                                  </>
+                                ) : (
+                                  <>
+                                    <ArchiveRestore className="h-4 w-4 mr-2" />
+                                    Restore Trip
+                                  </>
+                                )}
+                              </button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <button
+                                    className="flex items-center w-full px-4 py-2 text-sm text-destructive hover:bg-accent"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Trip
+                                  </button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Trip</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete this trip? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => {
+                                        deleteMutation.mutate(trip.id);
+                                        setShowSettingsMenu(null);
+                                      }}
+                                      className="bg-destructive hover:bg-destructive/90"
+                                      disabled={deleteMutation.isPending}
+                                    >
+                                      {deleteMutation.isPending ? (
+                                        <>
+                                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                          Deleting...
+                                        </>
+                                      ) : (
+                                        "Delete"
+                                      )}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <CardHeader className="cursor-pointer" onClick={() => setExpandedTrip(expandedTrip === trip.id ? null : trip.id)}>
+                      <CardTitle className="flex items-center justify-between pr-24">
+                        <span>{trip.title} <span className="text-sm text-muted-foreground font-normal">(Archived)</span></span>
+                        <ChevronRight
+                          className={cn(
+                            "h-5 w-5 transition-transform",
+                            expandedTrip === trip.id ? "rotate-90" : ""
+                          )}
+                        />
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <MapPin className="h-4 w-4 mr-2" />
+                          {trip.destination}
+                        </div>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          {trip.itinerary?.days?.[0]?.date && format(parseISO(trip.itinerary.days[0].date), "MMM d, yyyy")} to{" "}
+                          {trip.itinerary?.days?.[trip.itinerary.days.length - 1]?.date && format(parseISO(trip.itinerary.days[trip.itinerary.days.length - 1].date), "MMM d, yyyy")}
+                        </div>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <DollarSign className="h-4 w-4 mr-2" />
+                          Budget: ${trip.budget}
+                        </div>
+
+                        {expandedTrip === trip.id && trip.itinerary?.days && (
+                          <div className="mt-4 space-y-4">
+                            <h3 className="font-medium">Itinerary</h3>
+                            {trip.itinerary.days.map((day, dayIndex) => (
+                              <div key={dayIndex} className="border rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h4 className="font-medium">
+                                    {day.dayOfWeek} - {format(parseISO(day.date), "MMM d, yyyy")}
+                                  </h4>
+                                </div>
+                                {day.activities.timeSlots.map((slot, slotIndex) => (
+                                  <div key={slotIndex} className="ml-4 mb-2">
+                                    <div className="flex items-start justify-between">
+                                      <div>
+                                        <p className="font-medium">{slot.time}</p>
+                                        <p>{slot.activity}</p>
+                                        {slot.location && (
+                                          <p className="text-sm text-muted-foreground">
+                                            Location: {slot.location}
+                                          </p>
+                                        )}
+                                        {slot.duration && (
+                                          <p className="text-sm text-muted-foreground">
+                                            Duration: {slot.duration}
+                                          </p>
+                                        )}
+                                        {slot.notes && (
+                                          <p className="text-sm text-muted-foreground">
+                                            Notes: {slot.notes}
+                                          </p>
+                                        )}
+                                        {slot.url && (
+                                          <a
+                                            href={slot.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary hover:text-primary/80 inline-flex items-center gap-1"
+                                          >
+                                            Visit website <ExternalLink className="h-3 w-3" />
+                                          </a>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </main>
 
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
