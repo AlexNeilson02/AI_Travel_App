@@ -403,51 +403,50 @@ export default function MyTrips() {
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {trips.map((trip) => (
               <Card key={trip.id} className="relative">
-                <div className="absolute top-4 right-4 flex gap-2">
+                <div className="absolute top-4 right-4 flex gap-2 z-10">
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => generatePDF(trip)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      generatePDF(trip);
+                    }}
                     title="Download PDF"
                   >
                     <Download className="h-4 w-4 text-muted-foreground" />
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      archiveMutation.mutate(trip.id);
+                    }}
+                    disabled={archiveMutation.isPending}
+                    title="Archive Trip"
+                  >
+                    {archiveMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Archive className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
                   <div className="relative">
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="icon"
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowSettingsMenu(showSettingsMenu === trip.id ? null : trip.id);
                       }}
-                      title="Trip Settings"
+                      title="More Options"
                     >
-                      <Settings className="h-4 w-4 text-muted-foreground" />
+                      <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                     </Button>
                     
                     {showSettingsMenu === trip.id && (
-                      <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-background border border-border z-10">
+                      <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-background border border-border z-20">
                         <div className="py-1 rounded-md bg-background" role="menu" aria-orientation="vertical">
-                          <button
-                            className="flex items-center w-full px-4 py-2 text-sm hover:bg-accent"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              archiveMutation.mutate(trip.id);
-                            }}
-                            disabled={archiveMutation.isPending}
-                          >
-                            {archiveMutation.isPending ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Archiving...
-                              </>
-                            ) : (
-                              <>
-                                <Archive className="h-4 w-4 mr-2" />
-                                Archive Trip
-                              </>
-                            )}
-                          </button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <button
