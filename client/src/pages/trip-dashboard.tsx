@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useRoute, Link } from "wouter";
 import { format, parseISO, isBefore, startOfDay, differenceInMinutes } from "date-fns";
@@ -70,14 +70,15 @@ import {
   CreditCard,
   AlertCircle,
   Calendar,
-  CheckCircle2
+  CheckCircle2,
+  Archive
 } from "lucide-react";
 import { jsPDF } from "jspdf";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Trip } from "@shared/schema";
 import TripMap from "@/components/TripMap";
 import TripCalendar from "@/components/TripCalendar";
 import { EventInput } from "@fullcalendar/core";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface TimeSlot {
   time: string;
@@ -147,6 +148,37 @@ export default function TripDashboard() {
   // Query all trips
   const { data: trips, isLoading } = useQuery<Trip[]>({
     queryKey: ["/api/trips"],
+  });
+
+  // Archive trip mutation
+  const archiveMutation = useMutation({
+    mutationFn: async (tripId: number) => {
+      await apiRequest("POST", `/api/trips/${tripId}/archive`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trips/archived"] });
+      toast({
+        title: "Success",
+        description: "Trip archived successfully and moved to your profile.",
+      });
+      // If we archived the currently selected trip, select another one
+      if (trips && trips.length > 1) {
+        const remainingTrips = trips.filter(trip => trip.id !== selectedTripId);
+        if (remainingTrips.length > 0) {
+          setSelectedTripId(remainingTrips[0].id);
+        }
+      } else {
+        setSelectedTripId(null);
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to archive trip",
+        variant: "destructive",
+      });
+    }
   });
 
   // Get current trip
@@ -747,6 +779,21 @@ export default function TripDashboard() {
               ))}
             </SelectContent>
           </Select>
+          {currentTrip && (
+            <Button
+              variant="outline"
+              onClick={() => archiveMutation.mutate(currentTrip.id)}
+              disabled={archiveMutation.isPending}
+              title="Archive this trip"
+            >
+              {archiveMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Archive className="h-4 w-4 mr-2" />
+              )}
+              Archive Trip
+            </Button>
+          )}
         </div>
         
         {currentTrip && (
