@@ -12,7 +12,7 @@ async function generateFollowUpQuestion(
 ): Promise<string> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
@@ -122,7 +122,7 @@ Your response must be structured as a JSON object. Return only the JSON object w
   try {
     console.log('Generating trip suggestions with OpenAI...');
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: [
         { 
           role: "system", 
