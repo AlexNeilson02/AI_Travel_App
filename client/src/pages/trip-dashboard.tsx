@@ -1130,7 +1130,7 @@ export default function TripDashboard() {
                       <CardDescription>Interactive map of your trip locations</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="h-[500px]">
+                      <div className="h-[700px]">
                         {currentTrip.itinerary?.days && (
                           <PremiumFeature feature="maps">
                             <TripMap
