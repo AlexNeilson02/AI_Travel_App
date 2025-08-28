@@ -921,6 +921,17 @@ export function PremiumTripPlanner() {
                 </Button>
               </div>
             )}
+            {/* Manual trigger for itinerary build */}
+          <div className="flex justify-center mt-4">
+            <Button
+              onClick={() => generateItinerary(false)}
+              variant="default"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Let’s Build My Itinerary
+            </Button>
+          </div>
+
           </div>
         </CardContent>
         <CardFooter className="border-t pt-3">
