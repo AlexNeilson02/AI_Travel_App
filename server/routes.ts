@@ -285,13 +285,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate a response using OpenAI
       const response = await openai.chat.completions.create({
-        model: "gpt-5",
+        model: "gpt-4o",
         messages: [
           { role: "system", content: systemPrompt },
           ...chatHistory,
           { role: "user", content: message }
         ],
-        temperature: 0.7,
       });
       
       const responseText = response.choices[0].message.content || "I'm having trouble understanding. Could you try rephrasing your question?";

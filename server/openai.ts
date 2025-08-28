@@ -12,7 +12,7 @@ async function generateFollowUpQuestion(
 ): Promise<string> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-5",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
@@ -25,7 +25,6 @@ async function generateFollowUpQuestion(
         },
         ...chatHistory,
       ],
-      temperature: 0.7,
     });
 
     return response.choices[0].message.content || "What specific activities interest you the most?";
@@ -122,7 +121,7 @@ Your response must be structured as a JSON object. Return only the JSON object w
   try {
     console.log('Generating trip suggestions with OpenAI...');
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-5",
+      model: "gpt-4o",
       messages: [
         { 
           role: "system", 
@@ -130,7 +129,6 @@ Your response must be structured as a JSON object. Return only the JSON object w
         },
         { role: "user", content: `${systemPrompt}\nPlease provide costs in both local currency and USD. Remember to include REAL AND WORKING URLs for EVERY activity - this is critically important!` }
       ],
-      temperature: 0.8,
       max_completion_tokens: 4000,
     });
 
